@@ -5,6 +5,8 @@ class AppTheme {
   static const Color background = Color(0xFFF3F7FB);
   static const Color surfaceContainerLow = Color(0xFFECF1F6);
   static const Color surfaceContainer = Color(0xFFE3E9EE);
+  static const Color surfaceContainerHigh = Color(0xFFDDE3E8);
+  static const Color surfaceContainerHighest = Color(0xFFD7DEE3);
   static const Color surfaceContainerLowest = Color(0xFFFFFFFF);
   
   static const Color primaryContainer = Color(0xFFFFD709);

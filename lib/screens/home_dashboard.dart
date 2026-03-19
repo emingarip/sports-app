@@ -12,6 +12,12 @@ class HomeDashboard extends StatefulWidget {
 class _HomeDashboardState extends State<HomeDashboard> {
   int _selectedSportIndex = 0;
   int _selectedBottomNavIndex = 0;
+  String _activeFilter = 'All';
+  final Map<String, bool> _expandedLeagues = {
+    'premier_league': true,
+    'la_liga': true,
+    'league_two': false,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -29,22 +35,78 @@ class _HomeDashboardState extends State<HomeDashboard> {
               CustomScrollView(
             slivers: [
               _buildAppBar(context),
-              _buildDateNavigator(),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _buildLeagueHeader('Premier League', 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png'),
-                    const SizedBox(height: 16),
-                    _buildMatchesList(),
-                    const SizedBox(height: 32),
-                    _buildLeagueHeader('La Liga', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/LaLiga.svg/1200px-LaLiga.svg.png'),
-                    const SizedBox(height: 16),
-                    _buildFeaturedMatchCard(),
-                    const SizedBox(height: 120), // Bottom padding
-                  ]),
+              _buildStickyContext(),
+              
+              if (_activeFilter == 'All' || _activeFilter == 'Starred ⭐')
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                  sliver: SliverToBoxAdapter(child: _buildFeaturedMatchCard()),
                 ),
+
+              _buildLeagueGroup(
+                id: 'premier_league',
+                name: 'Premier League',
+                logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png',
+                totalMatches: 8,
+                matches: [
+                  _buildMatchRow(
+                    isLive: true,
+                    statusTime: "75'",
+                    homeTeam: "Arsenal",
+                    homeScore: "2",
+                    awayTeam: "Chelsea",
+                    awayScore: "1",
+                    homeLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png",
+                    awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/1200px-Chelsea_FC.svg.png",
+                    actionText: "PREDICT",
+                    hasBorder: true,
+                  ),
+                ],
               ),
+
+              _buildLeagueGroup(
+                id: 'la_liga',
+                name: 'La Liga',
+                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/LaLiga.svg/1200px-LaLiga.svg.png',
+                totalMatches: 12,
+                matches: [
+                  _buildMatchRow(
+                     isLive: false,
+                     statusTime: "Full Time",
+                     homeTeam: "R. Madrid",
+                     homeScore: "3",
+                     awayTeam: "Barcelona",
+                     awayScore: "1",
+                     homeLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/1200px-Real_Madrid_CF.svg.png",
+                     awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png",
+                     actionText: "STATS",
+                     hasBorder: false,
+                  ),
+                ],
+              ),
+
+              _buildLeagueGroup(
+                id: 'league_two',
+                name: 'English League Two',
+                logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png', 
+                totalMatches: 24,
+                matches: [
+                  _buildMatchRow(
+                    isLive: false,
+                    statusTime: "Upcoming",
+                    homeTeam: "Wrexham",
+                    homeScore: "-",
+                    awayTeam: "Notts Co",
+                    awayScore: "-",
+                    homeLogo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Wrexham_AFC_logo.svg/1200px-Wrexham_AFC_logo.svg.png",
+                    awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/Notts_County_Logo.svg/1200px-Notts_County_Logo.svg.png",
+                    actionText: "ODDS 2.10",
+                    hasBorder: false,
+                  ),
+                ],
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
           _buildFloatingAudioRoom(),
@@ -155,35 +217,58 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildDateNavigator() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 16.0, bottom: 8.0, left: 16, right: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left, color: AppTheme.textMedium),
-              onPressed: () {},
-            ),
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+  Widget _buildStickyContext() {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _StickyHeaderDelegate(
+        minHeight: 124,
+        maxHeight: 124,
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              color: AppTheme.background.withOpacity(0.85),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildRefinedDateTab('SUN', '17', false),
-                  _buildRefinedDateTab('MON', '18', false),
-                  _buildRefinedDateTab('TODAY', 'TUE 19', true),
-                  _buildRefinedDateTab('WED', '20', false),
-                  _buildRefinedDateTab('THU', '21', false),
+                  _buildDateNavigatorContent(),
+                  _buildQuickFilters(),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right, color: AppTheme.textMedium),
-              onPressed: () {},
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDateNavigatorContent() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0, left: 16, right: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, color: AppTheme.textMedium),
+            onPressed: () {},
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildRefinedDateTab('SUN', '17', false),
+                _buildRefinedDateTab('MON', '18', false),
+                _buildRefinedDateTab('TODAY', 'TUE 19', true),
+                _buildRefinedDateTab('WED', '20', false),
+                _buildRefinedDateTab('THU', '21', false),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, color: AppTheme.textMedium),
+            onPressed: () {},
+          ),
+        ],
       ),
     );
   }
@@ -215,58 +300,128 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildLeagueHeader(String name, String iconUrl) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Image.network(iconUrl, width: 24, height: 24, errorBuilder: (ctx, err, _) => const Icon(Icons.shield, size: 24)),
-            const SizedBox(width: 12),
-            Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textHigh)),
-          ],
-        ),
-        const Icon(Icons.chevron_right, color: AppTheme.textLow),
-      ],
+  Widget _buildQuickFilters() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _buildFilterChip('All'),
+          _buildFilterChip('Live 🔴'),
+          _buildFilterChip('Starred ⭐'),
+          _buildFilterChip('Finished'),
+        ],
+      ),
     );
   }
 
-  Widget _buildMatchesList() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.surfaceContainerLow),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
+  Widget _buildFilterChip(String label) {
+    bool isSelected = _activeFilter == label;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _activeFilter = label;
+            // Smart Filter Expansion Logic
+            if (label == 'Live 🔴') {
+              _expandedLeagues['premier_league'] = true; // Pretend it has a live match
+              _expandedLeagues['league_two'] = false;
+            } else if (label == 'Finished') {
+              _expandedLeagues['la_liga'] = true;
+              _expandedLeagues['premier_league'] = false;
+            }
+          });
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primary : AppTheme.surfaceContainerHigh.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isSelected ? AppTheme.surfaceContainerLowest : AppTheme.textHigh,
+            ),
+          ),
+        ),
       ),
-      child: Column(
-        children: [
-          _buildMatchRow(
-            isLive: true,
-            statusTime: "75'",
-            homeTeam: "Arsenal",
-            homeScore: "2",
-            awayTeam: "Chelsea",
-            awayScore: "1",
-            homeLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png",
-            awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/1200px-Chelsea_FC.svg.png",
-            actionText: "PREDICT",
-            hasBorder: true,
+    );
+  }
+
+  Widget _buildLeagueGroup({
+    required String id,
+    required String name,
+    required String logo,
+    required List<Widget> matches,
+    required int totalMatches,
+  }) {
+    bool isExpanded = _expandedLeagues[id] ?? false;
+
+    // Filter hiding logic for UX Strategy Demonstration
+    if (_activeFilter == 'Live 🔴' && id != 'premier_league') return const SliverToBoxAdapter(child: SizedBox());
+    if (_activeFilter == 'Finished' && id == 'premier_league') return const SliverToBoxAdapter(child: SizedBox());
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverMainAxisGroup(
+        slivers: [
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _StickyHeaderDelegate(
+              minHeight: 48,
+              maxHeight: 48,
+              child: Container(
+                color: AppTheme.background,
+                alignment: Alignment.center,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _expandedLeagues[id] = !isExpanded;
+                    });
+                  },
+                  child: Row(
+                    children: [
+                      Image.network(logo, width: 24, height: 24, errorBuilder: (ctx, err, _) => const Icon(Icons.shield, size: 24)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textHigh), overflow: TextOverflow.ellipsis),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                           color: AppTheme.surfaceContainerLow,
+                           borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text("$totalMatches Matches", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textMedium)),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: AppTheme.textMedium),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-          _buildMatchRow(
-            isLive: false,
-            statusTime: "Full Time",
-            homeTeam: "Everton",
-            homeScore: "0",
-            awayTeam: "Liverpool",
-            awayScore: "3",
-            homeLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/f/f9/Everton_FC_logo.svg/1200px-Everton_FC_logo.svg.png",
-            awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/0/0c/Liverpool_FC.svg/1200px-Liverpool_FC.svg.png",
-            actionText: "ODDS 1.45",
-            hasBorder: false,
-          ),
+          if (isExpanded)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.surfaceContainerLow),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                child: Column(
+                  children: matches,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -618,5 +773,29 @@ class _HomeDashboardState extends State<HomeDashboard> {
         ),
       ),
     );
+  }
+}
+
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double minHeight;
+  final double maxHeight;
+
+  _StickyHeaderDelegate({required this.child, required this.minHeight, required this.maxHeight});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  bool shouldRebuild(covariant _StickyHeaderDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight || minHeight != oldDelegate.minHeight || child != oldDelegate.child;
   }
 }
