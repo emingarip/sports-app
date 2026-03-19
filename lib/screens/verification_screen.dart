@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'home_dashboard.dart';
+import 'verification_success_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -225,9 +225,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(32),
                               onTap: _isFilled ? () {
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (_) => const HomeDashboard()),
-                                  (route) => false,
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (_) => const VerificationSuccessScreen()),
                                 );
                               } : null,
                               child: Center(
