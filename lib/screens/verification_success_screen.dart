@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../theme/app_theme.dart';
-import 'home_dashboard.dart';
+import 'onboarding/welcome_screen.dart';
 
 class VerificationSuccessScreen extends StatefulWidget {
   const VerificationSuccessScreen({super.key});
@@ -30,7 +30,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeDashboard()),
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
           (route) => false,
         );
       }
