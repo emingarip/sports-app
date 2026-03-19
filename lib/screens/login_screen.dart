@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'home_dashboard.dart';
+import 'verification_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -158,8 +159,8 @@ class LoginScreen extends StatelessWidget {
                         height: 64,
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => const HomeDashboard()),
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const VerificationScreen(phoneNumber: "+90 555 123 45 67")),
                             );
                           },
                           style: ElevatedButton.styleFrom(
