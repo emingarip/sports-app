@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kinetic Scores | Sports Home Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-high": "#e6e8ea",
+              "tertiary": "#00696f",
+              "surface-dim": "#d8dadc",
+              "inverse-on-surface": "#eff1f3",
+              "inverse-surface": "#2d3133",
+              "on-primary-container": "#705e00",
+              "primary-fixed": "#ffe16d",
+              "surface-container-low": "#f2f4f6",
+              "primary-container": "#ffd700",
+              "error": "#ba1a1a",
+              "on-tertiary-fixed": "#002022",
+              "on-error": "#ffffff",
+              "on-secondary-container": "#722104",
+              "on-primary-fixed": "#221b00",
+              "on-primary-fixed-variant": "#544600",
+              "outline": "#7e775f",
+              "on-tertiary-fixed-variant": "#004f54",
+              "surface-variant": "#e0e3e5",
+              "tertiary-fixed-dim": "#00dbe8",
+              "on-secondary-fixed": "#3a0b00",
+              "inverse-primary": "#e9c400",
+              "surface-bright": "#f7f9fb",
+              "surface-container": "#eceef0",
+              "surface": "#f7f9fb",
+              "background": "#f7f9fb",
+              "on-surface": "#191c1e",
+              "on-background": "#191c1e",
+              "on-tertiary-container": "#006a70",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed-variant": "#7f2a0d",
+              "tertiary-container": "#00f1ff",
+              "surface-container-lowest": "#ffffff",
+              "on-error-container": "#93000a",
+              "on-secondary": "#ffffff",
+              "secondary": "#9f4122",
+              "secondary-fixed-dim": "#ffb59e",
+              "secondary-container": "#fd8863",
+              "on-primary": "#ffffff",
+              "surface-tint": "#705d00",
+              "secondary-fixed": "#ffdbd0",
+              "on-surface-variant": "#4d4732",
+              "tertiary-fixed": "#79f5ff",
+              "primary-fixed-dim": "#e9c400",
+              "outline-variant": "#d0c6ab",
+              "surface-container-highest": "#e0e3e5",
+              "on-tertiary": "#ffffff",
+              "primary": "#705d00"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-background min-h-screen flex flex-col">
+<!-- Top Navigation Shell (Shared Component: TopAppBar) -->
+<header class="bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl sticky top-0 z-[100]">
+<div class="flex flex-col w-full px-6 py-4 space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden border border-outline-variant/20">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a male user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9XZppQdtdZnZjfQ-YsQPNaVVetqZqFqKIHHyq0sRPKYREx0HrDCJmxvaAWqlYqBCT-M_pNb7Lwuof3df460dZLojQ1e4xtiqFEeVrmdZLaSQLy4j6kVN7ACU_C-SCqvmdxkSG0r8tGvsC62lQhf6rZDsA553c9fmpg29Jy36OgzPxxerqe0WowLVkMXe9sYjgWbeHjx1rkO6eut9O7f5XqeFiMF8CWxG9dnYYD05F3ffIxHurJWf7c7yEIgQ5_ls6dTKrGMx-WARQ"/>
+</div>
+<h1 class="font-['Lexend'] font-black uppercase tracking-tighter text-slate-900 dark:text-white text-xl">Kinetic Scores</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors">
+<span class="material-symbols-outlined text-slate-500">search</span>
+</button>
+<button class="p-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors">
+<span class="material-symbols-outlined text-slate-500">notifications</span>
+</button>
+</div>
+</div>
+<!-- Sport Selector (Horizontal) -->
+<nav class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-yellow-400 dark:bg-yellow-500 text-slate-900 font-headline font-bold text-sm whitespace-nowrap shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sports_soccer</span>
+                    Football
+                </button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-low text-slate-500 font-headline font-medium text-sm whitespace-nowrap hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">sports_basketball</span>
+                    Basketball
+                </button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-low text-slate-500 font-headline font-medium text-sm whitespace-nowrap hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">sports_tennis</span>
+                    Tennis
+                </button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-low text-slate-500 font-headline font-medium text-sm whitespace-nowrap hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">sports_esports</span>
+                    E-Sports
+                </button>
+</nav>
+</div>
+<div class="bg-slate-100 dark:bg-slate-800 h-px w-full opacity-50"></div>
+</header>
+<main class="flex-1 px-6 pb-32">
+<!-- Sticky Date Navigator -->
+<div class="sticky top-[138px] z-40 py-6 bg-background/95 backdrop-blur-sm">
+<div class="flex bg-surface-container-low p-1.5 rounded-full shadow-sm max-w-sm mx-auto">
+<button class="flex-1 py-2 text-xs font-headline font-semibold text-slate-500 rounded-full hover:text-slate-900 transition-colors">Yesterday</button>
+<button class="flex-1 py-2 text-xs font-headline font-bold bg-primary-container text-on-primary-container rounded-full shadow-md">Today</button>
+<button class="flex-1 py-2 text-xs font-headline font-semibold text-slate-500 rounded-full hover:text-slate-900 transition-colors">Tomorrow</button>
+</div>
+</div>
+<div class="space-y-10">
+<!-- League Section: Premier League -->
+<section>
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-3">
+<img alt="League Logo" class="w-6 h-6 object-contain" data-alt="English Premier League logo circular icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHRu50q9e0dZqOrGad3HtYzIWM0lmf1MFLGhxFu40ftVafjwkAYBBEyTklr7GAiJSRoOsB3Ao5lGB8FhmnhZiBwmG-sWLYMO9NvcRyrQFMHSzSsWByrKjUlHVIE-ksnpFFx4AmS-wD5X4-sMb-_CqNkmmEKLXqmS3je58YNhp0ge-l_7qjoTqziyylu4KE3HiPXtLZ5fRzgSdoh9zYgud4DoiYSXippX-Z_WbeAor3R-cP6EeKNSjoqdrLSdDlQ-byQYSA2AFa4vjC"/>
+<h2 class="font-headline font-bold text-lg text-slate-900 tracking-tight">Premier League</h2>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+<!-- Match Group Card -->
+<div class="bg-surface-container-lowest rounded-DEFAULT overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
+<!-- Match Row 1 (Live) -->
+<div class="group flex items-center justify-between p-5 hover:bg-surface-container-low transition-colors border-b border-surface-container-low last:border-0">
+<div class="w-16 flex flex-col items-center justify-center">
+<span class="text-[10px] font-bold text-error uppercase tracking-widest animate-pulse">Live</span>
+<span class="font-headline font-bold text-error text-sm">75'</span>
+</div>
+<div class="flex-1 flex items-center justify-center gap-8 px-4">
+<div class="flex flex-col items-center gap-2 w-24">
+<img alt="Arsenal" class="w-8 h-8 object-contain" data-alt="Arsenal club crest logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLiHU2TYcbJ-IwGl16JJwroiSwP3snzRAdoAptGE4odMBs5lHA8P9EVRATxKZrrfRRq_KzD413cyUyqaNWaIIdiaDAdd9tagvmpSkw_R1pGZ-i5qU6JkBgLBl-Zb3HelCgEvv_S7ny1P2WpJj5QsC6sBhHcRR-g81EvN7JrX_d-fcAEi4pim0OZZLYmo3WSzKvMUbfFLfepBpdyUSyFx3IexxmD19vA5h_NDfp_GW78YbLA-eCLA0GuKwNYI49MVu9awBLYHuAhpp1"/>
+<span class="text-xs font-bold text-slate-800 text-center">Arsenal</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-headline font-extrabold text-2xl text-slate-900">2</span>
+<span class="text-slate-300 font-light text-xl">-</span>
+<span class="font-headline font-extrabold text-2xl text-slate-900">1</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-24">
+<img alt="Chelsea" class="w-8 h-8 object-contain" data-alt="Chelsea club crest logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVUYPGzdjUISmKmISg4adsoaPn5w9edBNN-BOCvZXsDMetJ6MvO2n-afrEg3yaAwXrP58XfNOvyMWkH3RbY3NLtfTU1lhtv9XIJHU7EOrpz0pjPeKcx1DS4Lus9MK555Apus23beNRBK_Qodkf53f_eYyGPfST1r8VpIz_WTi4dZzm_dd0RM4-xmz0FFbQc9MZdFhAbgNqcSJIXqhDk8v5_Qxmv0HGSvUjkCGc0bbQ_MgYICSYaob6GrGitJRfuumy4cxPLGKQ-M3o"/>
+<span class="text-xs font-bold text-slate-800 text-center">Chelsea</span>
+</div>
+</div>
+<button class="px-4 py-1.5 rounded-full border border-secondary-container text-secondary font-headline font-bold text-[10px] uppercase tracking-wider hover:bg-secondary-container hover:text-white transition-all">
+                            Predict
+                        </button>
+</div>
+<!-- Match Row 2 -->
+<div class="group flex items-center justify-between p-5 hover:bg-surface-container-low transition-colors border-b border-surface-container-low last:border-0">
+<div class="w-16 flex flex-col items-center justify-center">
+<span class="font-headline font-semibold text-slate-400 text-xs uppercase tracking-tight">Full Time</span>
+</div>
+<div class="flex-1 flex items-center justify-center gap-8 px-4">
+<div class="flex flex-col items-center gap-2 w-24">
+<img alt="Everton" class="w-8 h-8 object-contain opacity-60" data-alt="Everton club crest logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV5lGdVSZFFCfTWPxyU0f07dQqB9LxiI2_omSsmdTJCA_XSu1qMxheR61vMom7Ek8giqYSJDsdM3bY-l1qD68-v2-48qIuUk0Lajmij-yLH1pmAK2IktrLOp1QCmv15YSnemsJe7gzDgt8O_Itp1ZfHIUMHMUW1tKSIHV0ym2MlcRCOtNNRPSCkZGTDnUkhgoHP3-y9TfVp6jOQ-bOVvaQdmpjYPxhQM1sLwAvOnQEl8MXB_F_v3V13gYf51tVsROmF6xFi2eeHOXB"/>
+<span class="text-xs font-semibold text-slate-500 text-center">Everton</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-headline font-bold text-2xl text-slate-400">0</span>
+<span class="text-slate-200 font-light text-xl">-</span>
+<span class="font-headline font-bold text-2xl text-slate-900">3</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-24">
+<img alt="Liverpool" class="w-8 h-8 object-contain" data-alt="Liverpool club crest logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbBUIslay-cf6fmNzH2cNvQarYNsZUfa8qtSd1V8DnvpScZW35g1AL6DzGVKJ3RY7Uquz2syEzU7YBykxcAKRyOka3Kvq74OrM0gM40cjjovX1QfNvmn9OnMHUTnDd9FvMyxiV5Ie6VUqh94WZOSYJ1k8z2f4IX844cDrxPKR4uE1Tt6vuoykj-SZSpBUMjPrllVWCwBps8cjhckDM5GgftJXwo-GJuWsZ3bV9BG_1KThTTVYW-46OELWXnE01Lsiw3I7qYCgfBAsK"/>
+<span class="text-xs font-bold text-slate-800 text-center">Liverpool</span>
+</div>
+</div>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-low text-slate-400 font-headline font-bold text-[10px] uppercase tracking-wider">
+                            Odds 1.45
+                        </button>
+</div>
+</div>
+</section>
+<!-- League Section: La Liga (Bento style highlight) -->
+<section>
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-3">
+<img alt="La Liga" class="w-6 h-6 object-contain" data-alt="La Liga official league logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrtpDRhPKlvf_Fp-CTwSnSHpX4slkGWgyeG65g0pAXQjUfQnxl3NFoPPxkI6s6GO0ykNEYaIXs2m7ai-d-AhzMDuAwNhvKX6HauOrwSkojSMQeKUFH16uQBfWqHkAYTYvPfrBXnlEWXH0T-0q2C7wWiSxe8FvUsVqeqlbzcMnW6-QzENCbiS8_iVSBMVYO4l2m0ONW8jAqvSlEVAUB6meYqPh2yvqBIq4VrtdE1sF_SAnUCofOYpcyWCxTFSFAmK8eOiREdMs95PpI"/>
+<h2 class="font-headline font-bold text-lg text-slate-900 tracking-tight">La Liga</h2>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Feature Match Card -->
+<div class="md:col-span-2 relative bg-surface-container-lowest rounded-DEFAULT p-6 shadow-[0_8px_20px_rgba(0,0,0,0.04)] overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+<div class="flex justify-between items-start relative z-10">
+<div class="space-y-4 flex-1">
+<div class="flex items-center gap-2 bg-secondary-container/10 text-secondary-container px-3 py-1 rounded-full w-fit">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary-container"></span>
+<span class="text-[10px] font-bold uppercase tracking-widest">El Clásico • Featured</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex flex-col items-center gap-3">
+<div class="w-16 h-16 p-2 rounded-2xl bg-surface-container-low">
+<img alt="Real Madrid" class="w-full h-full object-contain" data-alt="Real Madrid club crest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB02zZV0kJ0Pc2Mc2f9IayzIdLKzaVB6L1SaIGFKQk7Cmm9AHxpHQGg3Fo1sxR9ZKXaQ-dfPHxmUtEgtzLS8UNWfoXUfl820i5batbqcUUSTk7tUM9SmjB53fhwd2q_V7SvwmP5Ty6AO8nhHMlwZ1d7hak-WY_droC4KDVnWNm48aONXF_EGg0YqfZsC3oOpVUURXPO8NFbnxzZrfIu4gvircZfebbjAwd0aB8hXTzPyX-oFCfiREt3U6J_CPnJi1BBx7OTvelxSy_j"/>
+</div>
+<span class="font-headline font-bold text-sm">R. Madrid</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-xs font-bold text-slate-400 mb-1">Starts at</span>
+<span class="font-headline font-black text-3xl text-slate-900">21:00</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-16 h-16 p-2 rounded-2xl bg-surface-container-low">
+<img alt="Barcelona" class="w-full h-full object-contain" data-alt="FC Barcelona club crest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAt5_Wy-cLElbLf2gUyWhwr0J_1_rkXioY8Jui9s4we5xciG3s-CHG8mxPyScPVTTVPATdNYOcRuS19GFyhuCGPakMAwVXR-upqpwujt_ohFANp8mOz2DjJ8rXusLjdfOAoA_23gzDalTeahmDvLM8QeoY1VKWfSwzLKWiAOv1FFjb3xn2vAtO2K134NWOGyd9OCB3zJzDDkQC8T3sNexB3GrFaoOOPzzAqKbaOnY35MpDy0cCh8oI-cATwuhTI_dFETbXrTM8px05"/>
+</div>
+<span class="font-headline font-bold text-sm">Barcelona</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<button class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-md active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button class="w-12 h-12 rounded-full bg-surface-container-high text-slate-600 flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined">share</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Floating Live Audio Room Indicator -->
+<div class="fixed bottom-28 right-6 z-50">
+<div class="bg-slate-900 text-white rounded-full pl-2 pr-5 py-2 flex items-center gap-3 shadow-xl border border-slate-700/50 backdrop-blur-md">
+<div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-900" style="font-variation-settings: 'FILL' 1;">mic</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-yellow-400 uppercase tracking-tighter leading-none">Live Room</span>
+<span class="text-xs font-bold text-white whitespace-nowrap">Match Reaction • 2.4k</span>
+</div>
+<div class="flex items-center gap-0.5 h-3 ml-1">
+<div class="w-0.5 bg-yellow-400 h-full rounded-full animate-[bounce_1s_infinite]"></div>
+<div class="w-0.5 bg-yellow-400 h-1/2 rounded-full animate-[bounce_0.8s_infinite]"></div>
+<div class="w-0.5 bg-yellow-400 h-2/3 rounded-full animate-[bounce_1.2s_infinite]"></div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar (Shared Component: BottomNavBar) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center p-2 mb-4">
+<div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-full mx-6 w-full flex justify-around items-center p-2 shadow-[0_12px_32px_rgba(25,28,30,0.1)]">
+<a class="flex flex-col items-center justify-center bg-yellow-400 dark:bg-yellow-500 text-slate-900 rounded-full px-5 py-2 tap-highlight-none active:scale-90 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sports_soccer</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-widest mt-1">Matches</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-5 py-2 hover:text-yellow-600 dark:hover:text-yellow-300 tap-highlight-none active:scale-90 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-widest mt-1">Predictions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-5 py-2 hover:text-yellow-600 dark:hover:text-yellow-300 tap-highlight-none active:scale-90 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-widest mt-1">Community</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-5 py-2 hover:text-yellow-600 dark:hover:text-yellow-300 tap-highlight-none active:scale-90 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-widest mt-1">Profile</span>
+</a>
+</div>
+</nav>
+<style>
+        @keyframes bounce {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
+        }
+    </style>
+</body></html>
