@@ -1,6 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../models/match.dart' as model;
+import '../models/league.dart';
+import '../data/mock_data.dart';
+import '../widgets/league_group.dart';
+import '../widgets/filter_row.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/sticky_header_delegate.dart';
 
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
@@ -13,14 +20,120 @@ class _HomeDashboardState extends State<HomeDashboard> {
   int _selectedSportIndex = 0;
   int _selectedBottomNavIndex = 0;
   String _activeFilter = 'All';
-  final Map<String, bool> _expandedLeagues = {
-    'premier_league': true,
-    'la_liga': true,
-    'league_two': false,
-  };
+  
+  late List<model.Match> _allMatches;
+  final Set<String> _expandedLeagues = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _allMatches = MockData.getMatches();
+    // Default expansion
+    if (MockData.leagues.isNotEmpty) {
+      _expandedLeagues.add(MockData.leagues.first.id);
+    }
+  }
+
+  void _onFilterChanged(String filter) {
+    setState(() {
+      _activeFilter = filter;
+      _expandedLeagues.clear();
+      
+      // Smart Auto-expansion rules
+      if (filter == 'Live 🔴') {
+        final liveLeagues = _allMatches
+            .where((m) => m.status == model.MatchStatus.live)
+            .map((m) => m.leagueId);
+        _expandedLeagues.addAll(liveLeagues);
+      } else if (filter == 'Starred ⭐') {
+        final favLeagues = _allMatches
+            .where((m) => m.isFavorite)
+            .map((m) => m.leagueId);
+        _expandedLeagues.addAll(favLeagues);
+      } else {
+        // Default expansion
+         if (MockData.leagues.isNotEmpty) {
+           _expandedLeagues.add(MockData.leagues.first.id);
+         }
+      }
+    });
+  }
+
+  List<model.Match> _getFilteredMatches() {
+    return _allMatches.where((m) {
+      if (_activeFilter == 'Live 🔴') return m.status == model.MatchStatus.live;
+      if (_activeFilter == 'Starred ⭐') return m.isFavorite;
+      if (_activeFilter == 'Finished') return m.status == model.MatchStatus.finished;
+      return true; // All
+    }).toList();
+  }
+
+  List<Widget> _buildLeagueSlivers() {
+    final filtered = _getFilteredMatches();
+    if (filtered.isEmpty) {
+      return [const EmptyState(message: "No matches available for this filter")];
+    }
+
+    final Map<String, List<model.Match>> leagueMap = {};
+    for (var m in filtered) {
+       if (m.isFeatured) continue; // Skip displaying featured matches inside leagues
+       leagueMap.putIfAbsent(m.leagueId, () => []).add(m);
+    }
+    
+    // Sort leagues by Tier
+    final sortedLeagues = MockData.leagues.where((l) => leagueMap.containsKey(l.id)).toList()
+       ..sort((a, b) => a.tier.compareTo(b.tier));
+
+    List<Widget> slivers = [];
+    
+    for (var league in sortedLeagues) {
+       var matches = leagueMap[league.id]!;
+       
+       // Priority Match Sorting: Live > Upcoming > Finished
+       matches.sort((a, b) {
+         if (a.status != b.status) {
+            if (a.status == model.MatchStatus.live) return -1;
+            if (b.status == model.MatchStatus.live) return 1;
+            if (a.status == model.MatchStatus.upcoming) return -1;
+            return 1;
+         }
+         return a.startTime.compareTo(b.startTime);
+       });
+
+       slivers.add(LeagueGroup(
+         league: league,
+         matches: matches,
+         isExpanded: _expandedLeagues.contains(league.id),
+         onToggle: () {
+            setState(() {
+              if (_expandedLeagues.contains(league.id)) {
+                _expandedLeagues.remove(league.id);
+              } else {
+                _expandedLeagues.add(league.id);
+              }
+            });
+         },
+       ));
+    }
+    
+    if (slivers.isEmpty) {
+       return [const EmptyState(message: "No non-featured matches available")];
+    }
+    return slivers;
+  }
+
+  model.Match? _getFeaturedMatch() {
+    try {
+      return _allMatches.firstWhere((m) => m.isFeatured);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    var featured = _getFeaturedMatch();
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceContainerLow,
       body: Center(
@@ -33,90 +146,31 @@ class _HomeDashboardState extends State<HomeDashboard> {
           child: Stack(
             children: [
               CustomScrollView(
-            slivers: [
-              _buildAppBar(context),
-              _buildStickyContext(),
-              
-              if (_activeFilter == 'All' || _activeFilter == 'Starred ⭐')
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                  sliver: SliverToBoxAdapter(child: _buildFeaturedMatchCard()),
-                ),
+                slivers: [
+                  _buildAppBar(context),
+                  _buildStickyContext(),
+                  
+                  if (featured != null && (_activeFilter == 'All' || _activeFilter == 'Starred ⭐'))
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                      sliver: SliverToBoxAdapter(child: _buildFeaturedMatchCard(featured)),
+                    ),
 
-              _buildLeagueGroup(
-                id: 'premier_league',
-                name: 'Premier League',
-                logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png',
-                totalMatches: 8,
-                matches: [
-                  _buildMatchRow(
-                    isLive: true,
-                    statusTime: "75'",
-                    homeTeam: "Arsenal",
-                    homeScore: "2",
-                    awayTeam: "Chelsea",
-                    awayScore: "1",
-                    homeLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png",
-                    awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/1200px-Chelsea_FC.svg.png",
-                    actionText: "PREDICT",
-                    hasBorder: true,
-                  ),
+                  ..._buildLeagueSlivers(),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
-
-              _buildLeagueGroup(
-                id: 'la_liga',
-                name: 'La Liga',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/LaLiga.svg/1200px-LaLiga.svg.png',
-                totalMatches: 12,
-                matches: [
-                  _buildMatchRow(
-                     isLive: false,
-                     statusTime: "Full Time",
-                     homeTeam: "R. Madrid",
-                     homeScore: "3",
-                     awayTeam: "Barcelona",
-                     awayScore: "1",
-                     homeLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/1200px-Real_Madrid_CF.svg.png",
-                     awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png",
-                     actionText: "STATS",
-                     hasBorder: false,
-                  ),
-                ],
-              ),
-
-              _buildLeagueGroup(
-                id: 'league_two',
-                name: 'English League Two',
-                logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png', 
-                totalMatches: 24,
-                matches: [
-                  _buildMatchRow(
-                    isLive: false,
-                    statusTime: "Upcoming",
-                    homeTeam: "Wrexham",
-                    homeScore: "-",
-                    awayTeam: "Notts Co",
-                    awayScore: "-",
-                    homeLogo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Wrexham_AFC_logo.svg/1200px-Wrexham_AFC_logo.svg.png",
-                    awayLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/Notts_County_Logo.svg/1200px-Notts_County_Logo.svg.png",
-                    actionText: "ODDS 2.10",
-                    hasBorder: false,
-                  ),
-                ],
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              _buildFloatingAudioRoom(),
+              _buildBottomNavBar(),
             ],
           ),
-          _buildFloatingAudioRoom(),
-          _buildBottomNavBar(),
-        ],
+        ),
       ),
-    )));
+    );
   }
 
-  // --- Widgets ---
+  // --- UI Components below (Top / Bottom app bars) ---
   
   SliverAppBar _buildAppBar(BuildContext context) {
     return SliverAppBar(
@@ -153,14 +207,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.search, color: AppTheme.textMedium),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppTheme.textMedium),
-          onPressed: () {},
-        ),
+        IconButton(icon: const Icon(Icons.search, color: AppTheme.textMedium), onPressed: () {}),
+        IconButton(icon: const Icon(Icons.notifications_outlined, color: AppTheme.textMedium), onPressed: () {}),
         const SizedBox(width: 8),
       ],
       bottom: PreferredSize(
@@ -220,7 +268,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
   Widget _buildStickyContext() {
     return SliverPersistentHeader(
       pinned: true,
-      delegate: _StickyHeaderDelegate(
+      delegate: StickyHeaderDelegate(
         minHeight: 124,
         maxHeight: 124,
         child: ClipRect(
@@ -232,7 +280,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildDateNavigatorContent(),
-                  _buildQuickFilters(),
+                  FilterRow(activeFilter: _activeFilter, onFilterChanged: _onFilterChanged),
                 ],
               ),
             ),
@@ -300,240 +348,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildQuickFilters() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          _buildFilterChip('All'),
-          _buildFilterChip('Live 🔴'),
-          _buildFilterChip('Starred ⭐'),
-          _buildFilterChip('Finished'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label) {
-    bool isSelected = _activeFilter == label;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _activeFilter = label;
-            // Smart Filter Expansion Logic
-            if (label == 'Live 🔴') {
-              _expandedLeagues['premier_league'] = true; // Pretend it has a live match
-              _expandedLeagues['league_two'] = false;
-            } else if (label == 'Finished') {
-              _expandedLeagues['la_liga'] = true;
-              _expandedLeagues['premier_league'] = false;
-            }
-          });
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary : AppTheme.surfaceContainerHigh.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: isSelected ? AppTheme.surfaceContainerLowest : AppTheme.textHigh,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLeagueGroup({
-    required String id,
-    required String name,
-    required String logo,
-    required List<Widget> matches,
-    required int totalMatches,
-  }) {
-    bool isExpanded = _expandedLeagues[id] ?? false;
-
-    // Filter hiding logic for UX Strategy Demonstration
-    if (_activeFilter == 'Live 🔴' && id != 'premier_league') return const SliverToBoxAdapter(child: SizedBox());
-    if (_activeFilter == 'Finished' && id == 'premier_league') return const SliverToBoxAdapter(child: SizedBox());
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverMainAxisGroup(
-        slivers: [
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _StickyHeaderDelegate(
-              minHeight: 48,
-              maxHeight: 48,
-              child: Container(
-                color: AppTheme.background,
-                alignment: Alignment.center,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _expandedLeagues[id] = !isExpanded;
-                    });
-                  },
-                  child: Row(
-                    children: [
-                      Image.network(logo, width: 24, height: 24, errorBuilder: (ctx, err, _) => const Icon(Icons.shield, size: 24)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textHigh), overflow: TextOverflow.ellipsis),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                           color: AppTheme.surfaceContainerLow,
-                           borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text("$totalMatches Matches", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textMedium)),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: AppTheme.textMedium),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (isExpanded)
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.surfaceContainerLow),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))],
-                ),
-                child: Column(
-                  children: matches,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMatchRow({
-    required bool isLive,
-    required String statusTime,
-    required String homeTeam,
-    required String homeScore,
-    required String awayTeam,
-    required String awayScore,
-    required String homeLogo,
-    required String awayLogo,
-    required String actionText,
-    required bool hasBorder,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        border: hasBorder ? const Border(bottom: BorderSide(color: AppTheme.surfaceContainerLow)) : null,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Time/Status
-          SizedBox(
-            width: 48,
-            child: Column(
-              children: [
-                if (isLive) const Text("LIVE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppTheme.error, letterSpacing: 1.5)),
-                if (!isLive) Text(statusTime.replaceAll(" ", "\n"), textAlign: TextAlign.center, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textLow, letterSpacing: 0.5, height: 1.1)),
-                if (isLive) Text(statusTime, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.error)),
-              ],
-            ),
-          ),
-          
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Home
-                Expanded(
-                  child: Column(
-                    children: [
-                      Image.network(homeLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
-                      const SizedBox(height: 4),
-                      Text(homeTeam, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
-                    ],
-                  ),
-                ),
-                // Score
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: FittedBox(
-                    child: Row(
-                      children: [
-                        Text(homeScore, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isLive ? AppTheme.textHigh : AppTheme.textLow)),
-                        const SizedBox(width: 8),
-                        const Text("-", style: TextStyle(fontSize: 16, color: AppTheme.surfaceContainer)),
-                        const SizedBox(width: 8),
-                        Text(awayScore, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
-                      ],
-                    ),
-                  ),
-                ),
-                // Away
-                Expanded(
-                  child: Column(
-                    children: [
-                      Image.network(awayLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
-                      const SizedBox(height: 4),
-                      Text(awayTeam, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Action button
-          SizedBox(
-            width: 64,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isLive ? Colors.transparent : AppTheme.surfaceContainerLow,
-                  border: isLive ? Border.all(color: AppTheme.secondaryContainer) : null,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  actionText,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                    color: isLive ? AppTheme.secondary : AppTheme.textLow,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeaturedMatchCard() {
+  Widget _buildFeaturedMatchCard(model.Match match) {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerLowest,
@@ -545,7 +360,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Top right blob
           Positioned(
             top: -50,
             right: -50,
@@ -558,7 +372,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
               ),
             ),
           ),
-          
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Row(
@@ -587,15 +400,15 @@ class _HomeDashboardState extends State<HomeDashboard> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Expanded(child: _buildBentoTeam("R. Madrid", "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/1200px-Real_Madrid_CF.svg.png")),
+                          Expanded(child: _buildBentoTeam(match.homeTeam, match.homeLogo)),
                           Column(
-                            children: const [
-                              Text("Starts at", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textLow)),
-                              SizedBox(height: 4),
-                              Text("21:00", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
+                            children: [
+                              const Text("Starts at", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textLow)),
+                              const SizedBox(height: 4),
+                              Text('${match.startTime.hour.toString().padLeft(2, '0')}:${match.startTime.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
                             ],
                           ),
-                          Expanded(child: _buildBentoTeam("Barcelona", "https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png")),
+                          Expanded(child: _buildBentoTeam(match.awayTeam, match.awayLogo)),
                         ],
                       ),
                     ],
@@ -649,12 +462,12 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
   Widget _buildFloatingAudioRoom() {
     return Positioned(
-      bottom: 100, // Above bottom nav
+      bottom: 100, 
       right: 24,
       child: Container(
         padding: const EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF0F172A), // slate-900
+          color: const Color(0xFF0F172A), 
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10)),
@@ -666,10 +479,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
             Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEAB308), // yellow-500
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(color: Color(0xFFEAB308), shape: BoxShape.circle),
               child: const Icon(Icons.mic, color: Color(0xFF0F172A), size: 20),
             ),
             const SizedBox(width: 12),
@@ -682,7 +492,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
               ],
             ),
             const SizedBox(width: 8),
-            // Fake animation bars
             Row(
               children: [
                 _buildBar(12),
@@ -751,7 +560,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFACC15) : Colors.transparent, // yellow-400
+          color: isSelected ? const Color(0xFFFACC15) : Colors.transparent,
           borderRadius: BorderRadius.circular(30),
         ),
         child: Column(
@@ -773,29 +582,5 @@ class _HomeDashboardState extends State<HomeDashboard> {
         ),
       ),
     );
-  }
-}
-
-class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final double minHeight;
-  final double maxHeight;
-
-  _StickyHeaderDelegate({required this.child, required this.minHeight, required this.maxHeight});
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return SizedBox.expand(child: child);
-  }
-
-  @override
-  double get maxExtent => maxHeight;
-
-  @override
-  double get minExtent => minHeight;
-
-  @override
-  bool shouldRebuild(covariant _StickyHeaderDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight || minHeight != oldDelegate.minHeight || child != oldDelegate.child;
   }
 }
