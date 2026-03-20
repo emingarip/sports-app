@@ -651,7 +651,10 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
 
     return ClipRRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: collapseForce * 16, sigmaY: collapseForce * 16),
+        filter: ImageFilter.blur(
+          sigmaX: (collapseForce * 16) == 0.0 ? 0.001 : collapseForce * 16, 
+          sigmaY: (collapseForce * 16) == 0.0 ? 0.001 : collapseForce * 16
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(1.0 - (1.0 - collapseForce) * 0.15), // from 0.85 to 1.0
