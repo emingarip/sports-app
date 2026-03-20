@@ -136,6 +136,11 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
       _scrollToBottom();
     } catch (e) {
       debugPrint('Error sending message: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hata: $e')),
+        );
+      }
     }
   }
 

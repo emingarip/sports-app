@@ -20,10 +20,10 @@ class ChatService {
             final timeStr = '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
 
             return ChatMessage(
-              id: json['id'],
-              type: isMe ? MessageType.me : MessageType.user,
-              text: json['text'],
-              username: json['username'],
+              id: json['id'] ?? '',
+              type: isMe ? MessageType.me : (json['type'] == 'system_event' ? MessageType.systemEvent : MessageType.user),
+              text: json['message'],
+              username: isMe ? 'You' : 'Fan',
               time: timeStr,
             );
           }).toList();
@@ -35,15 +35,10 @@ class ChatService {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not logged in');
 
-    // Fetch user profile to get username, default to 'Fan' if not found
-    final profileData = await _client.from('users').select('username').eq('id', user.id).maybeSingle();
-    final username = profileData?['username'] ?? 'Fan';
-
     await _client.from('chat_messages').insert({
       'match_id': matchId,
       'user_id': user.id,
-      'username': username,
-      'text': text,
+      'message': text,
     });
   }
 }
