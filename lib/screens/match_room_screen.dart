@@ -235,7 +235,8 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
   }
 
   Widget _buildSystemEvent(ChatMessage msg) {
-    final bool isGoal = msg.systemEventText!.toUpperCase().contains("GOAL");
+    final String eventText = msg.text ?? msg.systemEventText ?? "";
+    final bool isGoal = eventText.toUpperCase().contains("GOAL");
     
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -282,7 +283,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                     ),
                   if (isGoal) const SizedBox(height: 2),
                   Text(
-                    msg.systemEventText ?? "",
+                    eventText,
                     style: TextStyle(
                       fontFamily: 'Lexend',
                       fontSize: isGoal ? 12 : 11,
