@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
+import '../screens/match_room_screen.dart';
 
 class MatchCard extends StatelessWidget {
   final model.Match match;
@@ -17,12 +18,16 @@ class MatchCard extends StatelessWidget {
     
     String actionText = isLive ? 'PREDICT' : (match.status == model.MatchStatus.finished ? 'STATS' : 'ODDS 2.10');
 
-    return Container(
-      decoration: BoxDecoration(
-        border: hasBorder ? const Border(bottom: BorderSide(color: AppTheme.surfaceContainerLow)) : null,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-      child: Row(
+    return InkWell(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => MatchRoomScreen(match: match)));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          border: hasBorder ? const Border(bottom: BorderSide(color: AppTheme.surfaceContainerLow)) : null,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Time/Status
@@ -104,7 +109,7 @@ class MatchCard extends StatelessWidget {
           )
         ],
       ),
-    );
+    ));
   }
 
   String _formatTime(DateTime time) {

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
+import 'services/supabase_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.initialize();
   runApp(const MyApp());
 }
 

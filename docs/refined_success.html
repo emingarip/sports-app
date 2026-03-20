@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-container": "#ffd700",
+              "on-primary-container": "#705e00",
+              "on-tertiary": "#ffffff",
+              "tertiary": "#00696f",
+              "on-tertiary-fixed": "#002022",
+              "background": "#f7f9fb",
+              "surface-tint": "#705d00",
+              "on-error": "#ffffff",
+              "outline": "#7e775f",
+              "surface": "#f7f9fb",
+              "inverse-primary": "#e9c400",
+              "on-surface-variant": "#4d4732",
+              "secondary-fixed": "#ffdbd0",
+              "secondary-container": "#fd8863",
+              "surface-container-low": "#f2f4f6",
+              "tertiary-container": "#00f1ff",
+              "primary-fixed": "#ffe16d",
+              "on-primary": "#ffffff",
+              "inverse-on-surface": "#eff1f3",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#ffb59e",
+              "surface-dim": "#d8dadc",
+              "surface-container-highest": "#e0e3e5",
+              "on-tertiary-container": "#006a70",
+              "surface-variant": "#e0e3e5",
+              "on-secondary-container": "#722104",
+              "on-primary-fixed-variant": "#544600",
+              "error-container": "#ffdad6",
+              "surface-container-high": "#e6e8ea",
+              "on-surface": "#191c1e",
+              "surface-bright": "#f7f9fb",
+              "outline-variant": "#d0c6ab",
+              "surface-container": "#eceef0",
+              "primary-fixed-dim": "#e9c400",
+              "on-background": "#191c1e",
+              "tertiary-fixed-dim": "#00dbe8",
+              "tertiary-fixed": "#79f5ff",
+              "on-tertiary-fixed-variant": "#004f54",
+              "inverse-surface": "#2d3133",
+              "error": "#ba1a1a",
+              "on-error-container": "#93000a",
+              "secondary": "#9f4122",
+              "on-secondary-fixed-variant": "#7f2a0d",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed": "#221b00",
+              "primary": "#705d00",
+              "on-secondary-fixed": "#3a0b00"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .loading-bar-animation {
+        width: 100%;
+        height: 4px;
+        background: #eceef0;
+        position: relative;
+        overflow: hidden;
+      }
+      .loading-bar-progress {
+        position: absolute;
+        height: 100%;
+        background: #ffd700;
+        width: 60%;
+        left: 0;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased overflow-hidden"><div class="fixed top-0 left-0 w-full h-[2px] bg-[#FFD700] z-[60] pointer-events-none"></div>
+<!-- TopAppBar Shell -->
+<header class="w-full top-0 sticky bg-[#f7f9fb] dark:bg-slate-900 z-50">
+<div class="flex items-center justify-between px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500 cursor-pointer" data-icon="arrow_back">arrow_back</span>
+</div>
+<h1 class="font-['Lexend'] font-bold text-lg tracking-tight text-[#705d00] dark:text-[#ffd700]">Verification</h1>
+<div class="w-10"></div> <!-- Spacing for center alignment -->
+</div>
+</header>
+<main class="relative h-[calc(100vh-64px)] w-full flex flex-col items-center justify-center px-8 pb-32">
+<!-- Background Subtle Texture -->
+<div class="absolute inset-0 z-0 opacity-40 pointer-events-none">
+<div class="absolute top-1/4 -left-20 w-80 h-80 bg-primary-container/20 blur-3xl rounded-full"></div>
+<div class="absolute bottom-1/4 -right-20 w-64 h-64 bg-secondary-container/10 blur-3xl rounded-full"></div>
+</div>
+<!-- Success Content Container -->
+<div class="relative z-10 flex flex-col items-center text-center">
+<!-- Hero Checkmark Element -->
+<div class="relative mb-10 group">
+<div class="absolute inset-0 bg-primary-container/20 rounded-full scale-125 blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+<div class="bg-primary-container h-32 w-32 rounded-full flex items-center justify-center shadow-[0_20px_40px_rgba(112,93,0,0.15)] relative z-10">
+<span class="material-symbols-outlined text-on-primary-container text-6xl" style="font-variation-settings: 'FILL' 1, 'wght' 600;">check_circle</span>
+</div>
+</div>
+<!-- Typography Hierarchy -->
+<h2 class="font-headline font-extrabold text-4xl tracking-tight text-on-surface mb-3">
+                Verified
+            </h2>
+<p class="font-body text-outline text-lg max-w-xs leading-relaxed">
+                Successfully authenticated.
+            </p>
+<!-- Status Indicator Section (Editorial Style) -->
+<div class="mt-16 w-full max-w-sm">
+<div class="flex justify-between items-end mb-4 px-1">
+<span class="font-headline font-bold text-xs uppercase tracking-widest text-primary/60">System Ready</span>
+<span class="font-headline font-black text-2xl text-primary">100%</span>
+</div>
+<!-- Loading Cue -->
+<div class="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[85%] rounded-full shadow-[0_0_12px_rgba(255,215,0,0.4)]"></div>
+</div>
+<p class="mt-4 font-body text-[11px] text-outline uppercase tracking-[0.2em] font-medium">Finalizing secure connection...</p>
+</div>
+</div>
+<!-- Visual Anchor (Decorative Branding) -->
+<div class="absolute bottom-40 opacity-10 font-headline font-black text-6xl select-none pointer-events-none">
+            VELOCITY
+        </div>
+</main>
+<!-- BottomNavBar Shell -->
+</body></html>

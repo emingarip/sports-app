@@ -20,11 +20,11 @@ class LoginScreen extends StatelessWidget {
               decoration: const BoxDecoration(
                 border: Border(bottom: BorderSide(color: AppTheme.surfaceContainerLow, width: 1)),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
-                    children: const [
+                    children: [
                       Icon(Icons.verified_user, color: AppTheme.primaryContainer, size: 24),
                       SizedBox(width: 8),
                       Text(
@@ -41,7 +41,7 @@ class LoginScreen extends StatelessWidget {
                     ],
                   ),
                   Row(
-                    children: const [
+                    children: [
                       Icon(Icons.lock, size: 14, color: AppTheme.textLow),
                       SizedBox(width: 6),
                       Text(
@@ -180,8 +180,8 @@ class LoginScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       
                       // Divider
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Expanded(child: Divider(color: AppTheme.surfaceContainer)),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -262,19 +262,19 @@ class LoginScreen extends StatelessWidget {
                      ),
                    ),
                    const SizedBox(height: 24),
-                   Row(
+                   const Row(
                      mainAxisAlignment: MainAxisAlignment.center,
                      children: [
                         Column(
-                          children: const [
+                          children: [
                             Icon(Icons.language, color: AppTheme.textLow),
                             SizedBox(height: 4),
                             Text("EN", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textLow)),
                           ],
                         ),
-                        const SizedBox(width: 32),
+                        SizedBox(width: 32),
                         Column(
-                          children: const [
+                          children: [
                             Icon(Icons.support_agent, color: AppTheme.textLow),
                             SizedBox(height: 4),
                             Text("HELP", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textLow)),

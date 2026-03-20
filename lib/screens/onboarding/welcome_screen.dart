@@ -38,19 +38,19 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 32),
-                        const StepLabel(step: 1),
-                        const SizedBox(height: 16),
-                        const OnboardingHeader(
+                        SizedBox(height: 32),
+                        StepLabel(step: 1),
+                        SizedBox(height: 16),
+                        OnboardingHeader(
                           title: "Welcome to KINETIC",
                           subtitle: "The next-generation sports media platform built for fans who want pure performance and zero clutter.",
                         ),
-                        const Spacer(),
+                        Spacer(),
                         
                         Opacity(
                           opacity: 0.05,
@@ -69,7 +69,7 @@ class WelcomeScreen extends StatelessWidget {
                           ),
                         ),
                         
-                        const Spacer(),
+                        Spacer(),
                       ],
                     ),
                   ),

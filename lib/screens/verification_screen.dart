@@ -138,9 +138,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       const SizedBox(height: 4),
                       InkWell(
                         onTap: () => Navigator.of(context).pop(),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(Icons.edit, size: 16, color: AppTheme.textMedium),
                             SizedBox(width: 4),
                             Text(
@@ -258,11 +258,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
                             ),
                             Text(
                               "Resend code in 00:30",
-                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textLow),
+                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMedium),
                             ),
                           ],
                         ),
-                      )
+                      ),
                       
                     ],
                   ),

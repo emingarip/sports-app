@@ -12,15 +12,23 @@ class AppTheme {
   static const Color primaryContainer = Color(0xFFFFD709);
   static const Color onPrimaryContainer = Color(0xFF5B4B00);
   static const Color primary = Color(0xFF6C5A00);
+  static const Color outline = Color(0xFF7E775F);
   
   static const Color secondaryContainer = Color(0xFFE5E2E1);
   static const Color secondary = Color(0xFF5C5B5B);
   
   static const Color error = Color(0xFFB02500);
+  static const Color errorContainer = Color(0xFFFFDAD6);
+  static const Color onErrorContainer = Color(0xFF93000A);
 
   static const Color textHigh = Color(0xFF2A2F32);
   static const Color textMedium = Color(0xFF575C60);
   static const Color textLow = Color(0xFF73777B);
+  
+  static const Color accent = Color(0xFFFACC15); // Yellow accent
+  static const Color success = Color(0xFF16A34A); // Green success
+  static const Color surface = Color(0xFFFFFFFF); // White surface
+  static const Color surfaceVariant = Color(0xFFE3E9EE); // Gray surface
   
   static ThemeData get lightTheme {
     return ThemeData(
@@ -35,6 +43,8 @@ class AppTheme {
         onPrimaryContainer: onPrimaryContainer,
         secondaryContainer: secondaryContainer,
         error: error,
+        errorContainer: errorContainer,
+        onErrorContainer: onErrorContainer,
       ),
       textTheme: const TextTheme(
         displayLarge: TextStyle(fontWeight: FontWeight.bold, color: textHigh),

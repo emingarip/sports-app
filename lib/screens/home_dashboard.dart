@@ -1,5 +1,7 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
 import '../models/league.dart';
@@ -8,6 +10,12 @@ import '../widgets/league_group.dart';
 import '../widgets/filter_row.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/sticky_header_delegate.dart';
+import 'ai_match_insights_screen.dart';
+import 'match_room_screen.dart';
+import 'prediction_market_screen.dart';
+import '../services/match_service.dart';
+import 'dart:async';
+
 
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
@@ -21,17 +29,31 @@ class _HomeDashboardState extends State<HomeDashboard> {
   int _selectedBottomNavIndex = 0;
   String _activeFilter = 'All';
   
-  late List<model.Match> _allMatches;
+  List<model.Match> _allMatches = [];
   final Set<String> _expandedLeagues = {};
+  StreamSubscription? _matchesSubscription;
 
   @override
   void initState() {
     super.initState();
-    _allMatches = MockData.getMatches();
+    
+    // Subscribe to live matches
+    _matchesSubscription = MatchService().getMatchesStream().listen((matches) {
+      setState(() {
+        _allMatches = matches;
+      });
+    });
+
     // Default expansion
     if (MockData.leagues.isNotEmpty) {
       _expandedLeagues.add(MockData.leagues.first.id);
     }
+  }
+
+  @override
+  void dispose() {
+    _matchesSubscription?.cancel();
+    super.dispose();
   }
 
   void _onFilterChanged(String filter) {
@@ -464,8 +486,14 @@ class _HomeDashboardState extends State<HomeDashboard> {
     return Positioned(
       bottom: 100, 
       right: 24,
-      child: Container(
-        padding: const EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8),
+      child: GestureDetector(
+        onTap: () {
+          if (_allMatches.isEmpty) return;
+          final activeMatch = _allMatches.firstWhere((m) => m.status == model.MatchStatus.live, orElse: () => _allMatches.first);
+          Navigator.push(context, MaterialPageRoute(builder: (_) => MatchRoomScreen(match: activeMatch)));
+        },
+        child: Container(
+          padding: const EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8),
         decoration: BoxDecoration(
           color: const Color(0xFF0F172A), 
           borderRadius: BorderRadius.circular(30),
@@ -483,10 +511,10 @@ class _HomeDashboardState extends State<HomeDashboard> {
               child: const Icon(Icons.mic, color: Color(0xFF0F172A), size: 20),
             ),
             const SizedBox(width: 12),
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Text("LIVE ROOM", style: TextStyle(color: Color(0xFFFACC15), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 Text("Match Reaction • 2.4k", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
               ],
@@ -503,6 +531,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
             )
           ],
         ),
+      ),
       ),
     );
   }
@@ -537,8 +566,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(0, "Matches", Icons.sports_soccer),
-            _buildNavItem(1, "Predictions", Icons.query_stats),
-            _buildNavItem(2, "Community", Icons.groups),
+            _buildNavItem(1, "Insights", Icons.query_stats),
+            _buildNavItem(2, "Market", Icons.analytics),
             _buildNavItem(3, "Profile", Icons.person),
           ],
             ),
@@ -552,9 +581,17 @@ class _HomeDashboardState extends State<HomeDashboard> {
     final isSelected = _selectedBottomNavIndex == index;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedBottomNavIndex = index;
-        });
+        if (index == 1) { // Insights
+          if (_allMatches.isEmpty) return;
+          final activeMatch = _allMatches.firstWhere((m) => m.status == model.MatchStatus.live, orElse: () => _allMatches.first);
+          Navigator.push(context, MaterialPageRoute(builder: (_) => AiMatchInsightsScreen(match: activeMatch)));
+        } else if (index == 2) { // Market
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionMarketScreen()));
+        } else {
+          setState(() {
+            _selectedBottomNavIndex = index;
+          });
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

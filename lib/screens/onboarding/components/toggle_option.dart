@@ -52,8 +52,8 @@ class ToggleOption extends StatelessWidget {
           const SizedBox(width: 16),
           CupertinoSwitch(
             value: value,
-            activeColor: AppTheme.primaryContainer,
-            trackColor: AppTheme.surfaceContainerHighest,
+            activeTrackColor: AppTheme.primaryContainer,
+            inactiveTrackColor: AppTheme.surfaceContainerHighest,
             thumbColor: value ? AppTheme.onPrimaryContainer : Colors.white,
             onChanged: onChanged,
           ),

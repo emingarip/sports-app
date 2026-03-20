@@ -1,0 +1,15 @@
+On branch feature/ux-home-structure
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	docs/refined_login.html
+	docs/refined_login_screen.html
+	docs/refined_sms.html
+	docs/refined_success.html
+	tmp_git.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+a2bf3d2 feat: implement Verification Success screen from Stitch and add auto-routing
+183ba71 feat: implement SMS Verification screen from Stitch and route from Login
+4ab8493 feat: implement Refined Login Screen from Stitch and route as initial screen
+858d73a feat: scaleable component architecture with data models, mock generator, and filter state management
+2563fa8 feat: implement Slivers Accordion Feed and sticky headers based on UX Strategy

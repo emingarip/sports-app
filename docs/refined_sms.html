@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KINETIC | SMS Verification</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#002022",
+              "on-error-container": "#93000a",
+              "surface-container-highest": "#e0e3e5",
+              "surface-tint": "#705d00",
+              "on-secondary-fixed-variant": "#7f2a0d",
+              "on-tertiary-fixed-variant": "#004f54",
+              "on-tertiary": "#ffffff",
+              "secondary-container": "#fd8863",
+              "on-primary": "#ffffff",
+              "on-secondary-fixed": "#3a0b00",
+              "primary": "#705d00",
+              "on-error": "#ffffff",
+              "surface": "#f7f9fb",
+              "tertiary": "#00696f",
+              "surface-container-high": "#e6e8ea",
+              "outline-variant": "#d0c6ab",
+              "inverse-surface": "#2d3133",
+              "primary-fixed-dim": "#e9c400",
+              "tertiary-fixed-dim": "#00dbe8",
+              "tertiary-container": "#00f1ff",
+              "surface-container-lowest": "#ffffff",
+              "background": "#f7f9fb",
+              "error-container": "#ffdad6",
+              "surface-bright": "#f7f9fb",
+              "on-tertiary-container": "#006a70",
+              "on-primary-fixed": "#221b00",
+              "error": "#ba1a1a",
+              "on-surface-variant": "#4d4732",
+              "surface-container": "#eceef0",
+              "tertiary-fixed": "#79f5ff",
+              "surface-container-low": "#f2f4f6",
+              "on-primary-fixed-variant": "#544600",
+              "inverse-on-surface": "#eff1f3",
+              "inverse-primary": "#e9c400",
+              "primary-fixed": "#ffe16d",
+              "secondary-fixed": "#ffdbd0",
+              "outline": "#7e775f",
+              "on-secondary": "#ffffff",
+              "surface-dim": "#d8dadc",
+              "primary-container": "#ffd700",
+              "on-background": "#191c1e",
+              "on-surface": "#191c1e",
+              "on-secondary-container": "#722104",
+              "surface-variant": "#e0e3e5",
+              "on-primary-container": "#705e00",
+              "secondary-fixed-dim": "#ffb59e",
+              "secondary": "#9f4122"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .otp-input:focus {
+            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.4);
+            border-color: #FFD700;
+            transform: scale(1.05);
+        }
+        .otp-input {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .otp-input:not(:placeholder-shown) {
+            border-color: #FFD700;
+            background-color: #fff;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+        .shake {
+            animation: shake 0.2s ease-in-out 0s 2;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased min-h-screen flex flex-col"><div class="h-[2px] w-full bg-[#FFD700] shrink-0"></div>
+<!-- Transactional Header -->
+<header class="w-full px-6 py-8 flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="text-2xl font-black italic text-primary tracking-tighter font-headline">KINETIC</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<main class="flex-grow flex flex-col px-6 pb-12 max-w-lg mx-auto w-full justify-center">
+<!-- Verification Content -->
+<div class="space-y-3 mb-10">
+<h1 class="text-3xl font-extrabold font-headline tracking-tight text-on-surface leading-tight">
+                Enter verification code
+            </h1>
+<div class="flex flex-col items-start gap-1">
+<p class="text-on-surface-variant font-medium">
+                    Enter the 6-digit code we sent to <span class="text-on-surface font-bold whitespace-nowrap">+90 XXX XXX XX XX</span>
+</p>
+<a class="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1 underline underline-offset-2" href="#">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+                    Edit phone number
+                </a>
+</div>
+</div>
+<!-- OTP Grid -->
+<div class="grid grid-cols-6 gap-2 sm:gap-3 mb-10 otp-group" id="otp-container">
+<input class="otp-input w-full aspect-square text-center text-2xl font-black font-headline bg-surface-container-lowest border-2 border-transparent rounded-2xl shadow-sm text-primary transition-all focus:outline-none" maxlength="1" type="text" value="4"/>
+<input class="otp-input w-full aspect-square text-center text-2xl font-black font-headline bg-surface-container-lowest border-2 border-transparent rounded-2xl shadow-sm text-primary transition-all focus:outline-none" maxlength="1" type="text" value="8"/>
+<input class="otp-input w-full aspect-square text-center text-2xl font-black font-headline bg-surface-container-lowest border-2 border-transparent rounded-2xl shadow-sm text-primary transition-all focus:outline-none" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center text-2xl font-black font-headline bg-surface-container-lowest border-2 border-transparent rounded-2xl shadow-sm text-primary transition-all focus:outline-none" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center text-2xl font-black font-headline bg-surface-container-lowest border-2 border-transparent rounded-2xl shadow-sm text-primary transition-all focus:outline-none" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center text-2xl font-black font-headline bg-surface-container-lowest border-2 border-transparent rounded-2xl shadow-sm text-primary transition-all focus:outline-none" maxlength="1" placeholder="•" type="text"/>
+</div><p class="hidden text-center text-error text-xs font-medium mt-4 tracking-tight" id="error-message">Incorrect code. Please try again.</p>
+<!-- Action Area -->
+<div class="space-y-8">
+<!-- Inactive/Disabled state style until 6 digits entered -->
+<button class="w-full bg-surface-container-high text-on-surface-variant/40 font-black py-5 rounded-full text-lg shadow-sm cursor-not-allowed transition-all font-headline uppercase tracking-widest" id="verify-btn">
+                Verify
+            </button>
+<div class="flex flex-col items-center gap-2"><div class="flex items-center justify-center gap-1 text-sm font-medium text-on-surface-variant">
+<span>Didn't receive code?</span>
+<button class="text-outline cursor-not-allowed font-bold opacity-60 flex items-center gap-1" id="resend-btn">
+                         Resend code in <span class="font-mono">00:30</span>
+</button>
+</div></div>
+</div>
+</main>
+<!-- Footer Identity -->
+<footer class="mt-auto py-8 text-center px-6"><p class="text-[10px] uppercase tracking-[0.2em] font-bold text-outline/60 font-label">
+            Powered by Kinetic Data Engine v1.0.2
+        </p>
+<script>
+            // Minimal logic for the UI demonstration
+            const inputs = document.querySelectorAll('.otp-input');
+            const verifyBtn = document.getElementById('verify-btn');
+            
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    const filled = Array.from(inputs).every(i => i.value.length === 1);
+                    if (filled) {
+                        verifyBtn.classList.remove('bg-surface-container-high', 'text-on-surface-variant/40', 'cursor-not-allowed');
+                        verifyBtn.classList.add('bg-primary-container', 'text-on-primary-container', 'hover:brightness-95', 'active:scale-95');
+                    } else {
+                        verifyBtn.classList.add('bg-surface-container-high', 'text-on-surface-variant/40', 'cursor-not-allowed');
+                        verifyBtn.classList.remove('bg-primary-container', 'text-on-primary-container', 'hover:brightness-95', 'active:scale-95');
+                    }
+                });
+            });
+        </script></footer>
+</body></html>

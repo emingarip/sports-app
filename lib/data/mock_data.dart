@@ -60,10 +60,10 @@ class MockData {
             }
 
             matches.add(Match(
-                id: 'm_${i}_${j}',
+                id: 'm_${i}_$j',
                 leagueId: lId,
-                homeTeam: 'Home ${i}${j}',
-                awayTeam: 'Away ${i}${j}',
+                homeTeam: 'Home $i$j',
+                awayTeam: 'Away $i$j',
                 homeLogo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png',
                 awayLogo: 'https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/1200px-Chelsea_FC.svg.png',
                 startTime: time,
