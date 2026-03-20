@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'verification_success_screen.dart';
+import '../services/supabase_service.dart';
 
 class VerificationScreen extends StatefulWidget {
-  final String phoneNumber;
+  final String email;
   
-  const VerificationScreen({super.key, required this.phoneNumber});
+  const VerificationScreen({super.key, required this.email});
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
@@ -15,6 +16,27 @@ class _VerificationScreenState extends State<VerificationScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   bool _isFilled = false;
+  bool _isLoading = false;
+
+  void _submitVerify() async {
+    if (!_isFilled) return;
+    final code = _controllers.map((c) => c.text).join();
+    
+    setState(() => _isLoading = true);
+    try {
+      await SupabaseService().verifyOTP(widget.email, code);
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const VerificationSuccessScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification Failed: ${e.toString()}')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   void initState() {
@@ -130,7 +152,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                             style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.textMedium),
                           ),
                           Text(
-                            widget.phoneNumber,
+                            widget.email,
                             style: const TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textHigh),
                           ),
                         ],
@@ -144,7 +166,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                             Icon(Icons.edit, size: 16, color: AppTheme.textMedium),
                             SizedBox(width: 4),
                             Text(
-                              "Edit phone number",
+                              "Edit email address",
                               style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textMedium, decoration: TextDecoration.underline),
                             ),
                           ],
@@ -224,22 +246,20 @@ class _VerificationScreenState extends State<VerificationScreen> {
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(32),
-                              onTap: _isFilled ? () {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (_) => const VerificationSuccessScreen()),
-                                );
-                              } : null,
+                              onTap: _isFilled && !_isLoading ? _submitVerify : null,
                               child: Center(
-                                child: Text(
-                                  "VERIFY",
-                                  style: TextStyle(
-                                    fontFamily: 'Lexend',
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 2,
-                                    color: _isFilled ? AppTheme.onPrimaryContainer : AppTheme.textMedium.withOpacity(0.5),
-                                  ),
-                                ),
+                                child: _isLoading
+                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppTheme.onPrimaryContainer, strokeWidth: 2))
+                                    : Text(
+                                        "VERIFY",
+                                        style: TextStyle(
+                                          fontFamily: 'Lexend',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 2,
+                                          color: _isFilled ? AppTheme.onPrimaryContainer : AppTheme.textMedium.withOpacity(0.5),
+                                        ),
+                                      ),
                               ),
                             ),
                           ),

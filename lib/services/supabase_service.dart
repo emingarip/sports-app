@@ -43,6 +43,18 @@ class SupabaseService {
 
   // --- Auth Methods ---
   
+  Future<void> signInWithOtp(String email) async {
+    await client.auth.signInWithOtp(email: email);
+  }
+
+  Future<AuthResponse> verifyOTP(String email, String token) async {
+    return await client.auth.verifyOTP(
+      type: OtpType.email,
+      email: email,
+      token: token,
+    );
+  }
+
   Future<AuthResponse> signUp({required String email, required String password, required String username}) async {
     return await client.auth.signUp(
       email: email,

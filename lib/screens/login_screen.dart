@@ -3,8 +3,46 @@ import '../theme/app_theme.dart';
 import 'home_dashboard.dart';
 import 'verification_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+import '../services/supabase_service.dart';
+
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  bool _isLoading = false;
+
+  void _requestOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid email address')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await SupabaseService().signInWithOtp(email);
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => VerificationScreen(email: email)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +131,7 @@ class LoginScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 48),
                       
-                      // Phone Input
+                      // Email Input
                       Container(
                         height: 64,
                         decoration: BoxDecoration(
@@ -103,47 +141,23 @@ class LoginScreen extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            InkWell(
-                              onTap: () {},
-                              borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), bottomLeft: Radius.circular(32)),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                                decoration: const BoxDecoration(
-                                  border: Border(right: BorderSide(color: AppTheme.surfaceContainer, width: 1)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(2),
-                                      child: Image.network(
-                                        "https://lh3.googleusercontent.com/aida-public/AB6AXuC_yzqWxFlWQUl2xy31vYfiHF5UHJtUB6sIAxs5Dylg59lmNy10fvXIRiDSujSM3yn2PZu0iG4uYbatDZlsBhlUmrsms0v1SQA7Vt5WphETByI_VifY3lcRdtwon2nS9k9lbZgx7Un6Hg2l_DNsATKEQmzlEx7eKAUGYQFlviBCwosxeLHXR0CKW5oGzNeFwJo6pnAcs6KxgGuArsoHiMcWv2ikPZGfXeXIg9lpmysRi-vyyIS1xs_WaYUcYB0th1eTjsERHlZ3fqm0",
-                                        width: 20,
-                                        height: 14,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, size: 20),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text("+90", style: TextStyle(fontFamily: 'Lexend', fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textHigh)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.expand_more, color: AppTheme.textMedium, size: 20),
-                                  ],
-                                ),
-                              ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 24),
+                              child: Icon(Icons.email_outlined, color: AppTheme.textMedium),
                             ),
-                            const Expanded(
+                            Expanded(
                               child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 24),
+                                padding: const EdgeInsets.only(right: 24),
                                 child: TextField(
-                                  keyboardType: TextInputType.phone,
-                                  style: TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w500, color: AppTheme.textHigh),
-                                  decoration: InputDecoration(
-                                    hintText: "555 123 45 67",
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  style: const TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w500, color: AppTheme.textHigh),
+                                  decoration: const InputDecoration(
+                                    hintText: "hello@velocityscore.com",
                                     hintStyle: TextStyle(color: AppTheme.surfaceContainerHigh),
                                     border: InputBorder.none,
                                     counterText: "",
                                   ),
-                                  maxLength: 10,
                                 ),
                               ),
                             ),
@@ -158,11 +172,7 @@ class LoginScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 64,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const VerificationScreen(phoneNumber: "+90 555 123 45 67")),
-                            );
-                          },
+                          onPressed: _isLoading ? null : _requestOtp,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primaryContainer,
                             foregroundColor: AppTheme.onPrimaryContainer,
@@ -170,10 +180,12 @@ class LoginScreen extends StatelessWidget {
                             shadowColor: AppTheme.primaryContainer.withOpacity(0.4),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                           ),
-                          child: const Text(
-                            "Get verification code",
-                            style: TextStyle(fontFamily: 'Lexend', fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppTheme.onPrimaryContainer, strokeWidth: 2))
+                              : const Text(
+                                  "Get verification code",
+                                  style: TextStyle(fontFamily: 'Lexend', fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
                         ),
                       ),
                       

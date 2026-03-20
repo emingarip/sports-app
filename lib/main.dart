@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_dashboard.dart';
 import 'theme/app_theme.dart';
 import 'services/supabase_service.dart';
 
@@ -18,7 +19,9 @@ class MyApp extends StatelessWidget {
       title: 'Kinetic Scores',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: SupabaseService().getCurrentUser() != null
+          ? const HomeDashboard()
+          : const LoginScreen(),
     );
   }
 }
