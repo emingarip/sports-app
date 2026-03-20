@@ -212,7 +212,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
           const CircleAvatar(
             backgroundColor: AppTheme.surfaceContainer,
             radius: 18,
-            backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
+            child: Icon(Icons.person, color: AppTheme.textMedium, size: 20),
           ),
           const SizedBox(width: 8),
           Expanded(
