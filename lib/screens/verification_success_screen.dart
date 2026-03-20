@@ -32,7 +32,8 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
         final user = SupabaseService().getCurrentUser();
-        final bool onboardingCompleted = user?.userMetadata?['onboarding_completed'] == true;
+        final dynamic claim = user?.userMetadata?['onboarding_completed'];
+        final bool onboardingCompleted = claim == true || claim == 'true' || claim == 1;
         
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => onboardingCompleted ? const HomeDashboard() : const WelcomeScreen()),

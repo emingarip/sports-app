@@ -1,10 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/match.dart' as model;
+import '../../models/match.dart' as model;
+import '../repositories/match_repository.dart';
 
-class MatchService {
+class SupabaseMatchProvider implements MatchRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
-  // Transform raw Supabase data into our Match model
+  // Transform raw Supabase data into our agnostic Match model
   model.Match _mapMatch(Map<String, dynamic> data) {
     model.MatchStatus status;
     switch (data['status']) {
@@ -21,6 +22,8 @@ class MatchService {
     return model.Match(
       id: data['id'],
       leagueId: data['league_id'] ?? 'premier_league',
+      leagueName: data['league_name'],
+      leagueLogoUrl: data['league_logo_url'],
       homeTeam: data['home_team'],
       awayTeam: data['away_team'],
       homeLogo: data['home_logo_url'] ?? 'https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png',
@@ -33,7 +36,7 @@ class MatchService {
     );
   }
 
-  // Fetch all matches once
+  @override
   Future<List<model.Match>> getMatches() async {
     final response = await _client
         .from('matches')
@@ -43,7 +46,7 @@ class MatchService {
     return (response as List<dynamic>).map((data) => _mapMatch(data)).toList();
   }
 
-  // Real-time stream of matches
+  @override
   Stream<List<model.Match>> getMatchesStream() {
     return _client
         .from('matches')

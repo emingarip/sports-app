@@ -60,12 +60,16 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
 
   void _focusEmptyField() {
     if (!mounted) return;
-    for (int i = 0; i < 8; i++) {
-      if (_controllers[i].text.isEmpty) {
-        FocusScope.of(context).requestFocus(_focusNodes[i]);
-        return;
+    // Micro-delay prevents Flutter web life-cycle race conditions on tab switch
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+      for (int i = 0; i < 8; i++) {
+        if (_controllers[i].text.isEmpty) {
+          FocusScope.of(context).requestFocus(_focusNodes[i]);
+          return;
+        }
       }
-    }
+    });
   }
 
   void _checkFilled() {

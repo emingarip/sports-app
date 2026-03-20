@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
 import '../models/league.dart';
@@ -13,9 +12,8 @@ import '../widgets/sticky_header_delegate.dart';
 import 'ai_match_insights_screen.dart';
 import 'match_room_screen.dart';
 import 'prediction_market_screen.dart';
-import '../services/match_service.dart';
-import 'dart:async';
-
+import '../data/repositories/match_repository.dart';
+import '../data/providers/supabase_match_provider.dart';
 
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
@@ -32,13 +30,14 @@ class _HomeDashboardState extends State<HomeDashboard> {
   List<model.Match> _allMatches = [];
   final Set<String> _expandedLeagues = {};
   StreamSubscription? _matchesSubscription;
+  final MatchRepository _matchRepository = SupabaseMatchProvider();
 
   @override
   void initState() {
     super.initState();
     
     // Subscribe to live matches
-    _matchesSubscription = MatchService().getMatchesStream().listen((matches) {
+    _matchesSubscription = _matchRepository.getMatchesStream().listen((matches) {
       setState(() {
         _allMatches = matches;
       });
@@ -102,9 +101,23 @@ class _HomeDashboardState extends State<HomeDashboard> {
        leagueMap.putIfAbsent(m.leagueId, () => []).add(m);
     }
     
-    // Sort leagues by Tier
-    final sortedLeagues = MockData.leagues.where((l) => leagueMap.containsKey(l.id)).toList()
-       ..sort((a, b) => a.tier.compareTo(b.tier));
+    final List<League> sortedLeagues = [];
+    for (var lId in leagueMap.keys) {
+      final found = MockData.leagues.where((l) => l.id == lId).toList();
+      if (found.isNotEmpty) {
+        sortedLeagues.add(found.first);
+      } else {
+        // Fallback to dynamic creation from live API matches data stream
+        final representativeMatch = leagueMap[lId]!.first;
+        sortedLeagues.add(League(
+          id: lId,
+          name: representativeMatch.leagueName ?? 'League $lId',
+          logoUrl: representativeMatch.leagueLogoUrl ?? 'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
+          tier: 3,
+        ));
+      }
+    }
+    sortedLeagues.sort((a, b) => a.tier.compareTo(b.tier));
 
     List<Widget> slivers = [];
     

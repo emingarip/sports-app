@@ -3,6 +3,8 @@ enum MatchStatus { live, upcoming, finished }
 class Match {
   final String id;
   final String leagueId;
+  final String? leagueName;
+  final String? leagueLogoUrl;
   final String homeTeam;
   final String awayTeam;
   final String homeLogo;
@@ -18,6 +20,8 @@ class Match {
   const Match({
     required this.id,
     required this.leagueId,
+    this.leagueName,
+    this.leagueLogoUrl,
     required this.homeTeam,
     required this.awayTeam,
     required this.homeLogo,
