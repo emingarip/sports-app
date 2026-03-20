@@ -13,8 +13,8 @@ class VerificationScreen extends StatefulWidget {
 }
 
 class _VerificationScreenState extends State<VerificationScreen> {
-  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final List<TextEditingController> _controllers = List.generate(8, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(8, (_) => FocusNode());
   bool _isFilled = false;
   bool _isLoading = false;
 
@@ -41,7 +41,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 8; i++) {
       _controllers[i].addListener(_checkFilled);
     }
     // Auto focus first field
@@ -73,7 +73,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   void _onInputCustom(String value, int index) {
-    if (value.isNotEmpty && index < 5) {
+    if (value.isNotEmpty && index < 7) {
       FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
     } else if (value.isEmpty && index > 0) {
       FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
@@ -148,7 +148,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           const Text(
-                            "Enter the 6-digit code we sent to ",
+                            "Enter the 8-digit code we sent to ",
                             style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.textMedium),
                           ),
                           Text(
@@ -178,10 +178,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       // OTP Grid
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(6, (index) {
+                        children: List.generate(8, (index) {
                           return Flexible(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 2.0),
                               child: AspectRatio(
                                 aspectRatio: 1,
                                 child: TweenAnimationBuilder<double>(
@@ -199,7 +199,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                                     keyboardType: TextInputType.number,
                                     textAlign: TextAlign.center,
                                     maxLength: 1,
-                                    style: const TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                                    style: const TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.primary),
                                     decoration: InputDecoration(
                                       counterText: "",
                                       filled: true,
