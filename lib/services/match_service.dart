@@ -48,7 +48,6 @@ class MatchService {
     return _client
         .from('matches')
         .stream(primaryKey: ['id'])
-        .order('started_at', ascending: false)
         .map((events) => events.map((data) => _mapMatch(data)).toList());
   }
 }
