@@ -63,6 +63,12 @@ class SupabaseService {
     );
   }
 
+  Future<UserResponse> completeOnboarding() async {
+    return await client.auth.updateUser(
+      UserAttributes(data: {'onboarding_completed': true}),
+    );
+  }
+
   Future<AuthResponse> signIn({required String email, required String password}) async {
     return await client.auth.signInWithPassword(
       email: email,

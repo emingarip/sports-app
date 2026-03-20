@@ -12,7 +12,7 @@ class VerificationScreen extends StatefulWidget {
   State<VerificationScreen> createState() => _VerificationScreenState();
 }
 
-class _VerificationScreenState extends State<VerificationScreen> {
+class _VerificationScreenState extends State<VerificationScreen> with WidgetsBindingObserver {
   final List<TextEditingController> _controllers = List.generate(8, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(8, (_) => FocusNode());
   bool _isFilled = false;
@@ -41,6 +41,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     for (int i = 0; i < 8; i++) {
       _controllers[i].addListener(_checkFilled);
     }
@@ -48,6 +49,23 @@ class _VerificationScreenState extends State<VerificationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusScope.of(context).requestFocus(_focusNodes[0]);
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _focusEmptyField();
+    }
+  }
+
+  void _focusEmptyField() {
+    if (!mounted) return;
+    for (int i = 0; i < 8; i++) {
+      if (_controllers[i].text.isEmpty) {
+        FocusScope.of(context).requestFocus(_focusNodes[i]);
+        return;
+      }
+    }
   }
 
   void _checkFilled() {
@@ -63,6 +81,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (var c in _controllers) {
       c.dispose();
     }

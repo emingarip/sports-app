@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../theme/app_theme.dart';
 import 'onboarding/welcome_screen.dart';
+import '../services/supabase_service.dart';
+import 'home_dashboard.dart';
 
 class VerificationSuccessScreen extends StatefulWidget {
   const VerificationSuccessScreen({super.key});
@@ -29,8 +31,11 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
     // Auto navigate after 2.5 seconds
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
+        final user = SupabaseService().getCurrentUser();
+        final bool onboardingCompleted = user?.userMetadata?['onboarding_completed'] == true;
+        
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          MaterialPageRoute(builder: (_) => onboardingCompleted ? const HomeDashboard() : const WelcomeScreen()),
           (route) => false,
         );
       }

@@ -5,6 +5,7 @@ import 'components/progress_top_line.dart';
 import 'components/step_label.dart';
 import 'components/onboarding_bottom_bar.dart';
 import '../home_dashboard.dart';
+import '../../services/supabase_service.dart';
 
 class OnboardingReadyScreen extends StatefulWidget {
   const OnboardingReadyScreen({super.key});
@@ -143,7 +144,13 @@ class _OnboardingReadyScreenState extends State<OnboardingReadyScreen> with Sing
             ),
             OnboardingBottomBar(
               primaryText: "GO TO DASHBOARD",
-              onPrimaryPressed: () {
+              onPrimaryPressed: () async {
+                try {
+                  await SupabaseService().completeOnboarding();
+                } catch (e) {
+                  debugPrint("Failed to update onboarding status: $e");
+                }
+                if (!context.mounted) return;
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const HomeDashboard()),
                   (route) => false,
