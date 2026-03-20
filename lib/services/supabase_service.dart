@@ -16,21 +16,28 @@ class SupabaseService {
   static Future<void> initialize() async {
     try {
       await dotenv.load(fileName: ".env");
-      
-      final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-      final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-
-      if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-        await Supabase.initialize(
-          url: supabaseUrl,
-          anonKey: supabaseAnonKey,
-        );
-        debugPrint('Supabase initialized successfully.');
-      } else {
-        debugPrint('Supabase initialization skipped: Missing credentials in .env');
-      }
     } catch (e) {
-      debugPrint('Error initializing Supabase or reading .env: $e');
+      debugPrint('Could not load .env file, falling back to hardcoded keys: $e');
+    }
+    
+    try {
+      var supabaseUrl = dotenv.env['SUPABASE_URL'];
+      if (supabaseUrl == null || supabaseUrl.isEmpty) {
+        supabaseUrl = 'https://nigatikzsnxdqdwwqewr.supabase.co';
+      }
+
+      var supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+      if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
+        supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pZ2F0aWt6c254ZHFkd3dxZXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjM2MjEsImV4cCI6MjA4OTUzOTYyMX0.smjivrwy8D8I5rRs49mXRkHSyOAJcti2VwCbm2Oas6Q';
+      }
+
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey,
+      );
+      debugPrint('Supabase initialized successfully.');
+    } catch (e) {
+      debugPrint('Error initializing Supabase: $e');
     }
   }
 
