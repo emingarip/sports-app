@@ -29,10 +29,59 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <style>
+    body {
+      background-color: #121212;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #FFFFFF;
+      font-family: Arial, sans-serif;
+    }
+    .loader {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid #03DAC6;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .loading-text {
+      margin-top: 16px;
+      font-size: 18px;
+      letter-spacing: 2px;
+      font-weight: bold;
+    }
+  </style>
   <title>sports_app</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <div class="loading-container" id="initial_loader">
+    <div class="loader"></div>
+    <div class="loading-text">KINETIC SCORES</div>
+  </div>
+
+  <script>
+    // Remove the loader once Flutter is ready
+    window.addEventListener('flutter-first-frame', function() {
+      var loader = document.getElementById('initial_loader');
+      if (loader) {
+        loader.remove();
+      }
+    });
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
