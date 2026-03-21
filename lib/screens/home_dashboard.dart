@@ -12,11 +12,14 @@ import '../widgets/sticky_header_delegate.dart';
 import 'ai_match_insights_screen.dart';
 import 'match_room_screen.dart';
 import 'prediction_market_screen.dart';
+import 'profile_screen.dart';
 import '../data/repositories/match_repository.dart';
 import '../data/providers/supabase_match_provider.dart';
 
 class HomeDashboard extends StatefulWidget {
-  const HomeDashboard({super.key});
+  final MatchRepository? repository;
+
+  const HomeDashboard({super.key, this.repository});
 
   @override
   State<HomeDashboard> createState() => _HomeDashboardState();
@@ -30,11 +33,12 @@ class _HomeDashboardState extends State<HomeDashboard> {
   List<model.Match> _allMatches = [];
   final Set<String> _expandedLeagues = {};
   StreamSubscription? _matchesSubscription;
-  final MatchRepository _matchRepository = SupabaseMatchProvider();
+  late final MatchRepository _matchRepository;
 
   @override
   void initState() {
     super.initState();
+    _matchRepository = widget.repository ?? SupabaseMatchProvider();
     
     // Subscribe to live matches
     _matchesSubscription = _matchRepository.getMatchesStream().listen((matches) {
@@ -593,6 +597,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
   Widget _buildNavItem(int index, String label, IconData icon) {
     final isSelected = _selectedBottomNavIndex == index;
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         if (index == 1) { // Insights
           if (_allMatches.isEmpty) return;
@@ -600,6 +605,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
           Navigator.push(context, MaterialPageRoute(builder: (_) => AiMatchInsightsScreen(match: activeMatch)));
         } else if (index == 2) { // Market
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionMarketScreen()));
+        } else if (index == 3) { // Profile
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
         } else {
           setState(() {
             _selectedBottomNavIndex = index;

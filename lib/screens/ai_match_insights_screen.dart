@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../models/match_insight.dart';
 import '../models/match.dart' as model;
 import '../services/insight_service.dart';
+import 'profile_screen.dart';
 
 class AiMatchInsightsScreen extends StatefulWidget {
   final model.Match match;
@@ -197,8 +198,15 @@ class _AiMatchInsightsScreenState extends State<AiMatchInsightsScreen> {
 
   Widget _buildNavItem(String label, IconData icon, bool isActive) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
-        if (!isActive) Navigator.pop(context);
+        if (!isActive) {
+          if (label == "Profile") {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+          } else {
+            Navigator.pop(context);
+          }
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

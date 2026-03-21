@@ -83,4 +83,69 @@ class SupabaseService {
   User? getCurrentUser() {
     return client.auth.currentUser;
   }
+
+  // --- Profile Methods ---
+  
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    try {
+      final response = await client
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+      return response;
+    } catch (e) {
+      debugPrint('Error fetching user profile: $e');
+      return null;
+    }
+  }
+
+  Future<bool> updateUserProfile(String userId, {String? username, String? avatarUrl}) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (username != null) updates['username'] = username;
+      if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+      
+      if (updates.isEmpty) return true;
+
+      await client.from('users').update(updates).eq('id', userId);
+      
+      // Also sync username to auth metadata for future consistency
+      if (username != null) {
+        await client.auth.updateUser(
+          UserAttributes(data: {'username': username}),
+        );
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error updating user profile: $e');
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getUserBets(String userId) async {
+    try {
+      final response = await client
+          .from('user_bets')
+          .select('''
+            id,
+            amount_staked,
+            potential_payout,
+            status,
+            created_at,
+            predictions (
+              prediction_type,
+              odds
+            )
+          ''')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(10);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Error fetching user bets: $e');
+      return [];
+    }
+  }
 }
