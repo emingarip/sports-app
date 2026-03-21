@@ -4,7 +4,7 @@ import '../theme/app_theme.dart';
 import '../models/match_insight.dart';
 import '../models/match.dart' as model;
 import '../services/insight_service.dart';
-import 'profile_screen.dart';
+import '../widgets/custom_bottom_nav.dart';
 
 class AiMatchInsightsScreen extends StatefulWidget {
   final model.Match match;
@@ -160,70 +160,7 @@ class _AiMatchInsightsScreenState extends State<AiMatchInsightsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
-
-  Widget _buildBottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 30, offset: const Offset(0, -8)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem("Matches", Icons.sports_soccer, false),
-                  _buildNavItem("Insights", Icons.query_stats, true),
-                  _buildNavItem("Standings", Icons.leaderboard, false),
-                  _buildNavItem("Profile", Icons.person, false),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(String label, IconData icon, bool isActive) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        if (!isActive) {
-          if (label == "Profile") {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-          } else {
-            Navigator.pop(context);
-          }
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: isActive ? const EdgeInsets.symmetric(horizontal: 20, vertical: 8) : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppTheme.primaryContainer.withOpacity(0.3) : Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: isActive ? AppTheme.onPrimaryContainer : AppTheme.textMedium.withOpacity(0.7), size: 24),
-            const SizedBox(height: 4),
-            Text(label.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: isActive ? AppTheme.onPrimaryContainer : AppTheme.textMedium.withOpacity(0.7), letterSpacing: 1)),
-          ],
-        ),
-      ),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
     );
   }
 }

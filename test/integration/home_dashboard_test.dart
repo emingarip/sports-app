@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:network_image_mock/network_image_mock.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../lib/screens/home_dashboard.dart';
 import '../../lib/models/match.dart' as model;
+import '../../lib/providers/match_provider.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
 
@@ -15,8 +17,13 @@ void main() {
     });
 
     Widget buildTestableWidget() {
-      return MaterialApp(
-        home: HomeDashboard(repository: mockRepository),
+      return ProviderScope(
+        overrides: [
+          matchRepositoryProvider.overrideWithValue(mockRepository),
+        ],
+        child: const MaterialApp(
+          home: HomeDashboard(),
+        ),
       );
     }
 
