@@ -1,7 +1,7 @@
 import 'dart:ui';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'match_room_screen.dart';
 import '../models/match.dart' as model;
 import '../models/league.dart';
 import '../data/mock_data.dart';
@@ -9,92 +9,32 @@ import '../widgets/league_group.dart';
 import '../widgets/filter_row.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/sticky_header_delegate.dart';
-import 'ai_match_insights_screen.dart';
-import 'match_room_screen.dart';
-import 'prediction_market_screen.dart';
-import 'profile_screen.dart';
-import '../data/repositories/match_repository.dart';
-import '../data/providers/supabase_match_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/match_provider.dart';
+import '../widgets/custom_bottom_nav.dart';
 
-class HomeDashboard extends StatefulWidget {
-  final MatchRepository? repository;
 
-  const HomeDashboard({super.key, this.repository});
+class HomeDashboard extends ConsumerStatefulWidget {
+  const HomeDashboard({super.key});
 
   @override
-  State<HomeDashboard> createState() => _HomeDashboardState();
+  ConsumerState<HomeDashboard> createState() => _HomeDashboardState();
 }
 
-class _HomeDashboardState extends State<HomeDashboard> {
+class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   int _selectedSportIndex = 0;
-  int _selectedBottomNavIndex = 0;
-  String _activeFilter = 'All';
-  
-  List<model.Match> _allMatches = [];
   final Set<String> _expandedLeagues = {};
-  StreamSubscription? _matchesSubscription;
-  late final MatchRepository _matchRepository;
 
   @override
   void initState() {
     super.initState();
-    _matchRepository = widget.repository ?? SupabaseMatchProvider();
-    
-    // Subscribe to live matches
-    _matchesSubscription = _matchRepository.getMatchesStream().listen((matches) {
-      setState(() {
-        _allMatches = matches;
-      });
-    });
-
-    // Default expansion
     if (MockData.leagues.isNotEmpty) {
       _expandedLeagues.add(MockData.leagues.first.id);
     }
   }
 
-  @override
-  void dispose() {
-    _matchesSubscription?.cancel();
-    super.dispose();
-  }
-
-  void _onFilterChanged(String filter) {
-    setState(() {
-      _activeFilter = filter;
-      _expandedLeagues.clear();
-      
-      // Smart Auto-expansion rules
-      if (filter == 'Live 🔴') {
-        final liveLeagues = _allMatches
-            .where((m) => m.status == model.MatchStatus.live)
-            .map((m) => m.leagueId);
-        _expandedLeagues.addAll(liveLeagues);
-      } else if (filter == 'Starred ⭐') {
-        final favLeagues = _allMatches
-            .where((m) => m.isFavorite)
-            .map((m) => m.leagueId);
-        _expandedLeagues.addAll(favLeagues);
-      } else {
-        // Default expansion
-         if (MockData.leagues.isNotEmpty) {
-           _expandedLeagues.add(MockData.leagues.first.id);
-         }
-      }
-    });
-  }
-
-  List<model.Match> _getFilteredMatches() {
-    return _allMatches.where((m) {
-      if (_activeFilter == 'Live 🔴') return m.status == model.MatchStatus.live;
-      if (_activeFilter == 'Starred ⭐') return m.isFavorite;
-      if (_activeFilter == 'Finished') return m.status == model.MatchStatus.finished;
-      return true; // All
-    }).toList();
-  }
-
   List<Widget> _buildLeagueSlivers() {
-    final filtered = _getFilteredMatches();
+    final filtered = ref.watch(matchStateProvider).filteredMatches;
     if (filtered.isEmpty) {
       return [const EmptyState(message: "No matches available for this filter")];
     }
@@ -163,7 +103,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
   model.Match? _getFeaturedMatch() {
     try {
-      return _allMatches.firstWhere((m) => m.isFeatured);
+      return ref.watch(matchStateProvider).matches.firstWhere((m) => m.isFeatured);
     } catch (_) {
       return null;
     }
@@ -171,7 +111,24 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String>(matchStateProvider.select((s) => s.activeFilter), (previous, next) {
+      if (previous != next) {
+        setState(() {
+          _expandedLeagues.clear();
+          final allMatches = ref.read(matchStateProvider).matches;
+          if (next == 'Live 🔴') {
+            _expandedLeagues.addAll(allMatches.where((m) => m.status == model.MatchStatus.live).map((m) => m.leagueId));
+          } else if (next == 'Starred ⭐') {
+            _expandedLeagues.addAll(allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
+          } else {
+             if (MockData.leagues.isNotEmpty) _expandedLeagues.add(MockData.leagues.first.id);
+          }
+        });
+      }
+    });
+
     var featured = _getFeaturedMatch();
+    final activeFilter = ref.watch(matchStateProvider).activeFilter;
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceContainerLow,
@@ -189,7 +146,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                   _buildAppBar(context),
                   _buildStickyContext(),
                   
-                  if (featured != null && (_activeFilter == 'All' || _activeFilter == 'Starred ⭐'))
+                  if (featured != null && (activeFilter == 'All' || activeFilter == 'Starred ⭐'))
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
                       sliver: SliverToBoxAdapter(child: _buildFeaturedMatchCard(featured)),
@@ -319,7 +276,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildDateNavigatorContent(),
-                  FilterRow(activeFilter: _activeFilter, onFilterChanged: _onFilterChanged),
+                  const FilterRow(),
                 ],
               ),
             ),
@@ -505,8 +462,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
       right: 24,
       child: GestureDetector(
         onTap: () {
-          if (_allMatches.isEmpty) return;
-          final activeMatch = _allMatches.firstWhere((m) => m.status == model.MatchStatus.live, orElse: () => _allMatches.first);
+          final allMatches = ref.read(matchStateProvider).matches;
+          if (allMatches.isEmpty) return;
+          final activeMatch = allMatches.firstWhere((m) => m.status == model.MatchStatus.live, orElse: () => allMatches.first);
           Navigator.push(context, MaterialPageRoute(builder: (_) => MatchRoomScreen(match: activeMatch)));
         },
         child: Container(
@@ -565,79 +523,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
   }
 
   Widget _buildBottomNavBar() {
-    return Positioned(
-      bottom: 24,
-      left: 24,
-      right: 24,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(40),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.85),
-              borderRadius: BorderRadius.circular(40),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(0, "Matches", Icons.sports_soccer),
-            _buildNavItem(1, "Insights", Icons.query_stats),
-            _buildNavItem(2, "Market", Icons.analytics),
-            _buildNavItem(3, "Profile", Icons.person),
-          ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, String label, IconData icon) {
-    final isSelected = _selectedBottomNavIndex == index;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        if (index == 1) { // Insights
-          if (_allMatches.isEmpty) return;
-          final activeMatch = _allMatches.firstWhere((m) => m.status == model.MatchStatus.live, orElse: () => _allMatches.first);
-          Navigator.push(context, MaterialPageRoute(builder: (_) => AiMatchInsightsScreen(match: activeMatch)));
-        } else if (index == 2) { // Market
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionMarketScreen()));
-        } else if (index == 3) { // Profile
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-        } else {
-          setState(() {
-            _selectedBottomNavIndex = index;
-          });
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFACC15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: isSelected ? AppTheme.textHigh : AppTheme.textMedium, size: 20),
-            const SizedBox(height: 2),
-            Text(
-              label.toUpperCase(),
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-                color: isSelected ? AppTheme.textHigh : AppTheme.textMedium,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
+    return const CustomBottomNav(currentIndex: 0);
   }
 }

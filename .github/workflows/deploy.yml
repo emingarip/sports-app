@@ -31,7 +31,7 @@ jobs:
         run: flutter test
 
       - name: Build Web
-        run: flutter build web --base-href "/sports-app/" --release
+        run: flutter build web --wasm --base-href "/sports-app/" --release
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

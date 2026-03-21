@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../lib/widgets/filter_row.dart';
+import '../../lib/providers/match_provider.dart';
+import '../helpers/mock_match_repository.dart';
 
 void main() {
-  Widget buildTestableWidget({
-    required String activeFilter,
-    required ValueChanged<String> onFilterChanged,
-  }) {
-    return MaterialApp(
-      home: Scaffold(
-        body: FilterRow(
-          activeFilter: activeFilter,
-          onFilterChanged: onFilterChanged,
-        ),
-      ),
-    );
-  }
-
   group('FilterRow Widget', () {
+    late MockMatchRepository mockRepo;
+
+    setUp(() {
+      mockRepo = MockMatchRepository();
+    });
+
     testWidgets('renders all four filter chips', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        activeFilter: 'All',
-        onFilterChanged: (_) {},
-      ));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            matchRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: FilterRow()),
+          ),
+        ),
+      );
 
       expect(find.text('All'), findsOneWidget);
       expect(find.text('Live 🔴'), findsOneWidget);
@@ -30,27 +31,40 @@ void main() {
       expect(find.text('Finished'), findsOneWidget);
     });
 
-    testWidgets('calls onFilterChanged with clicked chip label', (WidgetTester tester) async {
-      String? tappedLabel;
+    testWidgets('updates global provider state on click', (WidgetTester tester) async {
+      // Create a dedicated container to read state changes natively
+      final container = ProviderContainer(
+        overrides: [
+          matchRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
       
-      await tester.pumpWidget(buildTestableWidget(
-        activeFilter: 'All',
-        onFilterChanged: (label) {
-          tappedLabel = label;
-        },
-      ));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: Scaffold(body: FilterRow()),
+          ),
+        ),
+      );
+
+      // Verify Initial State
+      expect(container.read(matchStateProvider).activeFilter, 'All');
 
       // Tap on 'Live 🔴'
       await tester.tap(find.text('Live 🔴'));
       await tester.pump();
 
-      expect(tappedLabel, 'Live 🔴');
+      // Assert state updated
+      expect(container.read(matchStateProvider).activeFilter, 'Live 🔴');
       
       // Tap on 'Finished'
       await tester.tap(find.text('Finished'));
       await tester.pump();
       
-      expect(tappedLabel, 'Finished');
+      expect(container.read(matchStateProvider).activeFilter, 'Finished');
+      
+      container.dispose();
     });
   });
 }

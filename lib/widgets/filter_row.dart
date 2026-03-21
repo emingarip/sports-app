@@ -1,52 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../providers/match_provider.dart';
 
-class FilterRow extends StatelessWidget {
-  final String activeFilter;
-  final ValueChanged<String> onFilterChanged;
-
-  const FilterRow({
-    super.key,
-    required this.activeFilter,
-    required this.onFilterChanged,
-  });
+class FilterRow extends ConsumerWidget {
+  const FilterRow({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeFilter = ref.watch(matchStateProvider).activeFilter;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _buildFilterChip('All'),
-          _buildFilterChip('Live 🔴'),
-          _buildFilterChip('Starred ⭐'),
-          _buildFilterChip('Finished'),
+          _buildFilterChip(context, ref, 'Live 🔴', activeFilter),
+          _buildFilterChip(context, ref, 'All', activeFilter),
+          _buildFilterChip(context, ref, 'Finished', activeFilter),
+          _buildFilterChip(context, ref, 'Starred ⭐', activeFilter),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label) {
-    bool isSelected = activeFilter == label;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: InkWell(
-        onTap: () => onFilterChanged(label),
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary : AppTheme.surfaceContainerHigh.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildFilterChip(BuildContext context, WidgetRef ref, String label, String activeFilter) {
+    final isActive = activeFilter == label;
+    return GestureDetector(
+      onTap: () {
+        ref.read(matchStateProvider.notifier).setFilter(label);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? AppTheme.primaryContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? AppTheme.primary : AppTheme.surfaceVariant,
+            width: 1.5,
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: isSelected ? AppTheme.surfaceContainerLowest : AppTheme.textHigh,
-            ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? AppTheme.onPrimaryContainer : AppTheme.textMedium,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 14,
           ),
         ),
       ),

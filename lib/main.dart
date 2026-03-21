@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
-import 'screens/home_dashboard.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
-import 'services/supabase_service.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseService.initialize();
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -19,9 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'Kinetic Scores',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: SupabaseService().getCurrentUser() != null
-          ? const HomeDashboard()
-          : const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }
