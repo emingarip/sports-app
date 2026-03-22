@@ -24,10 +24,12 @@ class HomeDashboard extends ConsumerStatefulWidget {
 class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   int _selectedSportIndex = 0;
   final Set<String> _expandedLeagues = {};
+  late DateTime _calendarBaseDate;
 
   @override
   void initState() {
     super.initState();
+    _calendarBaseDate = DateTime.now();
     if (MockData.leagues.isNotEmpty) {
       _expandedLeagues.add(MockData.leagues.first.id);
     }
@@ -290,6 +292,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   Widget _buildDateNavigatorContent() {
+    final selectedDate = ref.watch(matchStateProvider).selectedDate;
+    
+    // Generate 5 days centered around _calendarBaseDate
+    List<DateTime> visibleDates = List.generate(5, (index) {
+      return _calendarBaseDate.add(Duration(days: index - 2));
+    });
+
     return Padding(
       padding: const EdgeInsets.only(top: 8.0, bottom: 4.0, left: 16, right: 16),
       child: Row(
@@ -297,38 +306,62 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         children: [
           IconButton(
             icon: Icon(Icons.chevron_left, color: context.colors.textMedium),
-            onPressed: () {},
+            onPressed: () {
+              setState(() {
+                _calendarBaseDate = _calendarBaseDate.subtract(const Duration(days: 1));
+              });
+            },
           ),
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildRefinedDateTab('SUN', '17', false),
-                _buildRefinedDateTab('MON', '18', false),
-                _buildRefinedDateTab('TODAY', 'TUE 19', true),
-                _buildRefinedDateTab('WED', '20', false),
-                _buildRefinedDateTab('THU', '21', false),
-              ],
+              children: visibleDates.map((date) {
+                final isSelected = date.year == selectedDate.year &&
+                                   date.month == selectedDate.month &&
+                                   date.day == selectedDate.day;
+                
+                final now = DateTime.now();
+                final isToday = date.year == now.year &&
+                                date.month == now.month &&
+                                date.day == now.day;
+
+                final days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+                final weekdayStr = days[date.weekday - 1];
+                
+                String dayStr = isToday ? 'TODAY' : weekdayStr;
+                String numStr = isSelected ? '$weekdayStr ${date.day}' : '${date.day}';
+
+                return GestureDetector(
+                  onTap: () {
+                    ref.read(matchStateProvider.notifier).setDate(date);
+                  },
+                  child: _buildRefinedDateTab(dayStr, numStr, isSelected),
+                );
+              }).toList(),
             ),
           ),
           IconButton(
             icon: Icon(Icons.chevron_right, color: context.colors.textMedium),
-            onPressed: () {},
+            onPressed: () {
+              setState(() {
+                _calendarBaseDate = _calendarBaseDate.add(const Duration(days: 1));
+              });
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRefinedDateTab(String day, String num, bool isToday) {
+  Widget _buildRefinedDateTab(String day, String num, bool isSelected) {
     return Column(
       children: [
-        if (!isToday) ...[
+        if (!isSelected) ...[
           Text(day, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textLow)),
           const SizedBox(height: 2),
           Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.textLow)),
         ],
-        if (isToday)
+        if (isSelected)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
