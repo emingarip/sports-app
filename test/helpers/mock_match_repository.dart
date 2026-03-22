@@ -39,6 +39,19 @@ class MockMatchRepository implements MatchRepository {
     return;
   }
 
+  @override
+  Future<List<Match>> searchMatches(String query) async {
+    if (query.isEmpty) {
+      return _matches;
+    }
+    final lowerCaseQuery = query.toLowerCase();
+    return _matches.where((match) =>
+        match.homeTeam.toLowerCase().contains(lowerCaseQuery) ||
+        match.awayTeam.toLowerCase().contains(lowerCaseQuery) ||
+        (match.leagueName?.toLowerCase().contains(lowerCaseQuery) ?? false)
+    ).toList();
+  }
+
   void dispose() {
     _controller.close();
   }

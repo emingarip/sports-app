@@ -12,6 +12,7 @@ import '../widgets/sticky_header_delegate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
 import '../widgets/custom_bottom_nav.dart';
+import '../widgets/match_search_delegate.dart';
 import 'package:flutter/services.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -246,7 +247,15 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         ],
       ),
       actions: [
-        IconButton(icon: Icon(Icons.search, color: context.colors.textMedium), onPressed: () {}),
+        IconButton(
+          icon: Icon(Icons.search, color: context.colors.textMedium), 
+          onPressed: () {
+            showSearch(
+              context: context, 
+              delegate: MatchSearchDelegate(ref),
+            );
+          }
+        ),
         IconButton(icon: Icon(Icons.notifications_outlined, color: context.colors.textMedium), onPressed: () {}),
         const SizedBox(width: 8),
       ],

@@ -9,4 +9,7 @@ abstract class MatchRepository {
 
   /// Proactively trigger the backend to fetch matches for a specific date
   Future<void> fetchMatchesForDate(DateTime date);
+
+  /// Search the database for matches matching a text query
+  Future<List<Match>> searchMatches(String query);
 }

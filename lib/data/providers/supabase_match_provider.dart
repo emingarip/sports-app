@@ -69,7 +69,19 @@ class SupabaseMatchProvider implements MatchRepository {
     } catch (e) {
       // In a real app we would log this properly or surface to UI,
       // but for background syncing it's safe to silently fail or print.
-      print('Failed to sync matches for date $date: $e');
+      print("[SupabaseMatchProvider] Error fetching live matches: $e");
     }
+  }
+
+  @override
+  Future<List<model.Match>> searchMatches(String query) async {
+    final response = await _client
+        .from('matches')
+        .select('*')
+        .or('home_team.ilike.%$query%,away_team.ilike.%$query%,league_name.ilike.%$query%')
+        .order('started_at', ascending: false)
+        .limit(50);
+        
+    return (response as List<dynamic>).map((data) => _mapMatch(data)).toList();
   }
 }
