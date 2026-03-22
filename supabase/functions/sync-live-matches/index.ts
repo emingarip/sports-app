@@ -60,19 +60,39 @@ Deno.serve(async (req) => {
     }
     // --- END CACHING LOGIC ---
 
-    // Fetch the live endpoint (Mapped matching the swagger documentation)
-    const highlightlyEndpoint = `https://sports.highlightly.net/football/matches?date=${targetDate}&timezone=Europe/Istanbul`;
+    // --- HIGH AVAILABILITY API FALLBACK LOGIC ---
+    const fetchHighlightly = async (baseUrl: string, hostHeader: string) => {
+      const endpoint = `${baseUrl}?date=${targetDate}&timezone=Europe/Istanbul`;
+      return await fetch(endpoint, {
+        headers: { 
+          'x-rapidapi-key': highlightlyKey,
+          'x-rapidapi-host': hostHeader,
+          'Content-Type': 'application/json'
+        }
+      });
+    };
+
+    let response = await fetchHighlightly('https://sports.highlightly.net/football/matches', 'sports.highlightly.net');
     
-    const response = await fetch(highlightlyEndpoint, {
-      headers: { 
-        'x-rapidapi-key': highlightlyKey,
-        'x-rapidapi-host': 'sports.highlightly.net',
-        'Content-Type': 'application/json'
+    // Fallback if Primary API hits rate limits (429) or goes down (5xx)
+    if (!response.ok) {
+      console.log(`Primary API (sports.highlightly.net) failed with status: ${response.status}. Falling back to soccer.highlightly.net...`);
+      // Try the secondary dedicated soccer API endpoint
+      response = await fetchHighlightly('https://soccer.highlightly.net/matches', 'soccer.highlightly.net');
+      
+      // If the path on soccer.highlightly.net requires /football/ too, catch 404 and retry
+      if (response.status === 404) {
+        console.log("Secondary API returned 404 on /matches, trying /football/matches...");
+        response = await fetchHighlightly('https://soccer.highlightly.net/football/matches', 'soccer.highlightly.net');
       }
-    })
+    }
     
-    if (!response.ok) throw new Error("Failed to fetch Highlightly data: " + response.statusText)
-    const data = await response.json()
+    if (!response.ok) {
+       const errBody = await response.text().catch(() => '');
+       throw new Error(`Failed to fetch Highlightly data from all endpoints. Final status: ${response.status} ${response.statusText} ${errBody}`);
+    }
+    
+    const data = await response.json();
     
     // 3. Map highlightly payload array to our agnostic DB schema to prevent UI lock-in
     const payloadMatches = data.data || []
