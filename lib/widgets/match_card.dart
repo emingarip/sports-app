@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/favorites_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
-import '../screens/match_room_screen.dart';
+import '../screens/match_detail_screen.dart';
 import '../services/push_notification_service.dart';
 import 'notification_permission_dialog.dart';
 
@@ -23,7 +23,7 @@ class MatchCard extends ConsumerWidget {
 
     return InkWell(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => MatchRoomScreen(match: match)));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => MatchDetailScreen(match: match)));
       },
       child: Container(
         decoration: BoxDecoration(

@@ -6,7 +6,7 @@ import '../models/match.dart' as model;
 import '../providers/match_provider.dart';
 import '../theme/app_theme.dart';
 import 'match_card.dart';
-import '../screens/match_room_screen.dart';
+import '../screens/match_detail_screen.dart';
 import '../screens/team_profile_screen.dart';
 import '../screens/league_profile_screen.dart';
 
@@ -247,7 +247,7 @@ class _DebouncedSearchDelegateWidgetState extends ConsumerState<_DebouncedSearch
            child: GestureDetector(
              onTap: () {
                widget.delegate.close(context, match);
-               Navigator.push(context, MaterialPageRoute(builder: (c) => MatchRoomScreen(match: match)));
+               Navigator.push(context, MaterialPageRoute(builder: (c) => MatchDetailScreen(match: match)));
              },
              child: MatchCard(
                match: match,

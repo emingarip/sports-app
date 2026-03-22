@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'match_room_screen.dart';
+import 'match_detail_screen.dart';
 import '../models/match.dart' as model;
 import '../models/league.dart';
 import '../models/notification.dart';

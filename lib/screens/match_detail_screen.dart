@@ -42,15 +42,16 @@ class FloatingReaction {
   });
 }
 
-class MatchRoomScreen extends StatefulWidget {
+class MatchDetailScreen extends StatefulWidget {
   final model.Match match;
-  const MatchRoomScreen({super.key, required this.match});
+  const MatchDetailScreen({super.key, required this.match});
 
   @override
-  State<MatchRoomScreen> createState() => _MatchRoomScreenState();
+  State<MatchDetailScreen> createState() => _MatchDetailScreenState();
 }
 
-class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderStateMixin {
+class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProviderStateMixin {
+  late TabController _tabController;
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final Random _random = Random();
@@ -95,7 +96,16 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
       });
     });
 
-    _subscribeToChat();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.index == 2) {
+        if (_chatSubscription == null) _subscribeToChat();
+      } else {
+        _chatSubscription?.cancel();
+        _chatSubscription = null;
+      }
+      setState(() {}); // to show/hide chat elements based on tab index
+    });
   }
 
   void _subscribeToChat() {
@@ -111,6 +121,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
 
   @override
   void dispose() {
+    _tabController.dispose();
     _msgController.dispose();
     _scrollController.dispose();
     _pulseController.dispose();
@@ -191,46 +202,100 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
       backgroundColor: context.colors.background,
       body: Stack(
         children: [
-          // Scrollable Context with Sliver App Bar
-          CustomScrollView(
+          NestedScrollView(
             controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-               SliverPersistentHeader(
-                pinned: true,
-                delegate: MatchRoomHeaderDelegate(
-                  match: widget.match,
-                  pulseController: _pulseController,
-                  bgPulseController: _bgPulseController,
-                  topPadding: safeTop,
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.only(bottom: 140),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final msg = _messages[index];
-                      final isNextSameUser = (index + 1 < _messages.length) && _messages[index + 1].type == msg.type && _messages[index + 1].username == msg.username;
-                      final isPrevSameUser = (index > 0) && _messages[index - 1].type == msg.type && _messages[index - 1].username == msg.username;
-                      
-                      if (msg.type == MessageType.systemEvent) return _buildSystemEvent(msg);
-                      return _buildMessage(msg, isNextSameUser, isPrevSameUser);
-                    },
-                    childCount: _messages.length,
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: MatchDetailHeaderDelegate(
+                    match: widget.match,
+                    pulseController: _pulseController,
+                    bgPulseController: _bgPulseController,
+                    topPadding: safeTop,
                   ),
                 ),
-              ),
-            ],
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: context.colors.primaryContainer,
+                      labelColor: context.colors.primaryContainer,
+                      unselectedLabelColor: context.colors.textMedium,
+                      labelStyle: const TextStyle(fontFamily: 'Lexend', fontWeight: FontWeight.bold, fontSize: 13),
+                      tabs: const [
+                        Tab(text: "OVERVIEW"),
+                        Tab(text: "STATS"),
+                        Tab(text: "LIVE CHAT"),
+                      ],
+                    ),
+                  ),
+                ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildOverviewTab(),
+                _buildStatsTab(),
+                _buildChatTab(),
+              ],
+            ),
           ),
           
-          // Floating Reactions layer
-          Positioned.fill(child: _buildFloatingReactions()),
+          if (_tabController.index == 2)
+            Positioned.fill(child: _buildFloatingReactions()),
           
-          // Input Area
-          Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomInputArea()),
+          if (_tabController.index == 2)
+            Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomInputArea()),
         ],
       ),
+    );
+  }
+
+  Widget _buildOverviewTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.sports_esports, size: 48, color: context.colors.surfaceContainerHigh),
+          const SizedBox(height: 16),
+          Text("Match Timeline", style: TextStyle(fontFamily: 'Lexend', fontSize: 18, color: context.colors.textHigh, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text("Events will appear here.", style: TextStyle(color: context.colors.textMedium)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.analytics, size: 48, color: context.colors.surfaceContainerHigh),
+          const SizedBox(height: 16),
+          Text("Match Statistics", style: TextStyle(fontFamily: 'Lexend', fontSize: 18, color: context.colors.textHigh, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text("Possession, shots, and more...", style: TextStyle(color: context.colors.textMedium)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatTab() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 140, top: 16),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final msg = _messages[index];
+        final isNextSameUser = (index + 1 < _messages.length) && _messages[index + 1].type == msg.type && _messages[index + 1].username == msg.username;
+        final isPrevSameUser = (index > 0) && _messages[index - 1].type == msg.type && _messages[index - 1].username == msg.username;
+        
+        if (msg.type == MessageType.systemEvent) return _buildSystemEvent(msg);
+        return _buildMessage(msg, isNextSameUser, isPrevSameUser);
+      },
     );
   }
 
@@ -619,13 +684,13 @@ class _ReactionButtonState extends State<_ReactionButton> with SingleTickerProvi
   }
 }
 
-class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
+class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
   final model.Match match;
   final AnimationController pulseController;
   final AnimationController bgPulseController;
   final double topPadding;
 
-  MatchRoomHeaderDelegate({
+  MatchDetailHeaderDelegate({
     required this.match,
     required this.pulseController,
     required this.bgPulseController,
@@ -839,5 +904,30 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant MatchRoomHeaderDelegate oldDelegate) => true;
+  bool shouldRebuild(covariant MatchDetailHeaderDelegate oldDelegate) => true;
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: context.colors.background,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
+  }
 }
