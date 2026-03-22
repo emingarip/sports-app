@@ -713,6 +713,14 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  Hero(
+                                    tag: 'match-${match.id}-home-logo',
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: Image.network(match.homeLogo, width: 44, height: 44, errorBuilder: (ctx, err, _) => const Icon(Icons.shield, size: 44)),
+                                    )
+                                  ),
+                                  const SizedBox(height: 8),
                                   Text(homeAbbr, style: TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
                                   const SizedBox(height: 6),
                                   Container(height: 5, width: 36, decoration: BoxDecoration(color: context.colors.primaryContainer, borderRadius: BorderRadius.circular(3), boxShadow: [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.5), blurRadius: 4)])),
@@ -727,6 +735,14 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  Hero(
+                                    tag: 'match-${match.id}-away-logo',
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: Image.network(match.awayLogo, width: 44, height: 44, errorBuilder: (ctx, err, _) => const Icon(Icons.shield, size: 44)),
+                                    )
+                                  ),
+                                  const SizedBox(height: 8),
                                   Text(awayAbbr, style: TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: context.colors.textMedium)),
                                   const SizedBox(height: 6),
                                   Container(height: 5, width: 36, decoration: BoxDecoration(color: context.colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(3))),

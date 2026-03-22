@@ -36,13 +36,20 @@ class MatchCard extends ConsumerWidget {
           // Time/Status
           SizedBox(
             width: 48,
-            child: Column(
-              children: [
-                if (isLive) Text("LIVE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: context.colors.error, letterSpacing: 1.5)),
-                if (!isLive) Text(statusTime.replaceAll(" ", "\n"), textAlign: TextAlign.center, style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: context.colors.textLow, letterSpacing: 0.5, height: 1.1)),
-                if (isLive) Text(statusTime, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: context.colors.error)),
-              ],
-            ),
+            child: isLive 
+              ? PulsingLiveText(
+                  child: Column(
+                    children: [
+                      Text("LIVE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: context.colors.error, letterSpacing: 1.5)),
+                      Text(statusTime, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: context.colors.error)),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    Text(statusTime.replaceAll(" ", "\n"), textAlign: TextAlign.center, style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: context.colors.textLow, letterSpacing: 0.5, height: 1.1)),
+                  ],
+                ),
           ),
           
           Expanded(
@@ -52,7 +59,13 @@ class MatchCard extends ConsumerWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      Image.network(match.homeLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
+                      Hero(
+                        tag: 'match-${match.id}-home-logo',
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Image.network(match.homeLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
+                        )
+                      ),
                       const SizedBox(height: 4),
                       Text(match.homeTeam, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
                     ],
@@ -72,11 +85,19 @@ class MatchCard extends ConsumerWidget {
                       : FittedBox(
                           child: Row(
                             children: [
-                              Text(match.homeScore ?? "-", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isLive ? context.colors.textHigh : context.colors.textLow)),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                                child: Text(match.homeScore ?? "-", key: ValueKey(match.homeScore), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isLive ? context.colors.textHigh : context.colors.textLow)),
+                              ),
                               const SizedBox(width: 8),
                               Text("-", style: TextStyle(fontSize: 16, color: context.colors.surfaceContainer)),
                               const SizedBox(width: 8),
-                              Text(match.awayScore ?? "-", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                                child: Text(match.awayScore ?? "-", key: ValueKey(match.awayScore), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
+                              ),
                             ],
                           ),
                         ),
@@ -84,7 +105,13 @@ class MatchCard extends ConsumerWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      Image.network(match.awayLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
+                      Hero(
+                        tag: 'match-${match.id}-away-logo',
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Image.network(match.awayLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
+                        )
+                      ),
                       const SizedBox(height: 4),
                       Text(match.awayTeam, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
                     ],
@@ -124,5 +151,27 @@ class MatchCard extends ConsumerWidget {
 
   String _formatTime(DateTime time) {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class PulsingLiveText extends StatefulWidget {
+  final Widget child;
+  const PulsingLiveText({super.key, required this.child});
+  @override
+  State<PulsingLiveText> createState() => _PulsingLiveTextState();
+}
+
+class _PulsingLiveTextState extends State<PulsingLiveText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat(reverse: true);
+  }
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: Tween(begin: 0.3, end: 1.0).animate(_controller), child: widget.child);
   }
 }
