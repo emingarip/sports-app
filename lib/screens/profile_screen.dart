@@ -7,6 +7,8 @@ import '../services/supabase_service.dart';
 import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
+import '../providers/wallet_provider.dart';
+import 'store_front_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -229,12 +231,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           children: [
             Expanded(
-              child: _buildMetricCard(
-                title: 'K-COINS',
-                value: _profile!.virtualCurrencyBalance.toString(),
-                icon: Icons.monetization_on,
-                color: context.colors.primaryContainer,
-                onColor: context.colors.onPrimaryContainer,
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final balance = ref.watch(walletBalanceProvider);
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const StoreFrontScreen()),
+                      );
+                    },
+                    child: _buildMetricCard(
+                      title: 'K-COINS',
+                      value: balance.toString(),
+                      icon: Icons.monetization_on,
+                      color: context.colors.primaryContainer,
+                      onColor: context.colors.onPrimaryContainer,
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(width: 16),
