@@ -341,6 +341,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 String numStr = isSelected ? '$weekdayStr ${date.day}' : '${date.day}';
 
                 return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     ref.read(matchStateProvider.notifier).setDate(date);
                   },
@@ -363,29 +364,36 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   Widget _buildRefinedDateTab(String day, String num, bool isSelected) {
-    return Column(
-      children: [
-        if (!isSelected) ...[
-          Text(day, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textLow)),
-          const SizedBox(height: 2),
-          Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.textLow)),
-        ],
-        if (isSelected)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: isSelected
+          ? BoxDecoration(
               color: context.colors.primaryContainer,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-            ),
-            child: Column(
-              children: [
-                Text(day, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: context.colors.onPrimaryContainer)),
-                Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.onPrimaryContainer)),
-              ],
+            )
+          : const BoxDecoration(color: Colors.transparent),
+      child: Column(
+        children: [
+          Text(
+            day,
+            style: TextStyle(
+              fontSize: isSelected ? 9 : 10,
+              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+              color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
             ),
           ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            num,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
