@@ -13,9 +13,12 @@ Deno.serve(async (req) => {
     const highlightlyKey = Deno.env.get('HIGHLIGHTLY_API_KEY')
     if (!highlightlyKey) throw new Error("Missing HIGHLIGHTLY_API_KEY secret")
 
+    // Parse URL to see if a specific date was requested
+    const url = new URL(req.url)
+    const targetDate = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+    
     // Fetch the live endpoint (Mapped matching the swagger documentation)
-    const today = new Date().toISOString().split('T')[0];
-    const highlightlyEndpoint = `https://sports.highlightly.net/football/matches?date=${today}&timezone=Europe/Istanbul`;
+    const highlightlyEndpoint = `https://sports.highlightly.net/football/matches?date=${targetDate}&timezone=Europe/Istanbul`;
     
     const response = await fetch(highlightlyEndpoint, {
       headers: { 

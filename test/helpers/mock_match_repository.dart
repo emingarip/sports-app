@@ -33,6 +33,12 @@ class MockMatchRepository implements MatchRepository {
     return _controller.stream;
   }
 
+  @override
+  Future<void> fetchMatchesForDate(DateTime date) async {
+    // Mock implementation does nothing, as we set matches explicitly in tests
+    return;
+  }
+
   void dispose() {
     _controller.close();
   }

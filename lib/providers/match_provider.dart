@@ -81,7 +81,16 @@ class MatchNotifier extends Notifier<MatchState> {
   }
 
   void setDate(DateTime date) {
+    if (state.selectedDate.year == date.year && 
+        state.selectedDate.month == date.month && 
+        state.selectedDate.day == date.day) {
+      return; // No need to re-fetch if same day
+    }
+    
     state = state.copyWith(selectedDate: date);
+    
+    // Proactively fetch matches for the new date from the backend
+    ref.read(matchRepositoryProvider).fetchMatchesForDate(date);
   }
 
   model.Match? get activeLiveMatch {

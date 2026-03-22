@@ -53,4 +53,23 @@ class SupabaseMatchProvider implements MatchRepository {
         .stream(primaryKey: ['id'])
         .map((events) => events.map((data) => _mapMatch(data)).toList());
   }
+
+  @override
+  Future<void> fetchMatchesForDate(DateTime date) async {
+    try {
+      final year = date.year.toString();
+      final month = date.month.toString().padLeft(2, '0');
+      final day = date.day.toString().padLeft(2, '0');
+      final formattedDate = '$year-$month-$day';
+
+      await _client.functions.invoke(
+        'sync-live-matches',
+        queryParameters: {'date': formattedDate},
+      );
+    } catch (e) {
+      // In a real app we would log this properly or surface to UI,
+      // but for background syncing it's safe to silently fail or print.
+      print('Failed to sync matches for date $date: $e');
+    }
+  }
 }
