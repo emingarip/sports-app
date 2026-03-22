@@ -12,22 +12,26 @@ class MatchState {
   final List<model.Match> matches;
   final String activeFilter;
   final DateTime selectedDate;
+  final bool isLoading;
 
   MatchState({
     required this.matches,
     required this.activeFilter,
     required this.selectedDate,
+    this.isLoading = false,
   });
 
   MatchState copyWith({
     List<model.Match>? matches,
     String? activeFilter,
     DateTime? selectedDate,
+    bool? isLoading,
   }) {
     return MatchState(
       matches: matches ?? this.matches,
       activeFilter: activeFilter ?? this.activeFilter,
       selectedDate: selectedDate ?? this.selectedDate,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 
@@ -80,17 +84,23 @@ class MatchNotifier extends Notifier<MatchState> {
     state = state.copyWith(activeFilter: filter);
   }
 
-  void setDate(DateTime date) {
+  Future<void> setDate(DateTime date) async {
     if (state.selectedDate.year == date.year && 
         state.selectedDate.month == date.month && 
         state.selectedDate.day == date.day) {
       return; // No need to re-fetch if same day
     }
     
-    state = state.copyWith(selectedDate: date);
+    state = state.copyWith(selectedDate: date, isLoading: true);
     
     // Proactively fetch matches for the new date from the backend
-    ref.read(matchRepositoryProvider).fetchMatchesForDate(date);
+    try {
+      await ref.read(matchRepositoryProvider).fetchMatchesForDate(date);
+    } finally {
+      // Small delay ensures Realtime Stream has time to paint new rows before stripping skeleton
+      await Future.delayed(const Duration(milliseconds: 500));
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   model.Match? get activeLiveMatch {

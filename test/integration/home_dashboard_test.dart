@@ -97,8 +97,8 @@ void main() {
         expect(find.text('TomorrowTeam'), findsNothing);
 
         // Tap tomorrow's date tab
-        // The day string is just the number (e.g. "20") if unselected.
-        await tester.tap(find.text('${tomorrow.day}').first);
+        // Tomorrow is offsetFromToday = 1
+        await tester.tap(find.byKey(const ValueKey('date_tab_1')));
         await tester.pumpAndSettle();
 
         // Should now show tomorrow's matches
