@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sports_app/screens/home_dashboard.dart';
 import 'package:sports_app/models/match.dart' as model;
 import 'package:sports_app/providers/match_provider.dart';
+import 'package:sports_app/theme/app_theme.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
 
@@ -21,8 +22,9 @@ void main() {
         overrides: [
           matchRepositoryProvider.overrideWithValue(mockRepository),
         ],
-        child: const MaterialApp(
-          home: HomeDashboard(),
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const HomeDashboard(),
         ),
       );
     }
