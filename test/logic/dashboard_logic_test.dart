@@ -9,15 +9,17 @@ import '../helpers/test_helpers.dart';
 void main() {
   // ── Filtering ──────────────────────────────────────────────────────
   group('Match filtering', () {
+    final today = DateTime(2026, 3, 22);
+
     final matches = [
-      createTestMatch(id: '1', status: MatchStatus.live),
-      createTestMatch(id: '2', status: MatchStatus.upcoming),
-      createTestMatch(id: '3', status: MatchStatus.finished),
-      createTestMatch(id: '4', status: MatchStatus.live, isFavorite: true),
+      createTestMatch(id: '1', status: MatchStatus.live, startTime: today),
+      createTestMatch(id: '2', status: MatchStatus.upcoming, startTime: today),
+      createTestMatch(id: '3', status: MatchStatus.finished, startTime: today),
+      createTestMatch(id: '4', status: MatchStatus.live, isFavorite: true, startTime: today),
     ];
 
     List<Match> applyFilter(String filter, List<Match> all, [DateTime? selectedDate]) {
-      final date = selectedDate ?? DateTime.now();
+      final date = selectedDate ?? today;
       return all.where((m) {
         if (filter == 'Live 🔴') return m.status == MatchStatus.live;
         if (filter == 'Starred ⭐') return m.isFavorite;
@@ -64,7 +66,7 @@ void main() {
     });
 
     test('"All" and "Finished" respect selectedDate filter', () {
-      final today = DateTime.now();
+      final today = DateTime(2026, 3, 22);
       final tomorrow = today.add(const Duration(days: 1));
       
       final dateMatches = [
@@ -89,12 +91,12 @@ void main() {
     });
 
     test('"Live" and "Starred" ignore selectedDate filter', () {
-      final yesterday = DateTime.now().subtract(const Duration(days: 1));
-      final today = DateTime.now();
+      final today = DateTime(2026, 3, 22);
+      final yesterday = today.subtract(const Duration(days: 1));
       
       final dateMatches = [
         createTestMatch(id: '1', startTime: yesterday, status: MatchStatus.live),
-        createTestMatch(id: '2', startTime: yesterday, isFavorite: true),
+        createTestMatch(id: '2', startTime: yesterday, isFavorite: true, status: MatchStatus.finished),
       ];
       
       final resultLive = applyFilter('Live 🔴', dateMatches, today);

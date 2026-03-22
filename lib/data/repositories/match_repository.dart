@@ -6,4 +6,10 @@ abstract class MatchRepository {
 
   /// Listen to a real-time stream of live matches
   Stream<List<Match>> getMatchesStream();
+
+  /// Proactively trigger the backend to fetch matches for a specific date
+  Future<void> fetchMatchesForDate(DateTime date);
+
+  /// Search the database for matches matching a text query
+  Future<List<Match>> searchMatches(String query);
 }

@@ -3,15 +3,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:network_image_mock/network_image_mock.dart';
 import 'package:sports_app/theme/app_theme.dart';
 import 'package:sports_app/widgets/league_group.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sports_app/providers/favorites_provider.dart';
 import '../helpers/test_helpers.dart';
+
+class MockFavoritesNotifier extends FavoritesNotifier {
+  @override
+  Set<String> build() => {};
+  
+  @override
+  Future<void> toggleFavorite(String matchId) async {}
+}
 
 void main() {
   Widget buildTestableWidget(Widget child) {
-    return MaterialApp(
-      theme: AppTheme.lightTheme,
-      home: Scaffold(
-        body: CustomScrollView(
-          slivers: [child],
+    return ProviderScope(
+      overrides: [
+        favoritesProvider.overrideWith(() => MockFavoritesNotifier())
+      ],
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [child],
+          ),
         ),
       ),
     );
