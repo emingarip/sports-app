@@ -17,6 +17,39 @@ Deno.serve(async (req) => {
     const url = new URL(req.url)
     const targetDate = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
     
+    // --- SMART CACHING LOGIC ---
+    const { data: syncLog } = await supabaseClient
+      .from('api_sync_logs')
+      .select('last_synced_at')
+      .eq('date', targetDate)
+      .maybeSingle()
+
+    let shouldFetchFromAPI = true;
+    
+    if (syncLog && syncLog.last_synced_at) {
+      const lastSynced = new Date(syncLog.last_synced_at);
+      const now = new Date();
+      const diffMinutes = (now.getTime() - lastSynced.getTime()) / 1000 / 60;
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (targetDate === today) {
+        // Live matches (today): Cache for 2 minutes to block spam
+        if (diffMinutes <= 2) shouldFetchFromAPI = false;
+      } else {
+        // Scheduled or Past matches: Cache for 24 hours (1440 mins)
+        if (diffMinutes <= 1440) shouldFetchFromAPI = false;
+      }
+    }
+
+    if (!shouldFetchFromAPI) {
+      return new Response(JSON.stringify({ success: true, cached: true, message: "Returned cached data from Supabase DB" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      })
+    }
+    // --- END CACHING LOGIC ---
+
     // Fetch the live endpoint (Mapped matching the swagger documentation)
     const highlightlyEndpoint = `https://sports.highlightly.net/football/matches?date=${targetDate}&timezone=Europe/Istanbul`;
     
@@ -78,6 +111,11 @@ Deno.serve(async (req) => {
       .upsert(unifiableMap, { onConflict: 'provider_id' })
 
     if (error) throw error
+
+    // 5. Update the sync log to track the successful fetch
+    await supabaseClient
+      .from('api_sync_logs')
+      .upsert({ date: targetDate, last_synced_at: new Date().toISOString() })
 
     return new Response(JSON.stringify({ success: true, upserted_count: unifiableMap.length }), {
       headers: { "Content-Type": "application/json" },
