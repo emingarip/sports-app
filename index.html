@@ -91,5 +91,19 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- Auto-Reload on Update -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      // Flutter's default service worker calls skipWaiting() automatically upon installing.
+      // When it takes control, this event fires. We reload instantly to apply the new version.
+      let refreshing;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    }
+  </script>
 </body>
 </html>
