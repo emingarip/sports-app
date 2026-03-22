@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../services/supabase_service.dart';
+import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 
@@ -190,6 +192,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 side: BorderSide(color: context.colors.surfaceContainerHigh),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+            ),
+            const SizedBox(height: 24),
+            Consumer(
+              builder: (context, ref, child) {
+                final currentMode = ref.watch(themeModeNotifierProvider);
+                return SegmentedButton<ThemeMode>(
+                  style: SegmentedButton.styleFrom(
+                    backgroundColor: context.colors.surfaceContainerLowest,
+                    foregroundColor: context.colors.textMedium,
+                    selectedForegroundColor: context.colors.textHigh,
+                    selectedBackgroundColor: context.colors.primaryContainer,
+                  ),
+                  segments: const [
+                    ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode), label: Text('Light')),
+                    ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.settings_suggest), label: Text('System')),
+                    ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode), label: Text('Dark')),
+                  ],
+                  selected: {currentMode},
+                  onSelectionChanged: (Set<ThemeMode> newSelection) {
+                    ref.read(themeModeNotifierProvider.notifier).setThemeMode(newSelection.first);
+                  },
+                );
+              },
             ),
           ],
         ),
