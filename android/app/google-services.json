@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "858669470500",
+    "project_id": "boskale-d00cc",
+    "storage_bucket": "boskale-d00cc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:858669470500:android:050125757d6916f7e899b1",
+        "android_client_info": {
+          "package_name": "com.example.sports_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLTwqiaptfxY0zwj2VUUjHZ_KaVPZ5xMo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

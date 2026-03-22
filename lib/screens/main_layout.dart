@@ -3,17 +3,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../theme/app_theme.dart';
+import '../services/push_notification_service.dart';
 
 import 'home_dashboard.dart';
 import 'ai_match_insights_screen.dart';
 import 'prediction_market_screen.dart';
 import 'profile_screen.dart';
 
-class MainLayout extends ConsumerWidget {
+class MainLayout extends ConsumerStatefulWidget {
   const MainLayout({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainLayout> createState() => _MainLayoutState();
+}
+
+class _MainLayoutState extends ConsumerState<MainLayout> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(pushNotificationServiceProvider).initialize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationProvider);
 
     return Scaffold(

@@ -4,6 +4,8 @@ import '../providers/favorites_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
 import '../screens/match_room_screen.dart';
+import '../services/push_notification_service.dart';
+import 'notification_permission_dialog.dart';
 
 class MatchCard extends ConsumerWidget {
   final model.Match match;
@@ -93,8 +95,18 @@ class MatchCard extends ConsumerWidget {
           ),
           
           GestureDetector(
-            onTap: () {
+            onTap: () async {
               ref.read(favoritesProvider.notifier).toggleFavorite(match.id);
+              if (!isFavorite) {
+                // If they just favorited, check if we should soft prompt for notifications
+                // Add a small delay so UI reacts immediately before dialog pops
+                await Future.delayed(const Duration(milliseconds: 200));
+                if (!context.mounted) return;
+                bool notDetermined = await ref.read(pushNotificationServiceProvider).isPermissionNotDetermined();
+                if (notDetermined && context.mounted) {
+                  await NotificationPermissionDialog.show(context);
+                }
+              }
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/supabase_service.dart';
@@ -13,6 +15,19 @@ void main() async {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     debugPrint("App: No .env file found, using fallbacks.");
+  }
+  
+  try {
+    await Firebase.initializeApp(
+      options: kIsWeb ? const FirebaseOptions(
+        apiKey: "AIzaSyDLTwqiaptfxY0zwj2VUUjHZ_KaVPZ5xMo",
+        appId: "1:858669470500:web:abcdef1234567890", // Placeholder for web app ID
+        messagingSenderId: "858669470500",
+        projectId: "boskale-d00cc",
+      ) : null,
+    );
+  } catch (e) {
+    debugPrint("App: Firebase init failed: $e");
   }
   await SupabaseService.initialize();
   runApp(const ProviderScope(child: MyApp()));
