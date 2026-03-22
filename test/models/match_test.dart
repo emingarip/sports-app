@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../../lib/models/match.dart';
+import 'package:sports_app/models/match.dart';
 
 void main() {
   group('MatchStatus enum', () {

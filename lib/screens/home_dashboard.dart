@@ -131,13 +131,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     final activeFilter = ref.watch(matchStateProvider).activeFilter;
 
     return Scaffold(
-      backgroundColor: AppTheme.surfaceContainerLow,
+      backgroundColor: context.colors.surfaceContainerLow,
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600),
-          decoration: const BoxDecoration(
-            color: AppTheme.background,
-            border: Border.symmetric(vertical: BorderSide(color: AppTheme.surfaceContainerLow, width: 2)),
+          decoration: BoxDecoration(
+            color: context.colors.background,
+            border: Border.symmetric(vertical: BorderSide(color: context.colors.surfaceContainerLow, width: 2)),
           ),
           child: Stack(
             children: [
@@ -183,10 +183,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       ),
       title: Row(
         children: [
-          const CircleAvatar(
-            backgroundColor: AppTheme.surfaceContainer,
+          CircleAvatar(
+            backgroundColor: context.colors.surfaceContainer,
             radius: 18,
-            child: Icon(Icons.person, color: AppTheme.textMedium, size: 20),
+            child: Icon(Icons.person, color: context.colors.textMedium, size: 20),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -203,8 +203,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         ],
       ),
       actions: [
-        IconButton(icon: const Icon(Icons.search, color: AppTheme.textMedium), onPressed: () {}),
-        IconButton(icon: const Icon(Icons.notifications_outlined, color: AppTheme.textMedium), onPressed: () {}),
+        IconButton(icon: Icon(Icons.search, color: context.colors.textMedium), onPressed: () {}),
+        IconButton(icon: Icon(Icons.notifications_outlined, color: context.colors.textMedium), onPressed: () {}),
         const SizedBox(width: 8),
       ],
       bottom: PreferredSize(
@@ -224,7 +224,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                  ],
                ),
              ),
-             const Divider(height: 1, color: AppTheme.surfaceContainerLow),
+             Divider(height: 1, color: context.colors.surfaceContainerLow),
           ],
         ),
       ),
@@ -238,11 +238,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       child: ChoiceChip(
         label: Row(
           children: [
-            Icon(icon, size: 18, color: isSelected ? AppTheme.textHigh : AppTheme.textMedium),
+            Icon(icon, size: 18, color: isSelected ? context.colors.textHigh : context.colors.textMedium),
             const SizedBox(width: 8),
             Text(label, style: TextStyle(
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppTheme.textHigh : AppTheme.textMedium,
+              color: isSelected ? context.colors.textHigh : context.colors.textMedium,
             )),
           ],
         ),
@@ -252,8 +252,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             _selectedSportIndex = index;
           });
         },
-        backgroundColor: AppTheme.surfaceContainerLow,
-        selectedColor: AppTheme.primaryContainer,
+        backgroundColor: context.colors.surfaceContainerLow,
+        selectedColor: context.colors.primaryContainer,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         side: BorderSide.none,
         showCheckmark: false,
@@ -271,7 +271,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              color: AppTheme.background.withOpacity(0.85),
+              color: context.colors.background.withOpacity(0.85),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -293,7 +293,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppTheme.textMedium),
+            icon: Icon(Icons.chevron_left, color: context.colors.textMedium),
             onPressed: () {},
           ),
           Expanded(
@@ -309,7 +309,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: AppTheme.textMedium),
+            icon: Icon(Icons.chevron_right, color: context.colors.textMedium),
             onPressed: () {},
           ),
         ],
@@ -321,22 +321,22 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     return Column(
       children: [
         if (!isToday) ...[
-          Text(day, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textLow)),
+          Text(day, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textLow)),
           const SizedBox(height: 2),
-          Text(num, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppTheme.textLow)),
+          Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.textLow)),
         ],
         if (isToday)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: AppTheme.primaryContainer,
+              color: context.colors.primaryContainer,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
             ),
             child: Column(
               children: [
-                Text(day, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
-                Text(num, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
+                Text(day, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
+                Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
               ],
             ),
           ),
@@ -347,7 +347,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   Widget _buildFeaturedMatchCard(model.Match match) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
+        color: context.colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8)),
@@ -364,7 +364,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.secondaryContainer.withOpacity(0.1),
+                color: context.colors.secondaryContainer.withOpacity(0.1),
               ),
             ),
           ),
@@ -380,15 +380,15 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondaryContainer.withOpacity(0.1),
+                          color: context.colors.secondaryContainer.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.secondaryContainer, shape: BoxShape.circle)),
+                            Container(width: 6, height: 6, decoration: BoxDecoration(color: context.colors.secondaryContainer, shape: BoxShape.circle)),
                             const SizedBox(width: 6),
-                            const Text("EL CLÁSICO • FEATURED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.secondaryContainer, letterSpacing: 1)),
+                            Text("EL CLÁSICO • FEATURED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.secondaryContainer, letterSpacing: 1)),
                           ],
                         ),
                       ),
@@ -399,9 +399,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                           Expanded(child: _buildBentoTeam(match.homeTeam, match.homeLogo)),
                           Column(
                             children: [
-                              const Text("Starts at", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textLow)),
+                              Text("Starts at", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: context.colors.textLow)),
                               const SizedBox(height: 4),
-                              Text('${match.startTime.hour.toString().padLeft(2, '0')}:${match.startTime.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
+                              Text('${match.startTime.hour.toString().padLeft(2, '0')}:${match.startTime.minute.toString().padLeft(2, '0')}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
                             ],
                           ),
                           Expanded(child: _buildBentoTeam(match.awayTeam, match.awayLogo)),
@@ -415,17 +415,17 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     Container(
                       width: 48,
                       height: 48,
-                      decoration: const BoxDecoration(color: AppTheme.primaryContainer, shape: BoxShape.circle, boxShadow: [
+                      decoration: BoxDecoration(color: context.colors.primaryContainer, shape: BoxShape.circle, boxShadow: const [
                         BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
                       ]),
-                      child: const Icon(Icons.star, color: AppTheme.onPrimaryContainer),
+                      child: Icon(Icons.star, color: context.colors.onPrimaryContainer),
                     ),
                     const SizedBox(height: 12),
                     Container(
                       width: 48,
                       height: 48,
-                      decoration: const BoxDecoration(color: AppTheme.surfaceContainer, shape: BoxShape.circle),
-                      child: const Icon(Icons.share, color: AppTheme.textMedium),
+                      decoration: BoxDecoration(color: context.colors.surfaceContainer, shape: BoxShape.circle),
+                      child: Icon(Icons.share, color: context.colors.textMedium),
                     ),
                   ],
                 ),
@@ -445,7 +445,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           height: 56,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
+            color: context.colors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Image.network(logourl, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),

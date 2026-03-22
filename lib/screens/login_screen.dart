@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -55,16 +55,16 @@ class _LoginScreenState extends State<LoginScreen> {
             Container(
               height: 96,
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppTheme.surfaceContainerLow, width: 1)),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: context.colors.surfaceContainerLow, width: 1)),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.verified_user, color: AppTheme.primaryContainer, size: 24),
-                      SizedBox(width: 8),
+                      Icon(Icons.verified_user, color: context.colors.primaryContainer, size: 24),
+                      const SizedBox(width: 8),
                       Text(
                         "VELOCITY SCORE",
                         style: TextStyle(
@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           fontStyle: FontStyle.italic,
-                          color: AppTheme.primary,
+                          color: context.colors.primary,
                           letterSpacing: -1,
                         ),
                       ),
@@ -80,8 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   Row(
                     children: [
-                      Icon(Icons.lock, size: 14, color: AppTheme.textLow),
-                      SizedBox(width: 6),
+                      Icon(Icons.lock, size: 14, color: context.colors.textLow),
+                      const SizedBox(width: 6),
                       Text(
                         "SECURE SSL",
                         style: TextStyle(
@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.5,
-                          color: AppTheme.textLow,
+                          color: context.colors.textLow,
                         ),
                       ),
                     ],
@@ -108,24 +108,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Titles
-                      const Text(
+                      Text(
                         "Sign in or create account",
                         style: TextStyle(
                           fontFamily: 'Lexend',
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
-                          color: AppTheme.textHigh,
+                          color: context.colors.textHigh,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         "We’ll send a one-time verification code. No spam, just secure sign-in.",
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: AppTheme.textMedium,
+                          color: context.colors.textMedium,
                           height: 1.5,
                         ),
                       ),
@@ -135,15 +135,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       Container(
                         height: 64,
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerLowest,
+                          color: context.colors.surfaceContainerLowest,
                           borderRadius: BorderRadius.circular(32),
-                          border: Border.all(color: AppTheme.surfaceContainer, width: 1),
+                          border: Border.all(color: context.colors.surfaceContainer, width: 1),
                         ),
                         child: Row(
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 24),
-                              child: Icon(Icons.email_outlined, color: AppTheme.textMedium),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Icon(Icons.email_outlined, color: context.colors.textMedium),
                             ),
                             Expanded(
                               child: Padding(
@@ -151,10 +151,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: TextField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  style: const TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w500, color: AppTheme.textHigh),
-                                  decoration: const InputDecoration(
+                                  style: TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w500, color: context.colors.textHigh),
+                                  decoration: InputDecoration(
                                     hintText: "hello@velocityscore.com",
-                                    hintStyle: TextStyle(color: AppTheme.surfaceContainerHigh),
+                                    hintStyle: TextStyle(color: context.colors.surfaceContainerHigh),
                                     border: InputBorder.none,
                                     counterText: "",
                                   ),
@@ -174,14 +174,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _requestOtp,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryContainer,
-                            foregroundColor: AppTheme.onPrimaryContainer,
+                            backgroundColor: context.colors.primaryContainer,
+                            foregroundColor: context.colors.onPrimaryContainer,
                             elevation: 8,
-                            shadowColor: AppTheme.primaryContainer.withOpacity(0.4),
+                            shadowColor: context.colors.primaryContainer.withOpacity(0.4),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                           ),
                           child: _isLoading
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppTheme.onPrimaryContainer, strokeWidth: 2))
+                              ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: context.colors.onPrimaryContainer, strokeWidth: 2))
                               : const Text(
                                   "Get verification code",
                                   style: TextStyle(fontFamily: 'Lexend', fontSize: 18, fontWeight: FontWeight.bold),
@@ -192,17 +192,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 16),
                       
                       // Divider
-                      const Row(
+                      Row(
                         children: [
-                          Expanded(child: Divider(color: AppTheme.surfaceContainer)),
+                          Expanded(child: Divider(color: context.colors.surfaceContainer)),
                           Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
                               "OR CONTINUE WITH",
-                              style: TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 2.5, color: AppTheme.textLow),
+                              style: TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 2.5, color: context.colors.textLow),
                             ),
                           ),
-                          Expanded(child: Divider(color: AppTheme.surfaceContainer)),
+                          Expanded(child: Divider(color: context.colors.surfaceContainer)),
                         ],
                       ),
                       
@@ -225,9 +225,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 20, height: 20,
                                   errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 24),
                                 ),
-                                label: const Text("Google", style: TextStyle(fontFamily: 'Lexend', fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textHigh)),
+                                label: Text("Google", style: TextStyle(fontFamily: 'Lexend', fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textHigh)),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: AppTheme.surfaceContainer),
+                                  side: BorderSide(color: context.colors.surfaceContainer),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                                 ),
                               ),
@@ -239,10 +239,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 56,
                               child: OutlinedButton.icon(
                                 onPressed: () {},
-                                icon: const Icon(Icons.apple, color: AppTheme.textHigh),
-                                label: const Text("Apple", style: TextStyle(fontFamily: 'Lexend', fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textHigh)),
+                                icon: Icon(Icons.apple, color: context.colors.textHigh),
+                                label: Text("Apple", style: TextStyle(fontFamily: 'Lexend', fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textHigh)),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: AppTheme.surfaceContainer),
+                                  side: BorderSide(color: context.colors.surfaceContainer),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                                 ),
                               ),
@@ -263,9 +263,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                    RichText(
                      textAlign: TextAlign.center,
-                     text: const TextSpan(
-                       style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: AppTheme.textLow, height: 1.5),
-                       children: [
+                     text: TextSpan(
+                       style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: context.colors.textLow, height: 1.5),
+                       children: const [
                          TextSpan(text: "By continuing, you agree to the Velocity Score\n"),
                          TextSpan(text: "Terms of Service", style: TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                          TextSpan(text: " and "),
@@ -274,22 +274,22 @@ class _LoginScreenState extends State<LoginScreen> {
                      ),
                    ),
                    const SizedBox(height: 24),
-                   const Row(
+                   Row(
                      mainAxisAlignment: MainAxisAlignment.center,
                      children: [
                         Column(
                           children: [
-                            Icon(Icons.language, color: AppTheme.textLow),
-                            SizedBox(height: 4),
-                            Text("EN", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textLow)),
+                            Icon(Icons.language, color: context.colors.textLow),
+                            const SizedBox(height: 4),
+                            Text("EN", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textLow)),
                           ],
                         ),
-                        SizedBox(width: 32),
+                        const SizedBox(width: 32),
                         Column(
                           children: [
-                            Icon(Icons.support_agent, color: AppTheme.textLow),
-                            SizedBox(height: 4),
-                            Text("HELP", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textLow)),
+                            Icon(Icons.support_agent, color: context.colors.textLow),
+                            const SizedBox(height: 4),
+                            Text("HELP", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textLow)),
                           ],
                         ),
                      ],

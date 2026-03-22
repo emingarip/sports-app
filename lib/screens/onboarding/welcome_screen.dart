@@ -13,7 +13,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -29,7 +29,7 @@ class WelcomeScreen extends StatelessWidget {
                       height: 250,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppTheme.primaryContainer.withOpacity(0.15),
+                        color: context.colors.primaryContainer.withOpacity(0.15),
                       ),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -38,19 +38,19 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 32),
-                        StepLabel(step: 1),
-                        SizedBox(height: 16),
-                        OnboardingHeader(
+                        const SizedBox(height: 32),
+                        const StepLabel(step: 1),
+                        const SizedBox(height: 16),
+                        const OnboardingHeader(
                           title: "Welcome to KINETIC",
                           subtitle: "The next-generation sports media platform built for fans who want pure performance and zero clutter.",
                         ),
-                        Spacer(),
+                        const Spacer(),
                         
                         Opacity(
                           opacity: 0.05,
@@ -62,14 +62,14 @@ class WelcomeScreen extends StatelessWidget {
                                 fontSize: 80,
                                 fontWeight: FontWeight.w900,
                                 fontStyle: FontStyle.italic,
-                                color: AppTheme.textHigh,
+                                color: context.colors.textHigh,
                                 letterSpacing: -2,
                               ),
                             ),
                           ),
                         ),
                         
-                        Spacer(),
+                        const Spacer(),
                       ],
                     ),
                   ),

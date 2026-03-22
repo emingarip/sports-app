@@ -29,20 +29,20 @@ class ToggleOption extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Lexend',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textHigh,
+                    color: context.colors.textHigh,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,
-                    color: AppTheme.textMedium,
+                    color: context.colors.textMedium,
                     height: 1.4,
                   ),
                 ),
@@ -52,9 +52,9 @@ class ToggleOption extends StatelessWidget {
           const SizedBox(width: 16),
           CupertinoSwitch(
             value: value,
-            activeTrackColor: AppTheme.primaryContainer,
-            inactiveTrackColor: AppTheme.surfaceContainerHighest,
-            thumbColor: value ? AppTheme.onPrimaryContainer : Colors.white,
+            activeTrackColor: context.colors.primaryContainer,
+            inactiveTrackColor: context.colors.surfaceContainerHighest,
+            thumbColor: value ? context.colors.onPrimaryContainer : Colors.white,
             onChanged: onChanged,
           ),
         ],

@@ -36,17 +36,17 @@ class FilterRow extends ConsumerWidget {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.primaryContainer : Colors.transparent,
+          color: isActive ? context.colors.primaryContainer : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? AppTheme.primary : AppTheme.surfaceVariant,
+            color: isActive ? context.colors.primary : context.colors.surfaceVariant,
             width: 1.5,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isActive ? AppTheme.onPrimaryContainer : AppTheme.textMedium,
+            color: isActive ? context.colors.onPrimaryContainer : context.colors.textMedium,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
             fontSize: 14,
           ),

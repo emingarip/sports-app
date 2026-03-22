@@ -11,12 +11,12 @@ class StepLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       "STEP $step OF $totalSteps",
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: 'Inter',
         fontSize: 11,
         fontWeight: FontWeight.bold,
         letterSpacing: 2,
-        color: AppTheme.textMedium,
+        color: context.colors.textMedium,
       ),
     );
   }

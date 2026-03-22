@@ -22,10 +22,10 @@ class OnboardingBottomBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: context.colors.background,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.surfaceContainerLowest.withOpacity(0.8),
+            color: context.colors.surfaceContainerLowest.withOpacity(0.8),
             blurRadius: 20,
             offset: const Offset(0, -10),
           )
@@ -42,12 +42,12 @@ class OnboardingBottomBar extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onPrimaryPressed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryContainer,
-                  foregroundColor: AppTheme.onPrimaryContainer,
-                  disabledBackgroundColor: AppTheme.surfaceContainerHigh,
-                  disabledForegroundColor: AppTheme.textMedium.withOpacity(0.5),
+                  backgroundColor: context.colors.primaryContainer,
+                  foregroundColor: context.colors.onPrimaryContainer,
+                  disabledBackgroundColor: context.colors.surfaceContainerHigh,
+                  disabledForegroundColor: context.colors.textMedium.withOpacity(0.5),
                   elevation: onPrimaryPressed == null ? 0 : 4,
-                  shadowColor: AppTheme.primaryContainer.withOpacity(0.4),
+                  shadowColor: context.colors.primaryContainer.withOpacity(0.4),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                   textStyle: const TextStyle(
                     fontFamily: 'Lexend',
@@ -64,7 +64,7 @@ class OnboardingBottomBar extends StatelessWidget {
               TextButton(
                 onPressed: onSecondaryPressed,
                 style: TextButton.styleFrom(
-                  foregroundColor: isSecondaryDestructive ? AppTheme.error : AppTheme.textMedium,
+                  foregroundColor: isSecondaryDestructive ? context.colors.error : context.colors.textMedium,
                   textStyle: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 15,

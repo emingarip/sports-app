@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Color(0xFF121212), // AppTheme.background
+      backgroundColor: Color(0xFF121212), // context.colors.background
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -50,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Icon(
               Icons.sports_soccer,
               size: 80,
-              color: Color(0xFFBB86FC), // AppTheme.primary
+              color: Color(0xFFBB86FC), // context.colors.primary
             ),
             SizedBox(height: 24),
             Text(
@@ -65,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             SizedBox(height: 48),
             CircularProgressIndicator(
-              color: Color(0xFF03DAC6), // AppTheme.secondary
+              color: Color(0xFF03DAC6), // context.colors.secondary
             ),
           ],
         ),

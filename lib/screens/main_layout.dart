@@ -17,7 +17,7 @@ class MainLayout extends ConsumerWidget {
     final currentIndex = ref.watch(navigationProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../../lib/models/match.dart';
-import '../../lib/models/league.dart';
-import '../../lib/data/mock_data.dart';
+import 'package:sports_app/models/match.dart';
+import 'package:sports_app/models/league.dart';
+import 'package:sports_app/data/mock_data.dart';
 import '../helpers/test_helpers.dart';
 
 /// Tests the core dashboard logic: filtering, grouping, sorting, and

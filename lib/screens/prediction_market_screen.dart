@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
@@ -94,7 +93,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Prediction locked in! Good luck! 🎯'),
-              backgroundColor: AppTheme.success,
+              backgroundColor: context.colors.success,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -107,19 +106,19 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.background,
+        backgroundColor: context.colors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.textHigh, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: context.colors.textHigh, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'PREDICTIONS',
           style: TextStyle(
-            color: AppTheme.textHigh,
+            color: context.colors.textHigh,
             fontSize: 16,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.2,
@@ -131,18 +130,18 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
+              color: context.colors.surfaceVariant,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.accent.withOpacity(0.3)),
+              border: Border.all(color: context.colors.accent.withOpacity(0.3)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.monetization_on, color: AppTheme.accent, size: 16),
+                Icon(Icons.monetization_on, color: context.colors.accent, size: 16),
                 const SizedBox(width: 4),
                 Text(
                   '$_virtualCurrency',
-                  style: const TextStyle(
-                    color: AppTheme.textHigh,
+                  style: TextStyle(
+                    color: context.colors.textHigh,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -153,10 +152,10 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppTheme.accent,
+          indicatorColor: context.colors.accent,
           indicatorWeight: 3,
-          labelColor: AppTheme.textHigh,
-          unselectedLabelColor: AppTheme.textMedium,
+          labelColor: context.colors.textHigh,
+          unselectedLabelColor: context.colors.textMedium,
           labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: 0.5),
           tabs: const [
             Tab(text: 'LIVE MARKETS'),
@@ -185,7 +184,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
         return Container(
           margin: const EdgeInsets.only(bottom: 24),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -194,7 +193,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                 offset: const Offset(0, 4),
               )
             ],
-            border: Border.all(color: AppTheme.outline.withOpacity(0.4)),
+            border: Border.all(color: context.colors.outline.withOpacity(0.4)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,7 +202,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceVariant.withOpacity(0.5),
+                  color: context.colors.surfaceVariant.withOpacity(0.5),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Row(
@@ -214,8 +213,8 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                       children: [
                         Text(
                           market['match'],
-                          style: const TextStyle(
-                            color: AppTheme.textHigh,
+                          style: TextStyle(
+                            color: context.colors.textHigh,
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                           ),
@@ -227,8 +226,8 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                               Container(
                                 width: 6,
                                 height: 6,
-                                decoration: const BoxDecoration(
-                                  color: AppTheme.error,
+                                decoration: BoxDecoration(
+                                  color: context.colors.error,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -236,7 +235,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                             Text(
                               market['status'],
                               style: TextStyle(
-                                color: isLive ? AppTheme.error : AppTheme.textMedium,
+                                color: isLive ? context.colors.error : context.colors.textMedium,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11,
                               ),
@@ -248,14 +247,14 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppTheme.surface,
+                        color: context.colors.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.outline.withOpacity(0.3)),
+                        border: Border.all(color: context.colors.outline.withOpacity(0.3)),
                       ),
                       child: Text(
                         market['score'],
-                        style: const TextStyle(
-                          color: AppTheme.textHigh,
+                        style: TextStyle(
+                          color: context.colors.textHigh,
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
                         ),
@@ -278,7 +277,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            border: Border.all(color: AppTheme.outline.withOpacity(0.3)),
+                            border: Border.all(color: context.colors.outline.withOpacity(0.3)),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -287,8 +286,8 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                               Expanded(
                                 child: Text(
                                   pred['title'],
-                                  style: const TextStyle(
-                                    color: AppTheme.textHigh,
+                                  style: TextStyle(
+                                    color: context.colors.textHigh,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                   ),
@@ -297,13 +296,13 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.accent.withOpacity(0.15),
+                                  color: context.colors.accent.withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   pred['odds'].toStringAsFixed(2),
-                                  style: const TextStyle(
-                                    color: AppTheme.accent,
+                                  style: TextStyle(
+                                    color: context.colors.accent,
                                     fontWeight: FontWeight.w800,
                                     fontSize: 14,
                                   ),
@@ -333,13 +332,13 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
         final isPending = bet['status'] == 'pending';
         final isWon = bet['status'] == 'won';
         
-        Color statusColor = AppTheme.textMedium;
+        Color statusColor = context.colors.textMedium;
         IconData statusIcon = Icons.access_time;
         if (isWon) {
-          statusColor = AppTheme.success;
+          statusColor = context.colors.success;
           statusIcon = Icons.check_circle;
         } else if (bet['status'] == 'lost') {
-          statusColor = AppTheme.error;
+          statusColor = context.colors.error;
           statusIcon = Icons.cancel;
         }
 
@@ -347,9 +346,9 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
+            border: Border.all(color: context.colors.outline.withOpacity(0.2)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.02),
@@ -366,7 +365,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                 children: [
                   Text(
                     bet['match'],
-                    style: const TextStyle(color: AppTheme.textMedium, fontSize: 11, fontWeight: FontWeight.w700),
+                    style: TextStyle(color: context.colors.textMedium, fontSize: 11, fontWeight: FontWeight.w700),
                   ),
                   Row(
                     children: [
@@ -383,7 +382,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
               const SizedBox(height: 12),
               Text(
                 bet['prediction'],
-                style: const TextStyle(color: AppTheme.textHigh, fontSize: 15, fontWeight: FontWeight.w700),
+                style: TextStyle(color: context.colors.textHigh, fontSize: 15, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 16),
               Row(
@@ -392,13 +391,13 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('STAKE', style: TextStyle(color: AppTheme.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
+                      Text('STAKE', style: TextStyle(color: context.colors.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(Icons.monetization_on, color: AppTheme.textHigh, size: 14),
+                          Icon(Icons.monetization_on, color: context.colors.textHigh, size: 14),
                           const SizedBox(width: 4),
-                          Text('${bet['staked']}', style: const TextStyle(color: AppTheme.textHigh, fontSize: 14, fontWeight: FontWeight.w800)),
+                          Text('${bet['staked']}', style: TextStyle(color: context.colors.textHigh, fontSize: 14, fontWeight: FontWeight.w800)),
                         ],
                       )
                     ],
@@ -406,16 +405,16 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('TO RETURN', style: TextStyle(color: AppTheme.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
+                      Text('TO RETURN', style: TextStyle(color: context.colors.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(Icons.monetization_on, color: isWon ? AppTheme.success : (isPending ? AppTheme.accent : AppTheme.textMedium), size: 14),
+                          Icon(Icons.monetization_on, color: isWon ? context.colors.success : (isPending ? context.colors.accent : context.colors.textMedium), size: 14),
                           const SizedBox(width: 4),
                           Text(
                             '${bet['potentialPayout']}', 
                             style: TextStyle(
-                              color: isWon ? AppTheme.success : (isPending ? AppTheme.accent : AppTheme.textMedium), 
+                              color: isWon ? context.colors.success : (isPending ? context.colors.accent : context.colors.textMedium), 
                               fontSize: 14, 
                               fontWeight: FontWeight.w800
                             )
@@ -491,7 +490,7 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
     return Container(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: context.colors.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
@@ -514,15 +513,15 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppTheme.outline.withOpacity(0.5),
+                    color: context.colors.outline.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'PLACE PREDICTION',
-                style: TextStyle(color: AppTheme.textMedium, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0),
+                style: TextStyle(color: context.colors.textMedium, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -531,33 +530,33 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceVariant.withOpacity(0.5),
+                  color: context.colors.surfaceVariant.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.outline.withOpacity(0.3)),
+                  border: Border.all(color: context.colors.outline.withOpacity(0.3)),
                 ),
                 child: Column(
                   children: [
                     Text(
                       widget.matchName,
-                      style: const TextStyle(color: AppTheme.textMedium, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: context.colors.textMedium, fontSize: 12, fontWeight: FontWeight.w600),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       widget.prediction['title'],
-                      style: const TextStyle(color: AppTheme.textHigh, fontSize: 18, fontWeight: FontWeight.w800),
+                      style: TextStyle(color: context.colors.textHigh, fontSize: 18, fontWeight: FontWeight.w800),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppTheme.accent.withOpacity(0.2),
+                        color: context.colors.accent.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         'ODDS ${widget.prediction['odds'].toStringAsFixed(2)}',
-                        style: const TextStyle(color: AppTheme.accent, fontSize: 16, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: context.colors.accent, fontSize: 16, fontWeight: FontWeight.w900),
                       ),
                     )
                   ],
@@ -583,22 +582,22 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppTheme.surface,
+                        color: context.colors.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: isValid ? AppTheme.outline : AppTheme.error, width: 2),
+                        border: Border.all(color: isValid ? context.colors.outline : context.colors.error, width: 2),
                       ),
                       child: Row(
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 16),
-                            child: Icon(Icons.monetization_on, color: AppTheme.textMedium, size: 20),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16),
+                            child: Icon(Icons.monetization_on, color: context.colors.textMedium, size: 20),
                           ),
                           Expanded(
                             child: TextField(
                               controller: _controller,
                               keyboardType: TextInputType.number,
                               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              style: const TextStyle(color: AppTheme.textHigh, fontSize: 18, fontWeight: FontWeight.w800),
+                              style: TextStyle(color: context.colors.textHigh, fontSize: 18, fontWeight: FontWeight.w800),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -614,22 +613,22 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('EST. RETURN', style: TextStyle(color: AppTheme.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
+                      Text('EST. RETURN', style: TextStyle(color: context.colors.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                       Text(
                         '$potentialReturn',
-                        style: const TextStyle(color: AppTheme.success, fontSize: 24, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: context.colors.success, fontSize: 24, fontWeight: FontWeight.w900),
                       )
                     ],
                   )
                 ],
               ),
               if (!isValid)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     'Insufficient balance.',
-                    style: TextStyle(color: AppTheme.error, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: context.colors.error, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               
@@ -642,9 +641,9 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
                   widget.onPlaceBet(_stake);
                 } : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accent,
-                  foregroundColor: AppTheme.background,
-                  disabledBackgroundColor: AppTheme.surfaceVariant,
+                  backgroundColor: context.colors.accent,
+                  foregroundColor: context.colors.background,
+                  disabledBackgroundColor: context.colors.surfaceVariant,
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 0,
@@ -668,13 +667,13 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.outline.withOpacity(0.3)),
+          border: Border.all(color: context.colors.outline.withOpacity(0.3)),
         ),
         child: Text(
           label ?? '+$amount',
-          style: const TextStyle(color: AppTheme.textHigh, fontSize: 14, fontWeight: FontWeight.w700),
+          style: TextStyle(color: context.colors.textHigh, fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
     );

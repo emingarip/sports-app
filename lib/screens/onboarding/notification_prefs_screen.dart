@@ -49,8 +49,8 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryContainer.withOpacity(0.3) : Colors.transparent,
-          border: index == 0 ? null : Border(top: BorderSide(color: AppTheme.surfaceContainerHigh.withOpacity(0.5))),
+          color: isSelected ? context.colors.primaryContainer.withOpacity(0.3) : Colors.transparent,
+          border: index == 0 ? null : Border(top: BorderSide(color: context.colors.surfaceContainerHigh.withOpacity(0.5))),
         ),
         child: Row(
           children: [
@@ -60,12 +60,12 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
               height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? AppTheme.primaryContainer : AppTheme.surfaceContainer,
+                color: isSelected ? context.colors.primaryContainer : context.colors.surfaceContainer,
               ),
               child: Center(
                 child: Icon(
                   option["icon"],
-                  color: isSelected ? AppTheme.onPrimaryContainer : AppTheme.surfaceContainerHighest,
+                  color: isSelected ? context.colors.onPrimaryContainer : context.colors.surfaceContainerHighest,
                   size: 24,
                 ),
               ),
@@ -79,11 +79,11 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                 children: [
                    Text(
                       option["title"],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Lexend',
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.textHigh,
+                        color: context.colors.textHigh,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -93,7 +93,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                         fontFamily: 'Inter',
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-                        color: isSelected ? AppTheme.primary : AppTheme.textMedium,
+                        color: isSelected ? context.colors.primary : context.colors.textMedium,
                       ),
                     ),
                 ],
@@ -107,14 +107,14 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? AppTheme.primaryContainer : Colors.transparent,
+                color: isSelected ? context.colors.primaryContainer : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? AppTheme.primaryContainer : AppTheme.surfaceContainerHighest,
+                  color: isSelected ? context.colors.primaryContainer : context.colors.surfaceContainerHighest,
                   width: 2,
                 ),
               ),
               child: isSelected
-                  ? const Center(child: Icon(Icons.check, size: 16, color: AppTheme.onPrimaryContainer))
+                  ? Center(child: Icon(Icons.check, size: 16, color: context.colors.onPrimaryContainer))
                   : null,
             ),
           ],
@@ -126,7 +126,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -152,24 +152,24 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                       height: 180,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceContainerLow,
+                        color: context.colors.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(16),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            AppTheme.surfaceContainerHighest.withOpacity(0.5),
-                            AppTheme.surfaceContainerLow,
+                            context.colors.surfaceContainerHighest.withOpacity(0.5),
+                            context.colors.surfaceContainerLow,
                           ],
                         ),
                       ),
                       child: Stack(
                         children: [
-                          const Positioned.fill(
+                          Positioned.fill(
                             child: Center(
                               child: Opacity(
                                 opacity: 0.08,
-                                child: Icon(Icons.stadium, size: 120, color: AppTheme.textHigh),
+                                child: Icon(Icons.stadium, size: 120, color: context.colors.textHigh),
                               ),
                             ),
                           ),
@@ -183,11 +183,11 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                                 borderRadius: BorderRadius.circular(32),
                                 boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.notifications_active, size: 16, color: AppTheme.secondary),
-                                  SizedBox(width: 8),
+                                  Icon(Icons.notifications_active, size: 16, color: context.colors.secondary),
+                                  const SizedBox(width: 8),
                                   Text(
                                     "LIVE TRACKING ACTIVE",
                                     style: TextStyle(
@@ -195,7 +195,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1.0,
-                                      color: AppTheme.textHigh,
+                                      color: context.colors.textHigh,
                                     ),
                                   ),
                                 ],
@@ -211,11 +211,11 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                     // Unified Preference Card
                     Container(
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceContainerLowest,
+                        color: context.colors.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.textHigh.withOpacity(0.06),
+                            color: context.colors.textHigh.withOpacity(0.06),
                             blurRadius: 32,
                             offset: const Offset(0, 12),
                           )
@@ -241,10 +241,10 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
             Container(
               padding: const EdgeInsets.only(top: 16, bottom: 24, left: 24, right: 24),
               decoration: BoxDecoration(
-                color: AppTheme.background.withOpacity(0.9),
+                color: context.colors.background.withOpacity(0.9),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.textHigh.withOpacity(0.04),
+                    color: context.colors.textHigh.withOpacity(0.04),
                     blurRadius: 32,
                     offset: const Offset(0, -12),
                   )
@@ -262,18 +262,18 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: const Column(
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.close, size: 24, color: AppTheme.textMedium),
-                          SizedBox(height: 4),
+                          Icon(Icons.close, size: 24, color: context.colors.textMedium),
+                          const SizedBox(height: 4),
                           Text(
                             "Skip",
                             style: TextStyle(
                               fontFamily: 'Lexend',
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: AppTheme.textMedium,
+                              color: context.colors.textMedium,
                             ),
                           ),
                         ],
@@ -289,11 +289,11 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryContainer,
-                      foregroundColor: AppTheme.onPrimaryContainer,
+                      backgroundColor: context.colors.primaryContainer,
+                      foregroundColor: context.colors.onPrimaryContainer,
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       elevation: 4,
-                      shadowColor: AppTheme.primaryContainer.withOpacity(0.5),
+                      shadowColor: context.colors.primaryContainer.withOpacity(0.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                     ),
                     child: const Row(

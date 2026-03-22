@@ -64,7 +64,7 @@ class CustomBottomNav extends ConsumerWidget {
           children: [
             Icon(
               icon, 
-              color: isSelected ? const Color(0xFFFACC15) : AppTheme.textMedium.withOpacity(0.7), 
+              color: isSelected ? const Color(0xFFFACC15) : context.colors.textMedium.withOpacity(0.7), 
               size: isSelected ? 24 : 22
             ),
             const SizedBox(height: 4),
@@ -75,7 +75,7 @@ class CustomBottomNav extends ConsumerWidget {
                 fontSize: 9,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
-                color: isSelected ? const Color(0xFFFACC15) : AppTheme.textMedium.withOpacity(0.7),
+                color: isSelected ? const Color(0xFFFACC15) : context.colors.textMedium.withOpacity(0.7),
               ),
               overflow: TextOverflow.ellipsis,
             ),

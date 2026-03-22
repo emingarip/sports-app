@@ -61,20 +61,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surfaceContainerLow,
+      backgroundColor: context.colors.surfaceContainerLow,
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600),
-          decoration: const BoxDecoration(
-            color: AppTheme.background,
-            border: Border.symmetric(vertical: BorderSide(color: AppTheme.surfaceContainerLow, width: 2)),
+          decoration: BoxDecoration(
+            color: context.colors.background,
+            border: Border.symmetric(vertical: BorderSide(color: context.colors.surfaceContainerLow, width: 2)),
           ),
           child: CustomScrollView(
             slivers: [
               _buildAppBar(),
               if (_isLoading)
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator(color: context.colors.primary)),
                 )
               else if (_profile == null)
                 const SliverFillRemaining(
@@ -107,21 +107,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: AppTheme.textHigh),
+        icon: Icon(Icons.arrow_back, color: context.colors.textHigh),
         onPressed: () => Navigator.pop(context),
       ),
-      title: const Text(
+      title: Text(
         'PROFILE',
         style: TextStyle(
           fontWeight: FontWeight.w900,
           fontSize: 16,
           letterSpacing: 1,
-          color: AppTheme.textHigh,
+          color: context.colors.textHigh,
         ),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.logout, color: AppTheme.error),
+          icon: Icon(Icons.logout, color: context.colors.error),
           tooltip: 'Log Out',
           onPressed: _handleLogout,
         ),
@@ -140,11 +140,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.surfaceContainer,
-                border: Border.all(color: AppTheme.primaryContainer, width: 4),
+                color: context.colors.surfaceContainer,
+                border: Border.all(color: context.colors.primaryContainer, width: 4),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryContainer.withOpacity(0.3),
+                    color: context.colors.primaryContainer.withOpacity(0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   )
@@ -152,24 +152,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: _profile!.avatarUrl != null 
                 ? ClipOval(child: Image.network(_profile!.avatarUrl!, fit: BoxFit.cover))
-                : const Icon(Icons.person, size: 48, color: AppTheme.textMedium),
+                : Icon(Icons.person, size: 48, color: context.colors.textMedium),
             ),
             const SizedBox(height: 16),
             Text(
               _profile!.username,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
-                color: AppTheme.textHigh,
+                color: context.colors.textHigh,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               _profile!.email,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: AppTheme.textMedium,
+                color: context.colors.textMedium,
               ),
             ),
             const SizedBox(height: 16),
@@ -186,8 +186,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.edit, size: 16),
               label: const Text('Edit Profile'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.textHigh,
-                side: const BorderSide(color: AppTheme.surfaceContainerHigh),
+                foregroundColor: context.colors.textHigh,
+                side: BorderSide(color: context.colors.surfaceContainerHigh),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -208,8 +208,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'K-COINS',
                 value: _profile!.virtualCurrencyBalance.toString(),
                 icon: Icons.monetization_on,
-                color: AppTheme.primaryContainer,
-                onColor: AppTheme.onPrimaryContainer,
+                color: context.colors.primaryContainer,
+                onColor: context.colors.onPrimaryContainer,
               ),
             ),
             const SizedBox(width: 16),
@@ -218,9 +218,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'REPUTATION',
                 value: _profile!.reputationScore.toString(),
                 icon: Icons.star,
-                color: AppTheme.surfaceContainerLowest,
-                onColor: AppTheme.textHigh,
-                borderColor: AppTheme.surfaceContainerHigh,
+                color: context.colors.surfaceContainerLowest,
+                onColor: context.colors.textHigh,
+                borderColor: context.colors.surfaceContainerHigh,
               ),
             ),
           ],
@@ -280,16 +280,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildRecentActivityHeader() {
-    return const SliverToBoxAdapter(
+    return SliverToBoxAdapter(
       child: Padding(
-        padding: EdgeInsets.only(left: 24.0, right: 24.0, top: 40.0, bottom: 16.0),
+        padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 40.0, bottom: 16.0),
         child: Text(
           "RECENT PREDICTIONS",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
             letterSpacing: 1,
-            color: AppTheme.textMedium,
+            color: context.colors.textMedium,
           ),
         ),
       ),
@@ -303,30 +303,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLowest,
+            color: context.colors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.surfaceContainerLow),
+            border: Border.all(color: context.colors.surfaceContainerLow),
           ),
-          child: const Center(
+          child: Center(
             child: Column(
               children: [
-                Icon(Icons.history, size: 48, color: AppTheme.surfaceContainerHigh),
-                SizedBox(height: 16),
+                Icon(Icons.history, size: 48, color: context.colors.surfaceContainerHigh),
+                const SizedBox(height: 16),
                 Text(
                   "No activity yet.",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textMedium,
+                    color: context.colors.textMedium,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   "Make some predictions to earn coins!",
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textLow,
+                    color: context.colors.textLow,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -349,17 +349,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final predictionText = prediction?['prediction_type'] ?? 'Unknown Prediction';
             
             final status = bet['status'] as String;
-            Color statusColor = AppTheme.textMedium;
+            Color statusColor = context.colors.textMedium;
             IconData statusIcon = Icons.hourglass_top;
             
             if (status == 'won') {
-              statusColor = AppTheme.success;
+              statusColor = context.colors.success;
               statusIcon = Icons.check_circle;
             } else if (status == 'lost') {
-              statusColor = AppTheme.error;
+              statusColor = context.colors.error;
               statusIcon = Icons.cancel;
             } else if (status == 'refunded') {
-              statusColor = AppTheme.textLow;
+              statusColor = context.colors.textLow;
               statusIcon = Icons.replay;
             }
 
@@ -367,9 +367,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceContainerLowest,
+                color: context.colors.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.surfaceContainerLow),
+                border: Border.all(color: context.colors.surfaceContainerLow),
               ),
               child: Row(
                 children: [
@@ -388,7 +388,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Text(
                           predictionText,
-                          style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.textHigh, fontSize: 13),
+                          style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.textHigh, fontSize: 13),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -397,12 +397,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Text(
                               'Staked: ${bet['amount_staked']} ',
-                              style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textMedium, fontSize: 11),
+                              style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.textMedium, fontSize: 11),
                             ),
-                            const Icon(Icons.monetization_on, size: 10, color: AppTheme.textMedium),
-                            const Text(
+                            Icon(Icons.monetization_on, size: 10, color: context.colors.textMedium),
+                            Text(
                               ' • ',
-                              style: TextStyle(color: AppTheme.surfaceContainerHigh),
+                              style: TextStyle(color: context.colors.surfaceContainerHigh),
                             ),
                             Text(
                               status.toUpperCase(),
@@ -416,19 +416,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text(
+                      Text(
                         'TO WIN',
-                        style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.textMedium, fontSize: 9, letterSpacing: 1),
+                        style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.textMedium, fontSize: 9, letterSpacing: 1),
                       ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
                             '+${bet['potential_payout']}',
-                            style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary, fontSize: 14),
+                            style: TextStyle(fontWeight: FontWeight.w900, color: context.colors.primary, fontSize: 14),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(Icons.monetization_on, size: 12, color: AppTheme.primaryContainer),
+                          Icon(Icons.monetization_on, size: 12, color: context.colors.primaryContainer),
                         ],
                       ),
                     ],

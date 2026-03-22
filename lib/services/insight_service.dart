@@ -55,8 +55,9 @@ class InsightService {
     
     // Convert enum to string
     String voteString = 'unsure';
-    if (vote == UserVoteType.agree) voteString = 'agree';
-    else if (vote == UserVoteType.disagree) voteString = 'disagree';
+    if (vote == UserVoteType.agree) {
+      voteString = 'agree';
+    } else if (vote == UserVoteType.disagree) voteString = 'disagree';
     
     // Upsert vote
     await _client.from('user_insight_votes').upsert({

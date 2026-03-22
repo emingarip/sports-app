@@ -14,14 +14,14 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.sports_soccer, size: 64, color: AppTheme.surfaceContainerHigh),
+            Icon(Icons.sports_soccer, size: 64, color: context.colors.surfaceContainerHigh),
             const SizedBox(height: 16),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.textMedium,
+                color: context.colors.textMedium,
               ),
             ),
           ],

@@ -1,6 +1,6 @@
 import 'dart:async';
-import '../../lib/models/match.dart';
-import '../../lib/data/repositories/match_repository.dart';
+import 'package:sports_app/models/match.dart';
+import 'package:sports_app/data/repositories/match_repository.dart';
 
 /// In-memory mock implementation of [MatchRepository] for testing.
 /// No Supabase connection required.

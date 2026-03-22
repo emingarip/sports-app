@@ -3,12 +3,12 @@ import '../models/league.dart';
 
 class MockData {
   static final List<League> leagues = [
-    const League(id: 'premier_league', name: 'Premier League', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png', tier: 1),
-    const League(id: 'la_liga', name: 'La Liga', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/LaLiga.svg/1200px-LaLiga.svg.png', tier: 1),
-    const League(id: 'serie_a', name: 'Serie A', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Serie_A_logo_%282022%29.svg/1200px-Serie_A_logo_%282022%29.svg.png', tier: 1),
-    const League(id: 'bundesliga', name: 'Bundesliga', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/d/df/Bundesliga_logo_%282017%29.svg', tier: 1),
-    const League(id: 'league_two', name: 'English League Two', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png', tier: 2),
-    const League(id: 'super_lig', name: 'Süper Lig', logoUrl: 'https://upload.wikimedia.org/wikipedia/tr/b/b3/T%C3%BCrkiye_S%C3%BCper_Lig_Logo.png', tier: 2),
+    League(id: 'premier_league', name: 'Premier League', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png', tier: 1),
+    League(id: 'la_liga', name: 'La Liga', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/LaLiga.svg/1200px-LaLiga.svg.png', tier: 1),
+    League(id: 'serie_a', name: 'Serie A', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Serie_A_logo_%282022%29.svg/1200px-Serie_A_logo_%282022%29.svg.png', tier: 1),
+    League(id: 'bundesliga', name: 'Bundesliga', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/d/df/Bundesliga_logo_%282017%29.svg', tier: 1),
+    League(id: 'league_two', name: 'English League Two', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/1200px-Premier_League_Logo.svg.png', tier: 2),
+    League(id: 'super_lig', name: 'Süper Lig', logoUrl: 'https://upload.wikimedia.org/wikipedia/tr/b/b3/T%C3%BCrkiye_S%C3%BCper_Lig_Logo.png', tier: 2),
   ];
 
   static List<Match> getMatches() {

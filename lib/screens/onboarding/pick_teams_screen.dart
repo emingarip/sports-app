@@ -102,24 +102,24 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.surfaceContainerLowest : AppTheme.surfaceContainerHighest.withOpacity(0.5),
+                color: isSelected ? context.colors.surfaceContainerLowest : context.colors.surfaceContainerHighest.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isSelected ? AppTheme.primaryContainer : Colors.transparent,
+                  color: isSelected ? context.colors.primaryContainer : Colors.transparent,
                   width: 2,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.4), blurRadius: 24, offset: const Offset(0, 12))]
+                    ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 24, offset: const Offset(0, 12))]
                     : const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  const Positioned.fill(
+                  Positioned.fill(
                     child: Center(
                       child: Opacity(
                         opacity: 0.03,
-                        child: Icon(Icons.sports_soccer, size: 280, color: AppTheme.textHigh),
+                        child: Icon(Icons.sports_soccer, size: 280, color: context.colors.textHigh),
                       ),
                     ),
                   ),
@@ -129,11 +129,11 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                       right: 16,
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppTheme.primaryContainer,
+                          color: context.colors.primaryContainer,
                         ),
-                        child: const Icon(Icons.check, size: 20, color: AppTheme.onPrimaryContainer),
+                        child: Icon(Icons.check, size: 20, color: context.colors.onPrimaryContainer),
                       ),
                     ),
                   Padding(
@@ -148,17 +148,17 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppTheme.surfaceContainerHighest, width: 1),
+                            border: Border.all(color: context.colors.surfaceContainerHighest, width: 1),
                             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
                           ),
                           child: Center(
                             child: Text(
                               team["abbr"],
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Lexend',
                                 fontSize: 32,
                                 fontWeight: FontWeight.w900,
-                                color: AppTheme.primary,
+                                color: context.colors.primary,
                               ),
                             ),
                           ),
@@ -166,12 +166,12 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                         Text(
                           team["league"].toUpperCase(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 2.0,
-                            color: AppTheme.primary,
+                            color: context.colors.primary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -182,7 +182,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                             fontFamily: 'Lexend',
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            color: isSelected ? AppTheme.textHigh : AppTheme.textMedium,
+                            color: isSelected ? context.colors.textHigh : context.colors.textMedium,
                             height: 1.1,
                           ),
                         ),
@@ -190,14 +190,14 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: AppTheme.surfaceContainerLow,
+                            color: context.colors.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(32),
-                            border: Border.all(color: AppTheme.surfaceContainerHigh),
+                            border: Border.all(color: context.colors.surfaceContainerHigh),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.notifications, size: 18, color: alertOn ? AppTheme.primary : AppTheme.textMedium),
+                              Icon(Icons.notifications, size: 18, color: alertOn ? context.colors.primary : context.colors.textMedium),
                               const SizedBox(width: 8),
                               Text(
                                 "ALERTS ${alertOn ? 'ON' : 'OFF'}",
@@ -206,7 +206,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.0,
-                                  color: alertOn ? AppTheme.textHigh : AppTheme.textMedium,
+                                  color: alertOn ? context.colors.textHigh : context.colors.textMedium,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -216,8 +216,8 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                                   scale: 0.7,
                                   child: CupertinoSwitch(
                                     value: alertOn,
-                                    activeTrackColor: AppTheme.primaryContainer,
-                                    thumbColor: alertOn ? AppTheme.onPrimaryContainer : Colors.white,
+                                    activeTrackColor: context.colors.primaryContainer,
+                                    thumbColor: alertOn ? context.colors.onPrimaryContainer : Colors.white,
                                     onChanged: (val) => _toggleAlert(teamName, val),
                                   ),
                                 ),
@@ -240,7 +240,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -266,12 +266,12 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                   Center(
                     child: Text(
                       "${_selectedTeams.length} OF 3 SELECTED",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Lexend',
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2.0,
-                        color: AppTheme.surfaceContainerHighest,
+                        color: context.colors.surfaceContainerHighest,
                       ),
                     ),
                   ),
@@ -314,7 +314,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                         width: index == _currentIndex ? 24 : 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: index == _currentIndex ? AppTheme.primaryContainer : AppTheme.surfaceContainerHighest,
+                          color: index == _currentIndex ? context.colors.primaryContainer : context.colors.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -324,7 +324,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.swipe, size: 16, color: AppTheme.textMedium.withOpacity(0.8)),
+                      Icon(Icons.swipe, size: 16, color: context.colors.textMedium.withOpacity(0.8)),
                       const SizedBox(width: 8),
                       Text(
                         "SWIPE TO EXPLORE",
@@ -333,7 +333,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2.0,
-                          color: AppTheme.textMedium.withOpacity(0.8),
+                          color: context.colors.textMedium.withOpacity(0.8),
                         ),
                       ),
                     ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../lib/widgets/filter_row.dart';
-import '../../lib/providers/match_provider.dart';
+import 'package:sports_app/widgets/filter_row.dart';
+import 'package:sports_app/providers/match_provider.dart';
 import '../helpers/mock_match_repository.dart';
 
 void main() {

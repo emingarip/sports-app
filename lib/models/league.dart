@@ -4,7 +4,7 @@ class League {
   final String logoUrl;
   final int tier; // 1 = highest priority
 
-  const League({
+  League({
     required this.id,
     required this.name,
     required this.logoUrl,

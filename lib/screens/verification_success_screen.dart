@@ -52,7 +52,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -65,7 +65,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                 height: 320,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.primaryContainer.withOpacity(0.2),
+                  color: context.colors.primaryContainer.withOpacity(0.2),
                 ),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
@@ -81,7 +81,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                 height: 256,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.secondaryContainer.withOpacity(0.1),
+                  color: context.colors.secondaryContainer.withOpacity(0.1),
                 ),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
@@ -103,7 +103,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                     fontFamily: 'Lexend',
                     fontSize: 64,
                     fontWeight: FontWeight.w900,
-                    color: AppTheme.textHigh.withOpacity(0.05),
+                    color: context.colors.textHigh.withOpacity(0.05),
                     letterSpacing: 2,
                   ),
                 ),
@@ -116,7 +116,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                 Container(
                   height: 2,
                   width: double.infinity,
-                  color: AppTheme.primaryContainer,
+                  color: context.colors.primaryContainer,
                 ),
                 
                 // App Bar
@@ -126,9 +126,9 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back, color: AppTheme.textMedium),
+                        icon: Icon(Icons.arrow_back, color: context.colors.textMedium),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
                             "Verification",
@@ -136,7 +136,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                               fontFamily: 'Lexend',
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.primary,
+                              color: context.colors.primary,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -172,7 +172,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                         height: 128,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: AppTheme.primaryContainer.withOpacity(0.2),
+                                          color: context.colors.primaryContainer.withOpacity(0.2),
                                         ),
                                       ),
                                     );
@@ -183,13 +183,13 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                   height: 128,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: AppTheme.primaryContainer,
+                                    color: context.colors.primaryContainer,
                                     boxShadow: [
-                                      BoxShadow(color: AppTheme.primary.withOpacity(0.15), blurRadius: 40, offset: const Offset(0, 20)),
+                                      BoxShadow(color: context.colors.primary.withOpacity(0.15), blurRadius: 40, offset: const Offset(0, 20)),
                                     ],
                                   ),
-                                  child: const Center(
-                                    child: Icon(Icons.check_circle, color: AppTheme.onPrimaryContainer, size: 64),
+                                  child: Center(
+                                    child: Icon(Icons.check_circle, color: context.colors.onPrimaryContainer, size: 64),
                                   ),
                                 ),
                               ],
@@ -198,23 +198,23 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                           const SizedBox(height: 40),
                           
                           // Texts
-                          const Text(
+                          Text(
                             "Verified",
                             style: TextStyle(
                               fontFamily: 'Lexend',
                               fontSize: 36,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.textHigh,
+                              color: context.colors.textHigh,
                               letterSpacing: -1,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             "Successfully authenticated.",
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 18,
-                              color: AppTheme.textMedium,
+                              color: context.colors.textMedium,
                             ),
                           ),
                           const SizedBox(height: 64),
@@ -234,17 +234,17 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                         fontFamily: 'Lexend',
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: AppTheme.primary.withOpacity(0.6),
+                                        color: context.colors.primary.withOpacity(0.6),
                                         letterSpacing: 2,
                                       ),
                                     ),
-                                    const Text(
+                                    Text(
                                       "100%",
                                       style: TextStyle(
                                         fontFamily: 'Lexend',
                                         fontSize: 24,
                                         fontWeight: FontWeight.w900,
-                                        color: AppTheme.primary,
+                                        color: context.colors.primary,
                                       ),
                                     ),
                                   ],
@@ -256,7 +256,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                   height: 6,
                                   width: double.infinity,
                                   decoration: BoxDecoration(
-                                    color: AppTheme.surfaceContainerHigh,
+                                    color: context.colors.surfaceContainerHigh,
                                     borderRadius: BorderRadius.circular(3),
                                   ),
                                   child: FractionallySizedBox(
@@ -264,10 +264,10 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                     widthFactor: 0.85,
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: AppTheme.primaryContainer,
+                                        color: context.colors.primaryContainer,
                                         borderRadius: BorderRadius.circular(3),
                                         boxShadow: [
-                                          BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.4), blurRadius: 12),
+                                          BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 12),
                                         ],
                                       ),
                                     ),
@@ -275,13 +275,13 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                 ),
                                 const SizedBox(height: 16),
                                 
-                                const Text(
+                                Text(
                                   "FINALIZING SECURE CONNECTION...",
                                   style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.textLow,
+                                    color: context.colors.textLow,
                                     letterSpacing: 2,
                                   ),
                                 )

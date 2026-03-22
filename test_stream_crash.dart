@@ -11,6 +11,6 @@ void main() {
     });
     print('Sorted successfully!');
   } catch (e) {
-    print('Crash reproduced: ' + e.toString());
+    print('Crash reproduced: $e');
   }
 }

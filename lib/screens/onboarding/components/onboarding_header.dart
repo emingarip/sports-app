@@ -25,13 +25,13 @@ class OnboardingHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Lexend',
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                   height: 1.1,
-                  color: AppTheme.textHigh,
+                  color: context.colors.textHigh,
                 ),
               ),
             ),
@@ -41,11 +41,11 @@ class OnboardingHeader extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 16,
             fontWeight: FontWeight.w400,
-            color: AppTheme.textMedium,
+            color: context.colors.textMedium,
             height: 1.5,
           ),
         ),

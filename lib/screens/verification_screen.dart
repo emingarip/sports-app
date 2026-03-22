@@ -106,7 +106,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -114,7 +114,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
             Container(
               height: 2,
               width: double.infinity,
-              color: AppTheme.primaryContainer,
+              color: context.colors.primaryContainer,
             ),
             
             // Header
@@ -123,22 +123,22 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     "KINETIC",
                     style: TextStyle(
                       fontFamily: 'Lexend',
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
                       fontStyle: FontStyle.italic,
-                      color: AppTheme.primary,
+                      color: context.colors.primary,
                       letterSpacing: -1,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: IconButton.styleFrom(
-                      backgroundColor: AppTheme.surfaceContainerHigh,
-                      foregroundColor: AppTheme.textMedium,
+                      backgroundColor: context.colors.surfaceContainerHigh,
+                      foregroundColor: context.colors.textMedium,
                     ),
                     icon: const Icon(Icons.close),
                   )
@@ -155,7 +155,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Enter verification code",
                         style: TextStyle(
                           fontFamily: 'Lexend',
@@ -163,34 +163,34 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
                           height: 1.2,
-                          color: AppTheme.textHigh,
+                          color: context.colors.textHigh,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             "Enter the 8-digit code we sent to ",
-                            style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.textMedium),
+                            style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: context.colors.textMedium),
                           ),
                           Text(
                             widget.email,
-                            style: const TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textHigh),
+                            style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.bold, color: context.colors.textHigh),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       InkWell(
                         onTap: () => Navigator.of(context).pop(),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.edit, size: 16, color: AppTheme.textMedium),
-                            SizedBox(width: 4),
+                            Icon(Icons.edit, size: 16, color: context.colors.textMedium),
+                            const SizedBox(width: 4),
                             Text(
                               "Edit email address",
-                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textMedium, decoration: TextDecoration.underline),
+                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500, color: context.colors.textMedium, decoration: TextDecoration.underline),
                             ),
                           ],
                         ),
@@ -222,23 +222,23 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                                     keyboardType: TextInputType.number,
                                     textAlign: TextAlign.center,
                                     maxLength: 1,
-                                    style: const TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                                    style: TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w900, color: context.colors.primary),
                                     decoration: InputDecoration(
                                       counterText: "",
                                       filled: true,
-                                      fillColor: _controllers[index].text.isNotEmpty ? Colors.white : AppTheme.surfaceContainerLowest,
+                                      fillColor: _controllers[index].text.isNotEmpty ? Colors.white : context.colors.surfaceContainerLowest,
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(16),
                                         borderSide: BorderSide.none,
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(16),
-                                        borderSide: const BorderSide(color: AppTheme.primaryContainer, width: 2),
+                                        borderSide: BorderSide(color: context.colors.primaryContainer, width: 2),
                                       ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(16),
                                         borderSide: BorderSide(
-                                          color: _controllers[index].text.isNotEmpty ? AppTheme.primaryContainer : Colors.transparent, 
+                                          color: _controllers[index].text.isNotEmpty ? context.colors.primaryContainer : Colors.transparent, 
                                           width: 2
                                         ),
                                       ),
@@ -261,9 +261,9 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           decoration: BoxDecoration(
-                            color: _isFilled ? AppTheme.primaryContainer : AppTheme.surfaceContainerHigh,
+                            color: _isFilled ? context.colors.primaryContainer : context.colors.surfaceContainerHigh,
                             borderRadius: BorderRadius.circular(32),
-                            boxShadow: _isFilled ? [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                            boxShadow: _isFilled ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] : [],
                           ),
                           child: Material(
                             color: Colors.transparent,
@@ -272,7 +272,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                               onTap: _isFilled && !_isLoading ? _submitVerify : null,
                               child: Center(
                                 child: _isLoading
-                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppTheme.onPrimaryContainer, strokeWidth: 2))
+                                    ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: context.colors.onPrimaryContainer, strokeWidth: 2))
                                     : Text(
                                         "VERIFY",
                                         style: TextStyle(
@@ -280,7 +280,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                                           fontSize: 18,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 2,
-                                          color: _isFilled ? AppTheme.onPrimaryContainer : AppTheme.textMedium.withOpacity(0.5),
+                                          color: _isFilled ? context.colors.onPrimaryContainer : context.colors.textMedium.withOpacity(0.5),
                                         ),
                                       ),
                               ),
@@ -297,11 +297,11 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                           children: const [
                             Text(
                               "Didn't receive code? ",
-                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textMedium),
+                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500, color: context.colors.textMedium),
                             ),
                             Text(
                               "Resend code in 00:30",
-                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMedium),
+                              style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.bold, color: context.colors.textMedium),
                             ),
                           ],
                         ),
@@ -314,8 +314,8 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
             ),
             
             // Footer
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
               child: Text(
                 "POWERED BY KINETIC DATA ENGINE V1.0.2",
                 style: TextStyle(
@@ -323,7 +323,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2,
-                  color: AppTheme.textLow, // Changed to textLow as surfaceContainerHigh was too light
+                  color: context.colors.textLow, // Changed to textLow as surfaceContainerHigh was too light
                 ),
               ),
             )

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 
 /// Dynamically loads a deferred Dart library and renders a loading spinner 
 /// while the browser fetches the specific `.wasm` / `.js` bundle fragment.
