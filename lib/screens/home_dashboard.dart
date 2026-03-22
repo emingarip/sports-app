@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'match_room_screen.dart';
 import '../models/match.dart' as model;
 import '../models/league.dart';
+import '../models/notification.dart';
 import '../data/mock_data.dart';
 import '../widgets/league_group.dart';
 import '../widgets/filter_row.dart';
@@ -16,6 +17,8 @@ import '../widgets/match_search_delegate.dart';
 import 'package:flutter/services.dart';
 import 'package:shimmer/shimmer.dart';
 import '../widgets/match_card.dart';
+import '../providers/notification_provider.dart';
+import '../widgets/notification_bell.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -224,6 +227,39 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       }
     });
 
+    ref.listen<List<AppNotification>>(notificationProvider, (previous, next) {
+      if (previous != null && next.length > previous.length) {
+        final newNotifications = next.where((n) => !previous.any((p) => p.id == n.id)).toList();
+        
+        for (var n in newNotifications) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(n.type == 'GOAL' ? Icons.sports_soccer : Icons.notifications_active, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(n.title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(n.message, style: const TextStyle(color: Colors.white70)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: context.colors.primary,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    });
+
     var featured = _getFeaturedMatch();
     final activeFilter = ref.watch(matchStateProvider).activeFilter;
 
@@ -312,7 +348,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             );
           }
         ),
-        IconButton(icon: Icon(Icons.notifications_outlined, color: context.colors.textMedium), onPressed: () {}),
+        const NotificationBell(),
         const SizedBox(width: 8),
       ],
       bottom: PreferredSize(

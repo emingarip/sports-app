@@ -6,9 +6,22 @@ import 'package:sports_app/screens/home_dashboard.dart';
 import 'package:sports_app/models/match.dart' as model;
 import 'package:sports_app/providers/match_provider.dart';
 import 'package:sports_app/providers/favorites_provider.dart';
+import 'package:sports_app/providers/notification_provider.dart';
+import 'package:sports_app/models/notification.dart';
 import 'package:sports_app/theme/app_theme.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
+
+class MockNotificationNotifier extends NotificationNotifier {
+  @override
+  List<AppNotification> build() => [];
+  
+  @override
+  Future<void> markAsRead(String id) async {}
+  
+  @override
+  Future<void> markAllAsRead() async {}
+}
 
 class MockFavoritesNotifier extends FavoritesNotifier {
   @override
@@ -31,6 +44,7 @@ void main() {
         overrides: [
           matchRepositoryProvider.overrideWithValue(mockRepository),
           favoritesProvider.overrideWith(() => MockFavoritesNotifier()),
+          notificationProvider.overrideWith(() => MockNotificationNotifier()),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
