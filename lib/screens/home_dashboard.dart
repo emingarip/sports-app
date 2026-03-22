@@ -15,7 +15,7 @@ import '../widgets/custom_bottom_nav.dart';
 import '../widgets/match_search_delegate.dart';
 import 'package:flutter/services.dart';
 import 'package:shimmer/shimmer.dart';
-
+import '../widgets/match_card.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -75,9 +75,65 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       ];
     }
     
-    final filtered = matchState.filteredMatches;
+    final filtered = ref.watch(filteredMatchesProvider);
     if (filtered.isEmpty) {
       return [const EmptyState(message: "No matches available for this filter")];
+    }
+    
+    // Flat Chronological Watchlist for Starred Filter
+    if (matchState.activeFilter == 'Starred ⭐') {
+       final starredList = List<model.Match>.from(filtered);
+       starredList.sort((a, b) {
+         if (a.status != b.status) {
+            if (a.status == model.MatchStatus.live) return -1;
+            if (b.status == model.MatchStatus.live) return 1;
+            if (a.status == model.MatchStatus.upcoming) return -1;
+            return 1;
+         }
+         return a.startTime.compareTo(b.startTime);
+       });
+       
+       return [
+         SliverPadding(
+           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+           sliver: SliverList(
+             delegate: SliverChildBuilderDelegate(
+               (context, index) {
+                  final match = starredList[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: context.colors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: context.colors.surfaceContainerLow),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 12, top: 12, right: 12),
+                            child: Row(
+                              children: [
+                                Image.network(match.leagueLogoUrl ?? 'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png', width: 14, height: 14, errorBuilder: (ctx, err, _) => const Icon(Icons.shield, size: 14)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(match.leagueName ?? 'Unknown League', style: TextStyle(fontSize: 10, color: context.colors.textLow, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                ),
+                              ]
+                            )
+                          ),
+                          MatchCard(match: match, hasBorder: false),
+                        ]
+                      )
+                    ),
+                  );
+               },
+               childCount: starredList.length,
+             ),
+           ),
+         )
+       ];
     }
 
     final Map<String, List<model.Match>> leagueMap = {};

@@ -5,9 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sports_app/screens/home_dashboard.dart';
 import 'package:sports_app/models/match.dart' as model;
 import 'package:sports_app/providers/match_provider.dart';
+import 'package:sports_app/providers/favorites_provider.dart';
 import 'package:sports_app/theme/app_theme.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
+
+class MockFavoritesNotifier extends FavoritesNotifier {
+  @override
+  Set<String> build() => {'3'};
+  
+  @override
+  Future<void> toggleFavorite(String matchId) async {}
+}
 
 void main() {
   group('HomeDashboard Integration Tests', () {
@@ -21,6 +30,7 @@ void main() {
       return ProviderScope(
         overrides: [
           matchRepositoryProvider.overrideWithValue(mockRepository),
+          favoritesProvider.overrideWith(() => MockFavoritesNotifier()),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,

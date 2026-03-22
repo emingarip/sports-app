@@ -4,14 +4,29 @@ import 'package:network_image_mock/network_image_mock.dart';
 import 'package:sports_app/theme/app_theme.dart';
 import 'package:sports_app/widgets/match_card.dart';
 import 'package:sports_app/models/match.dart' as model;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sports_app/providers/favorites_provider.dart';
 import '../helpers/test_helpers.dart';
+
+class MockFavoritesNotifier extends FavoritesNotifier {
+  @override
+  Set<String> build() => {};
+  
+  @override
+  Future<void> toggleFavorite(String matchId) async {}
+}
 
 void main() {
   Widget buildTestableWidget(Widget child) {
-    return MaterialApp(
-      theme: AppTheme.lightTheme,
-      home: Scaffold(
-        body: child,
+    return ProviderScope(
+      overrides: [
+        favoritesProvider.overrideWith(() => MockFavoritesNotifier())
+      ],
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: child,
+        ),
       ),
     );
   }
@@ -38,7 +53,7 @@ void main() {
         expect(find.text('1'), findsWidgets);
         expect(find.text('LIVE'), findsOneWidget);
         expect(find.text("45'"), findsOneWidget);
-        expect(find.text('PREDICT'), findsOneWidget);
+        expect(find.byIcon(Icons.star_border), findsOneWidget);
       });
     });
 
@@ -51,12 +66,11 @@ void main() {
         ));
 
         expect(find.text('Full\nTime'), findsOneWidget);
-        expect(find.text('STATS'), findsOneWidget);
-        expect(find.text('PREDICT'), findsNothing);
+        expect(find.byIcon(Icons.star_border), findsOneWidget);
       });
     });
 
-    testWidgets('renders upcoming match correctly with time and ODDS', (WidgetTester tester) async {
+    testWidgets('renders upcoming match correctly with time and VS tag', (WidgetTester tester) async {
       await mockNetworkImagesFor(() async {
         final match = createTestMatch(
           status: model.MatchStatus.upcoming,
@@ -67,7 +81,8 @@ void main() {
           MatchCard(match: match, hasBorder: false),
         ));
 
-        expect(find.text('ODDS 2.10'), findsOneWidget);
+        expect(find.text('VS'), findsOneWidget);
+        expect(find.byIcon(Icons.star_border), findsOneWidget);
         expect(find.text('LIVE'), findsNothing);
       });
     });

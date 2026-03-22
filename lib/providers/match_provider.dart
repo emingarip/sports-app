@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/match.dart' as model;
 import '../data/providers/supabase_match_provider.dart';
 import '../data/repositories/match_repository.dart';
+import 'favorites_provider.dart';
 
 final matchRepositoryProvider = Provider<MatchRepository>((ref) {
   return SupabaseMatchProvider();
@@ -35,24 +36,6 @@ class MatchState {
     );
   }
 
-  List<model.Match> get filteredMatches {
-    return matches.where((m) {
-      if (activeFilter == 'Starred ⭐') return m.isFavorite;
-
-      // Ensure the match falls on exactly the selected date
-      final localStart = m.startTime.toLocal();
-      final localSelected = selectedDate.toLocal();
-      if (localStart.year != localSelected.year || 
-          localStart.month != localSelected.month || 
-          localStart.day != localSelected.day) {
-        return false;
-      }
-
-      if (activeFilter == 'Live 🔴') return m.status == model.MatchStatus.live;
-      if (activeFilter == 'Finished') return m.status == model.MatchStatus.finished;
-      return true;
-    }).toList();
-  }
 }
 
 class MatchNotifier extends Notifier<MatchState> {
@@ -113,4 +96,28 @@ class MatchNotifier extends Notifier<MatchState> {
 
 final matchStateProvider = NotifierProvider<MatchNotifier, MatchState>(() {
   return MatchNotifier();
+});
+
+final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
+  final matchState = ref.watch(matchStateProvider);
+  final favorites = ref.watch(favoritesProvider);
+  
+  return matchState.matches.where((m) {
+    // Ensure the match falls on exactly the selected date for all filters (including Starred)
+    final localStart = m.startTime.toLocal();
+    final localSelected = matchState.selectedDate.toLocal();
+    if (localStart.year != localSelected.year || 
+        localStart.month != localSelected.month || 
+        localStart.day != localSelected.day) {
+      return false;
+    }
+
+    if (matchState.activeFilter == 'Starred ⭐') {
+      return favorites.contains(m.id);
+    }
+
+    if (matchState.activeFilter == 'Live 🔴') return m.status == model.MatchStatus.live;
+    if (matchState.activeFilter == 'Finished') return m.status == model.MatchStatus.finished;
+    return true;
+  }).toList();
 });
