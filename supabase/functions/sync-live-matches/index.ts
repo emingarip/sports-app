@@ -63,24 +63,56 @@ Deno.serve(async (req) => {
     // --- HIGH AVAILABILITY API FALLBACK LOGIC ---
     let data = { data: [] }; // Default empty struct
     
-    try {
-      const endpoint = `https://sports.highlightly.net/football/matches?date=${targetDate}&timezone=Europe/Istanbul`;
-      const response = await fetch(endpoint, {
+    const fetchHighlightly = async (baseUrl: string, hostHeader: string) => {
+      const endpoint = `${baseUrl}?date=${targetDate}&timezone=Europe/Istanbul`;
+      return await fetch(endpoint, {
         headers: { 
           'x-rapidapi-key': highlightlyKey,
-          'x-rapidapi-host': 'sports.highlightly.net',
+          'x-rapidapi-host': hostHeader,
           'Content-Type': 'application/json'
         }
       });
+    };
+
+    try {
+      let response: Response | null = null;
       
-      if (!response.ok) {
-        const errBody = await response.text().catch(() => '');
-        console.error(`Highlightly API returned error ${response.status}: ${errBody}`);
-      } else {
-        data = await response.json();
+      try {
+        response = await fetchHighlightly('https://sports.highlightly.net/football/matches', 'sports.highlightly.net');
+      } catch (primaryErr) {
+        console.error(`Primary API (sports) network/DNS error: ${primaryErr}`);
       }
-    } catch (error) {
-      console.error(`Network or DNS error fetching Highlightly API: ${error}`);
+
+      // If response is null (network error) OR not OK (e.g. 429 Rate Limit)
+      if (!response || !response.ok) {
+        if (response) {
+          console.log(`Primary API failed with status ${response.status}. Attempting fallback (soccer)...`);
+        } else {
+          console.log(`Primary API completely unreachable. Attempting fallback (soccer)...`);
+        }
+        
+        try {
+          // Secondary endpoint for Football explicit quota
+          response = await fetchHighlightly('https://soccer.highlightly.net/football/matches', 'soccer.highlightly.net');
+          
+          if (response && response.status === 404) {
+            console.log("Fallback API 404 on /football/matches, retrying plain /matches...");
+            response = await fetchHighlightly('https://soccer.highlightly.net/matches', 'soccer.highlightly.net');
+          }
+        } catch (fallbackErr) {
+          console.error(`Fallback API (soccer) network/DNS error: ${fallbackErr}`);
+        }
+      }
+
+      // Final evaluation
+      if (response && response.ok) {
+        data = await response.json();
+      } else {
+        const status = response ? response.status : 'NETWORK_ERROR';
+        console.error(`All Highlightly endpoints failed. Final status: ${status}. Proceeding with cached DB state.`);
+      }
+    } catch (criticalErr) {
+      console.error(`Critical overarching fallback error: ${criticalErr}`);
     }
     
     // 3. Map highlightly payload array to our agnostic DB schema to prevent UI lock-in
