@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../screens/match_room_screen.dart' show ChatMessage, MessageType;
+import '../screens/match_detail_screen.dart' show ChatMessage, MessageType;
 
 class ChatService {
   final SupabaseClient _client = Supabase.instance.client;

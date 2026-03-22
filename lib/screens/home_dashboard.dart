@@ -731,7 +731,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           final allMatches = ref.read(matchStateProvider).matches;
           if (allMatches.isEmpty) return;
           final activeMatch = allMatches.firstWhere((m) => m.status == model.MatchStatus.live, orElse: () => allMatches.first);
-          Navigator.push(context, MaterialPageRoute(builder: (_) => MatchRoomScreen(match: activeMatch)));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => MatchDetailScreen(match: activeMatch)));
         },
         child: Container(
           padding: const EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8),
