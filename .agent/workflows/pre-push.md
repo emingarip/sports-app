@@ -28,4 +28,7 @@ When you are asked to push code, merge branches, or finalize a feature, you MUST
 5. **Merge (If applicable):**
    If you need to merge to `master`, check out `master`, pull the latest changes, merge the feature branch, and push.
 
+6. **Monitor CI/CD (GitHub Actions):**
+   If you push to a branch where GitHub Actions workflows exist (like `master` or feature branches), you MUST actively monitor the workflow using `gh run list` and `gh run watch <run-id>` or `gh run view`. Wait for the workflow to complete successfully BEFORE responding to the user. If the workflow fails (like a test error on CI), fix the issue and push again, and monitor it until green.
+
 Make sure and double check this checklist every time you are about to push or merge!

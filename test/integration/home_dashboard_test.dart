@@ -17,28 +17,28 @@ void main() {
       mockRepository = MockMatchRepository();
     });
 
-    Widget buildTestableWidget() {
+    Widget buildTestableWidget({DateTime? overrideDate}) {
       return ProviderScope(
         overrides: [
           matchRepositoryProvider.overrideWithValue(mockRepository),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
-          home: const HomeDashboard(),
+          home: HomeDashboard(initialDateOverride: overrideDate),
         ),
       );
     }
 
     testWidgets('Dashboard renders live matches and filters correctly', (WidgetTester tester) async {
+      final today = DateTime(2026, 3, 22);
       await mockNetworkImagesFor(() async {
-        final today = DateTime.now();
         mockRepository.setMatches([
           createTestMatch(id: '1', homeTeam: 'Arsenal', awayTeam: 'Spurs', status: model.MatchStatus.live, startTime: today),
           createTestMatch(id: '2', homeTeam: 'Chelsea', awayTeam: 'Liverpool', status: model.MatchStatus.finished, startTime: today),
           createTestMatch(id: '3', homeTeam: 'Real Madrid', awayTeam: 'Barcelona', status: model.MatchStatus.upcoming, isFavorite: true, startTime: today),
         ]);
 
-        await tester.pumpWidget(buildTestableWidget());
+        await tester.pumpWidget(buildTestableWidget(overrideDate: today));
         await tester.pumpAndSettle();
 
         expect(find.text('Arsenal'), findsOneWidget);
@@ -62,14 +62,14 @@ void main() {
     });
 
     testWidgets('Dashboard displays empty state when no matches pass filter', (WidgetTester tester) async {
+      final today = DateTime(2026, 3, 22);
       await mockNetworkImagesFor(() async {
-        final today = DateTime.now();
         mockRepository.setMatches([
           createTestMatch(status: model.MatchStatus.upcoming, startTime: today),
           createTestMatch(status: model.MatchStatus.finished, startTime: today),
         ]);
 
-        await tester.pumpWidget(buildTestableWidget());
+        await tester.pumpWidget(buildTestableWidget(overrideDate: today));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Live 🔴'));
@@ -80,16 +80,16 @@ void main() {
     });
 
     testWidgets('Dashboard Date Navigator filters by selected day', (WidgetTester tester) async {
+      final today = DateTime(2026, 3, 22);
+      final tomorrow = today.add(const Duration(days: 1));
+      
       await mockNetworkImagesFor(() async {
-        final today = DateTime.now();
-        final tomorrow = today.add(const Duration(days: 1));
-        
         mockRepository.setMatches([
           createTestMatch(id: '1', homeTeam: 'TodayTeam', awayTeam: 'A', status: model.MatchStatus.upcoming, startTime: today),
           createTestMatch(id: '2', homeTeam: 'TomorrowTeam', awayTeam: 'B', status: model.MatchStatus.upcoming, startTime: tomorrow),
         ]);
 
-        await tester.pumpWidget(buildTestableWidget());
+        await tester.pumpWidget(buildTestableWidget(overrideDate: today));
         await tester.pumpAndSettle();
 
         // Initially defaults to today
@@ -97,8 +97,8 @@ void main() {
         expect(find.text('TomorrowTeam'), findsNothing);
 
         // Tap tomorrow's date tab
-        // The day string is just the number (e.g. "20") if unselected.
-        await tester.tap(find.text('${tomorrow.day}').first);
+        // Tomorrow is offsetFromToday = 1
+        await tester.tap(find.byKey(const ValueKey('date_tab_1')));
         await tester.pumpAndSettle();
 
         // Should now show tomorrow's matches

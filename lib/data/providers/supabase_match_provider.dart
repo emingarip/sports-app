@@ -53,4 +53,35 @@ class SupabaseMatchProvider implements MatchRepository {
         .stream(primaryKey: ['id'])
         .map((events) => events.map((data) => _mapMatch(data)).toList());
   }
+
+  @override
+  Future<void> fetchMatchesForDate(DateTime date) async {
+    try {
+      final year = date.year.toString();
+      final month = date.month.toString().padLeft(2, '0');
+      final day = date.day.toString().padLeft(2, '0');
+      final formattedDate = '$year-$month-$day';
+
+      await _client.functions.invoke(
+        'sync-live-matches',
+        queryParameters: {'date': formattedDate},
+      );
+    } catch (e) {
+      // In a real app we would log this properly or surface to UI,
+      // but for background syncing it's safe to silently fail or print.
+      print("[SupabaseMatchProvider] Error fetching live matches: $e");
+    }
+  }
+
+  @override
+  Future<List<model.Match>> searchMatches(String query) async {
+    final response = await _client
+        .from('matches')
+        .select('*')
+        .or('home_team.ilike.%$query%,away_team.ilike.%$query%,league_name.ilike.%$query%')
+        .order('started_at', ascending: false)
+        .limit(50);
+        
+    return (response as List<dynamic>).map((data) => _mapMatch(data)).toList();
+  }
 }

@@ -12,10 +12,15 @@ import '../widgets/sticky_header_delegate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
 import '../widgets/custom_bottom_nav.dart';
+import '../widgets/match_search_delegate.dart';
+import 'package:flutter/services.dart';
+import 'package:shimmer/shimmer.dart';
 
 
 class HomeDashboard extends ConsumerStatefulWidget {
-  const HomeDashboard({super.key});
+  final DateTime? initialDateOverride;
+  
+  const HomeDashboard({super.key, this.initialDateOverride});
 
   @override
   ConsumerState<HomeDashboard> createState() => _HomeDashboardState();
@@ -24,19 +29,53 @@ class HomeDashboard extends ConsumerStatefulWidget {
 class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   int _selectedSportIndex = 0;
   final Set<String> _expandedLeagues = {};
-  late DateTime _calendarBaseDate;
+  late ScrollController _calendarScroller;
 
   @override
   void initState() {
     super.initState();
-    _calendarBaseDate = DateTime.now();
+    _calendarScroller = ScrollController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.initialDateOverride != null) {
+        ref.read(matchStateProvider.notifier).setDate(widget.initialDateOverride!);
+      }
+      
+      // Initial centering of the calendar on today (index 10000)
+      if (_calendarScroller.hasClients) {
+         final screenWidth = MediaQuery.of(context).size.width;
+         final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
+         final centerOffset = (10000 * 72.0) - (containerWidth / 2) + 36.0;
+         _calendarScroller.jumpTo(centerOffset);
+      }
+    });
+
     if (MockData.leagues.isNotEmpty) {
       _expandedLeagues.add(MockData.leagues.first.id);
     }
   }
 
   List<Widget> _buildLeagueSlivers() {
-    final filtered = ref.watch(matchStateProvider).filteredMatches;
+    final matchState = ref.watch(matchStateProvider);
+    
+    if (matchState.isLoading) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 24.0),
+            child: Shimmer.fromColors(
+              baseColor: context.colors.surfaceContainerLow,
+              highlightColor: context.colors.surfaceContainer,
+              child: Column(
+                children: List.generate(5, (index) => _buildSkeletonMatchCard()),
+              ),
+            ),
+          ),
+        )
+      ];
+    }
+    
+    final filtered = matchState.filteredMatches;
     if (filtered.isEmpty) {
       return [const EmptyState(message: "No matches available for this filter")];
     }
@@ -146,7 +185,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               CustomScrollView(
                 slivers: [
                   _buildAppBar(context),
-                  _buildStickyContext(),
+                  _buildStickyContext(context),
                   
                   if (featured != null && (activeFilter == 'All' || activeFilter == 'Starred ⭐'))
                     SliverPadding(
@@ -208,7 +247,15 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         ],
       ),
       actions: [
-        IconButton(icon: Icon(Icons.search, color: context.colors.textMedium), onPressed: () {}),
+        IconButton(
+          icon: Icon(Icons.search, color: context.colors.textMedium), 
+          onPressed: () {
+            showSearch(
+              context: context, 
+              delegate: MatchSearchDelegate(ref),
+            );
+          }
+        ),
         IconButton(icon: Icon(Icons.notifications_outlined, color: context.colors.textMedium), onPressed: () {}),
         const SizedBox(width: 8),
       ],
@@ -266,12 +313,15 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     );
   }
 
-  Widget _buildStickyContext() {
+  Widget _buildStickyContext(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final dynamicHeight = 60.0 + (74.0 * textScale);
+    
     return SliverPersistentHeader(
       pinned: true,
       delegate: StickyHeaderDelegate(
-        minHeight: 124,
-        maxHeight: 124,
+        minHeight: dynamicHeight,
+        maxHeight: dynamicHeight,
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -280,7 +330,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildDateNavigatorContent(),
+                  _buildDateNavigatorContent(context),
                   const FilterRow(),
                 ],
               ),
@@ -291,92 +341,176 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     );
   }
 
-  Widget _buildDateNavigatorContent() {
+  Widget _buildDateNavigatorContent(BuildContext context) {
     final selectedDate = ref.watch(matchStateProvider).selectedDate;
+    final now = DateTime.now();
     
-    // Generate 5 days centered around _calendarBaseDate
-    List<DateTime> visibleDates = List.generate(5, (index) {
-      return _calendarBaseDate.add(Duration(days: index - 2));
-    });
-
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    
     return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0, left: 16, right: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: Icon(Icons.chevron_left, color: context.colors.textMedium),
-            onPressed: () {
-              setState(() {
-                _calendarBaseDate = _calendarBaseDate.subtract(const Duration(days: 1));
-              });
-            },
-          ),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: visibleDates.map((date) {
-                final isSelected = date.year == selectedDate.year &&
-                                   date.month == selectedDate.month &&
-                                   date.day == selectedDate.day;
-                
-                final now = DateTime.now();
-                final isToday = date.year == now.year &&
-                                date.month == now.month &&
-                                date.day == now.day;
+      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+      child: Stack(
+         alignment: Alignment.center,
+         children: [
+           SizedBox(
+            height: 25.0 + (45.0 * textScale), // Scales dynamically to prevent RenderFlex
+            child: ListView.builder(
+              controller: _calendarScroller,
+              scrollDirection: Axis.horizontal,
+              itemExtent: 72.0,
+              itemCount: 20000,
+              itemBuilder: (context, index) {
+                 final int offsetFromToday = index - 10000;
+                 final date = now.add(Duration(days: offsetFromToday));
+                 
+                 final isSelected = date.year == selectedDate.year &&
+                                    date.month == selectedDate.month &&
+                                    date.day == selectedDate.day;
+                 
+                 final isToday = date.year == now.year &&
+                                 date.month == now.month &&
+                                 date.day == now.day;
 
-                final days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-                final weekdayStr = days[date.weekday - 1];
-                
-                String dayStr = isToday ? 'TODAY' : weekdayStr;
-                String numStr = isSelected ? '$weekdayStr ${date.day}' : '${date.day}';
+                 final days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+                 final weekdayStr = days[date.weekday - 1];
+                 
+                 String dayStr = isToday ? 'TODAY' : weekdayStr;
+                 String numStr = isSelected ? '$weekdayStr ${date.day}' : '${date.day}';
 
-                return GestureDetector(
-                  onTap: () {
-                    ref.read(matchStateProvider.notifier).setDate(date);
-                  },
-                  child: _buildRefinedDateTab(dayStr, numStr, isSelected),
-                );
-              }).toList(),
+                 return GestureDetector(
+                   key: ValueKey('date_tab_$offsetFromToday'),
+                   behavior: HitTestBehavior.opaque,
+                   onTap: () {
+                     HapticFeedback.lightImpact();
+                     ref.read(matchStateProvider.notifier).setDate(date);
+                     
+                     // Smooth center
+                     final screenWidth = MediaQuery.of(context).size.width;
+                     final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
+                     final targetOffset = (index * 72.0) - (containerWidth / 2) + 36.0;
+                     _calendarScroller.animateTo(
+                        targetOffset.clamp(0.0, _calendarScroller.position.maxScrollExtent), 
+                        duration: const Duration(milliseconds: 300), 
+                        curve: Curves.easeInOut
+                     );
+                   },
+                   child: SizedBox(
+                     width: 72,
+                     child: _buildRefinedDateTab(dayStr, numStr, isSelected),
+                   )
+                 );
+              },
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.chevron_right, color: context.colors.textMedium),
-            onPressed: () {
-              setState(() {
-                _calendarBaseDate = _calendarBaseDate.add(const Duration(days: 1));
-              });
-            },
+          
+          AnimatedBuilder(
+            animation: _calendarScroller,
+            builder: (context, child) {
+              bool showSnapBtn = false;
+              if (_calendarScroller.hasClients) {
+                 final screenWidth = MediaQuery.of(context).size.width;
+                 final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
+                 final centerOffset = (10000 * 72.0) - (containerWidth / 2) + 36.0;
+                 final currentOffset = _calendarScroller.offset;
+                 
+                 final differenceInPixels = (currentOffset - centerOffset).abs();
+                 // Show button if scrolled 7 days (7 * 72.0 pixels) away
+                 if (differenceInPixels >= (7 * 72.0)) {
+                    showSnapBtn = true;
+                 }
+              }
+
+              return Positioned(
+                 right: 16,
+                 child: IgnorePointer(
+                   ignoring: !showSnapBtn,
+                   child: AnimatedOpacity(
+                     opacity: showSnapBtn ? 1.0 : 0.0, 
+                     duration: const Duration(milliseconds: 300),
+                     child: InkWell(
+                        onTap: () {
+                           HapticFeedback.selectionClick();
+                           ref.read(matchStateProvider.notifier).setDate(now);
+                           final screenWidth = MediaQuery.of(context).size.width;
+                           final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
+                           final targetOffset = (10000 * 72.0) - (containerWidth / 2) + 36.0;
+                           _calendarScroller.animateTo(targetOffset, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                           decoration: BoxDecoration(
+                              color: context.colors.primaryContainer,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))]
+                           ),
+                           child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.today, size: 14, color: context.colors.onPrimaryContainer),
+                                const SizedBox(width: 4),
+                                Text("Bugün", style: TextStyle(color: context.colors.onPrimaryContainer, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ]
+                           )
+                        ),
+                     )
+                   ),
+                 ),
+              );
+            }
           ),
-        ],
-      ),
+         ]
+      )
     );
   }
 
   Widget _buildRefinedDateTab(String day, String num, bool isSelected) {
-    return Column(
-      children: [
-        if (!isSelected) ...[
-          Text(day, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textLow)),
-          const SizedBox(height: 2),
-          Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.textLow)),
-        ],
-        if (isSelected)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: isSelected
+          ? BoxDecoration(
               color: context.colors.primaryContainer,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-            ),
-            child: Column(
-              children: [
-                Text(day, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: context.colors.onPrimaryContainer)),
-                Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.onPrimaryContainer)),
-              ],
+            )
+          : const BoxDecoration(color: Colors.transparent),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+          Text(
+            day,
+            style: TextStyle(
+              fontSize: isSelected ? 9 : 10,
+              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+              color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
             ),
           ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            num,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonMatchCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      height: 80,
+      decoration: BoxDecoration(
+        color: Colors.white, // Color is overridden by Shimmer masks
+        borderRadius: BorderRadius.circular(16)
+      ),
     );
   }
 
