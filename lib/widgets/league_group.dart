@@ -33,7 +33,7 @@ class LeagueGroup extends StatelessWidget {
               minHeight: 48,
               maxHeight: 48,
               child: Container(
-                color: AppTheme.background,
+                color: context.colors.background,
                 alignment: Alignment.center,
                 child: InkWell(
                   onTap: onToggle,
@@ -44,20 +44,20 @@ class LeagueGroup extends StatelessWidget {
                       Expanded(
                         child: Text(
                           league.name, 
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textHigh),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.colors.textHigh),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                           color: AppTheme.surfaceContainerLow,
+                           color: context.colors.surfaceContainerLow,
                            borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text("${matches.length} Matches", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textMedium)),
+                        child: Text("${matches.length} Matches", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textMedium)),
                       ),
                       const SizedBox(width: 8),
-                      Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: AppTheme.textMedium),
+                      Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: context.colors.textMedium),
                     ],
                   ),
                 ),
@@ -69,9 +69,9 @@ class LeagueGroup extends StatelessWidget {
               child: Container(
                 margin: const EdgeInsets.only(top: 8, bottom: 16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceContainerLowest,
+                  color: context.colors.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.surfaceContainerLow),
+                  border: Border.all(color: context.colors.surfaceContainerLow),
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Column(

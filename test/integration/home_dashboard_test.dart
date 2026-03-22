@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:network_image_mock/network_image_mock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../lib/screens/home_dashboard.dart';
-import '../../lib/models/match.dart' as model;
-import '../../lib/providers/match_provider.dart';
+import 'package:sports_app/screens/home_dashboard.dart';
+import 'package:sports_app/models/match.dart' as model;
+import 'package:sports_app/providers/match_provider.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:network_image_mock/network_image_mock.dart';
-import '../../lib/widgets/match_card.dart';
-import '../../lib/models/match.dart' as model;
+import 'package:sports_app/widgets/match_card.dart';
+import 'package:sports_app/models/match.dart' as model;
 import '../helpers/test_helpers.dart';
 
 void main() {

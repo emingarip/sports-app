@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sports_app/services/supabase_service.dart';
-import 'package:sports_app/screens/home_dashboard.dart';
+import 'package:sports_app/screens/main_layout.dart';
 import 'package:sports_app/screens/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -28,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (session != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeDashboard()),
+        MaterialPageRoute(builder: (_) => const MainLayout()),
       );
     } else {
       Navigator.pushReplacement(
@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Color(0xFF121212), // AppTheme.background
+      backgroundColor: Color(0xFF121212), // context.colors.background
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -50,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Icon(
               Icons.sports_soccer,
               size: 80,
-              color: Color(0xFFBB86FC), // AppTheme.primary
+              color: Color(0xFFBB86FC), // context.colors.primary
             ),
             SizedBox(height: 24),
             Text(
@@ -65,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             SizedBox(height: 48),
             CircularProgressIndicator(
-              color: Color(0xFF03DAC6), // AppTheme.secondary
+              color: Color(0xFF03DAC6), // context.colors.secondary
             ),
           ],
         ),

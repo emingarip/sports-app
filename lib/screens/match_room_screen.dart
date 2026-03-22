@@ -188,7 +188,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
     final safeTop = topPadding == 0 ? 44.0 : topPadding;
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: Stack(
         children: [
           // Scrollable Context with Sliver App Bar
@@ -244,10 +244,10 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: isGoal ? AppTheme.primaryContainer.withOpacity(0.12) : AppTheme.surfaceContainerLow.withOpacity(0.8),
+            color: isGoal ? context.colors.primaryContainer.withOpacity(0.12) : context.colors.surfaceContainerLow.withOpacity(0.8),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isGoal ? AppTheme.primaryContainer.withOpacity(0.4) : AppTheme.surfaceContainerHighest.withOpacity(0.5)),
-            boxShadow: isGoal ? [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.05), blurRadius: 10)] : [],
+            border: Border.all(color: isGoal ? context.colors.primaryContainer.withOpacity(0.4) : context.colors.surfaceContainerHighest.withOpacity(0.5)),
+            boxShadow: isGoal ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.05), blurRadius: 10)] : [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -256,13 +256,13 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: isGoal ? AppTheme.primaryContainer.withOpacity(0.4) : AppTheme.surfaceContainerHigh.withOpacity(0.6),
+                    color: isGoal ? context.colors.primaryContainer.withOpacity(0.4) : context.colors.surfaceContainerHigh.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     msg.systemEventIcon, 
                     size: 14, 
-                    color: isGoal ? AppTheme.onPrimaryContainer : AppTheme.textMedium,
+                    color: isGoal ? context.colors.onPrimaryContainer : context.colors.textMedium,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -271,13 +271,13 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (isGoal)
-                    const Text(
+                    Text(
                       "MATCH UPDATE",
                       style: TextStyle(
                         fontFamily: 'Lexend',
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
-                        color: AppTheme.onPrimaryContainer,
+                        color: context.colors.onPrimaryContainer,
                         letterSpacing: 2.0,
                       ),
                     ),
@@ -288,7 +288,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                       fontFamily: 'Lexend',
                       fontSize: isGoal ? 12 : 11,
                       fontWeight: FontWeight.bold,
-                      color: isGoal ? AppTheme.onPrimaryContainer : AppTheme.textMedium,
+                      color: isGoal ? context.colors.onPrimaryContainer : context.colors.textMedium,
                       letterSpacing: 0.0,
                     ),
                   ),
@@ -319,11 +319,11 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.surfaceContainerHigh,
+                  color: context.colors.surfaceContainerHigh,
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
-                child: const Icon(Icons.person, color: AppTheme.textMedium, size: 20),
+                child: Icon(Icons.person, color: context.colors.textMedium, size: 20),
               )
             else
               const SizedBox(width: 36),
@@ -341,22 +341,22 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                       if (!isMe) ...[
                         Text(
                           msg.username ?? "",
-                          style: const TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textHigh),
+                          style: TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.bold, color: context.colors.textHigh),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           msg.time ?? "",
-                          style: const TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w500, color: AppTheme.textMedium),
+                          style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w500, color: context.colors.textMedium),
                         ),
                       ] else ...[
                         Text(
                           msg.time ?? "",
-                          style: const TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w500, color: AppTheme.textMedium),
+                          style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w500, color: context.colors.textMedium),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           msg.username ?? "",
-                          style: const TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                          style: TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.bold, color: context.colors.primary),
                         ),
                       ],
                     ],
@@ -366,16 +366,16 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isMe ? AppTheme.primaryContainer : Colors.white,
+                    color: isMe ? context.colors.primaryContainer : Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular((!isMe && isPrevSameUser) ? 4 : 20),
                       topRight: Radius.circular((isMe && isPrevSameUser) ? 4 : 20),
                       bottomLeft: Radius.circular((!isMe && isNextSameUser) ? 4 : (!isMe ? 4 : 20)),
                       bottomRight: Radius.circular((isMe && isNextSameUser) ? 4 : (isMe ? 4 : 20)),
                     ),
-                    border: isMe ? null : Border.all(color: AppTheme.surfaceContainerHigh.withOpacity(0.5)),
+                    border: isMe ? null : Border.all(color: context.colors.surfaceContainerHigh.withOpacity(0.5)),
                     boxShadow: [
-                      BoxShadow(color: AppTheme.surfaceContainerHighest.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 1))
+                      BoxShadow(color: context.colors.surfaceContainerHighest.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 1))
                     ],
                   ),
                   child: Text(
@@ -385,7 +385,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                       fontSize: 14,
                       height: 1.4,
                       fontWeight: isMe ? FontWeight.w500 : FontWeight.normal,
-                      color: isMe ? AppTheme.onPrimaryContainer : AppTheme.textHigh,
+                      color: isMe ? context.colors.onPrimaryContainer : context.colors.textHigh,
                     ),
                   ),
                 ),
@@ -401,11 +401,11 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.primaryContainer,
-                  border: Border.all(color: AppTheme.primaryContainer, width: 2),
+                  color: context.colors.primaryContainer,
+                  border: Border.all(color: context.colors.primaryContainer, width: 2),
                   boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
-                child: const Icon(Icons.person, color: AppTheme.onPrimaryContainer, size: 20),
+                child: Icon(Icons.person, color: context.colors.onPrimaryContainer, size: 20),
               )
             else
               const SizedBox(width: 36),
@@ -422,8 +422,8 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
         child: Container(
           padding: const EdgeInsets.only(top: 12, bottom: 20, left: 16, right: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            border: const Border(top: BorderSide(color: AppTheme.surfaceContainerHighest, width: 0.5)),
+            color: context.colors.background.withOpacity(0.85),
+            border: Border(top: BorderSide(color: context.colors.surfaceContainerHighest, width: 0.5)),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, -4))],
           ),
           child: Column(
@@ -454,13 +454,13 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: _isInputFocused ? Colors.white : AppTheme.surfaceContainerLow,
+                        color: _isInputFocused ? context.colors.background : context.colors.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: _isInputFocused ? AppTheme.primaryContainer : AppTheme.surfaceContainerHighest.withOpacity(0.5),
+                          color: _isInputFocused ? context.colors.primaryContainer : context.colors.surfaceContainerHighest.withOpacity(0.5),
                           width: _isInputFocused ? 2 : 1,
                         ),
-                        boxShadow: _isInputFocused ? [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.1), blurRadius: 8)] : [],
+                        boxShadow: _isInputFocused ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.1), blurRadius: 8)] : [],
                       ),
                       child: TextField(
                         controller: _msgController,
@@ -469,7 +469,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                         style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
                         decoration: InputDecoration(
                           hintText: "Add to the moment...",
-                          hintStyle: TextStyle(color: AppTheme.textMedium.withOpacity(0.6), fontSize: 14),
+                          hintStyle: TextStyle(color: context.colors.textMedium.withOpacity(0.6), fontSize: 14),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                         ),
@@ -482,9 +482,9 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _hasText ? AppTheme.primaryContainer : AppTheme.surfaceContainer,
+                      color: _hasText ? context.colors.primaryContainer : context.colors.surfaceContainer,
                       shape: BoxShape.circle,
-                      boxShadow: _hasText ? [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))] : [],
+                      boxShadow: _hasText ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))] : [],
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -494,7 +494,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                         child: Center(
                           child: Icon(
                             Icons.arrow_upward_rounded, 
-                            color: _hasText ? AppTheme.onPrimaryContainer : AppTheme.textMedium, 
+                            color: _hasText ? context.colors.onPrimaryContainer : context.colors.textMedium, 
                             size: 24,
                           ),
                         ),
@@ -605,9 +605,9 @@ class _ReactionButtonState extends State<_ReactionButton> with SingleTickerProvi
               width: 48,
               height: 40,
               decoration: BoxDecoration(
-                color: AppTheme.background,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.surfaceContainerHighest.withOpacity(0.6)),
+                border: Border.all(color: context.colors.surfaceContainerHighest.withOpacity(0.6)),
                 boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 1, offset: Offset(0, 1))],
               ),
               child: Center(child: Text(widget.emoji, style: const TextStyle(fontSize: 20))),
@@ -648,7 +648,7 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
     final awayAbbr = match.awayTeam.length >= 3 ? match.awayTeam.substring(0, 3).toUpperCase() : match.awayTeam.toUpperCase();
     final scoreStr = "${match.homeScore ?? '-'} - ${match.awayScore ?? '-'}";
     final isLive = match.status == model.MatchStatus.live;
-    final statusText = isLive ? "${match.liveMinute ?? 'LIVE'}" : (match.status == model.MatchStatus.finished ? "Full Time" : "Upcoming");
+    final statusText = isLive ? match.liveMinute ?? 'LIVE' : (match.status == model.MatchStatus.finished ? "Full Time" : "Upcoming");
 
     return ClipRRect(
       child: BackdropFilter(
@@ -658,8 +658,8 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(1.0 - (1.0 - collapseForce) * 0.15), // from 0.85 to 1.0
-            border: Border(bottom: BorderSide(color: AppTheme.surfaceContainer.withOpacity(collapseForce))),
+            color: context.colors.background.withOpacity(1.0 - (1.0 - collapseForce) * 0.15), // from 0.85 to 1.0
+            border: Border(bottom: BorderSide(color: context.colors.surfaceContainer.withOpacity(collapseForce))),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(collapseForce * 0.04), blurRadius: 10)],
           ),
           child: Stack(
@@ -679,7 +679,7 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              AppTheme.primaryContainer.withOpacity(0.08 + (bgPulseController.value * 0.04)),
+                              context.colors.primaryContainer.withOpacity(0.08 + (bgPulseController.value * 0.04)),
                               Colors.transparent,
                             ],
                           ),
@@ -692,18 +692,18 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(color: AppTheme.primaryContainer.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-                          child: Text("MATCH PULSE", style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: AppTheme.primary.withOpacity(0.8))),
+                          decoration: BoxDecoration(color: context.colors.primaryContainer.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                          child: Text("MATCH PULSE", style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: context.colors.primary.withOpacity(0.8))),
                         ),
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
+                            color: context.colors.background.withOpacity(0.95),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
-                              BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.1), blurRadius: 24, offset: const Offset(0, 12)),
+                              BoxShadow(color: context.colors.primaryContainer.withOpacity(0.1), blurRadius: 24, offset: const Offset(0, 12)),
                               const BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
                             ],
                           ),
@@ -713,23 +713,23 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(homeAbbr, style: const TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
+                                  Text(homeAbbr, style: TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
                                   const SizedBox(height: 6),
-                                  Container(height: 5, width: 36, decoration: BoxDecoration(color: AppTheme.primaryContainer, borderRadius: BorderRadius.circular(3), boxShadow: [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.5), blurRadius: 4)])),
+                                  Container(height: 5, width: 36, decoration: BoxDecoration(color: context.colors.primaryContainer, borderRadius: BorderRadius.circular(3), boxShadow: [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.5), blurRadius: 4)])),
                                 ],
                               ),
                               Container(
                                 margin: const EdgeInsets.symmetric(horizontal: 24),
                                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                                decoration: BoxDecoration(border: Border(left: BorderSide(color: AppTheme.surfaceContainerHighest.withOpacity(0.3)), right: BorderSide(color: AppTheme.surfaceContainerHighest.withOpacity(0.3)))),
-                                child: Text(scoreStr, style: const TextStyle(fontFamily: 'Lexend', fontSize: 32, fontWeight: FontWeight.w900, color: AppTheme.primary, letterSpacing: -1.0)),
+                                decoration: BoxDecoration(border: Border(left: BorderSide(color: context.colors.surfaceContainerHighest.withOpacity(0.3)), right: BorderSide(color: context.colors.surfaceContainerHighest.withOpacity(0.3)))),
+                                child: Text(scoreStr, style: TextStyle(fontFamily: 'Lexend', fontSize: 32, fontWeight: FontWeight.w900, color: context.colors.primary, letterSpacing: -1.0)),
                               ),
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(awayAbbr, style: const TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textMedium)),
+                                  Text(awayAbbr, style: TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: context.colors.textMedium)),
                                   const SizedBox(height: 6),
-                                  Container(height: 5, width: 36, decoration: BoxDecoration(color: AppTheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(3))),
+                                  Container(height: 5, width: 36, decoration: BoxDecoration(color: context.colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(3))),
                                 ],
                               ),
                             ],
@@ -757,13 +757,13 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("$homeAbbr vs $awayAbbr · $scoreStr", style: const TextStyle(fontFamily: 'Lexend', fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textHigh, letterSpacing: -0.5)),
+                                Text("$homeAbbr vs $awayAbbr · $scoreStr", style: TextStyle(fontFamily: 'Lexend', fontSize: 16, fontWeight: FontWeight.w800, color: context.colors.textHigh, letterSpacing: -0.5)),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(color: isLive ? AppTheme.secondary.withOpacity(0.08) : AppTheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+                                      decoration: BoxDecoration(color: isLive ? context.colors.secondary.withOpacity(0.08) : context.colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
                                       child: Row(
                                         children: [
                                           if (isLive) AnimatedBuilder(
@@ -771,24 +771,24 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                                             builder: (context, child) {
                                               return Opacity(
                                                 opacity: 0.3 + (pulseController.value * 0.7),
-                                                child: Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppTheme.secondary)),
+                                                child: Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: context.colors.secondary)),
                                               );
                                             },
                                           ),
                                           if (isLive) const SizedBox(width: 4),
-                                          Text(statusText, style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.bold, color: isLive ? AppTheme.secondary : AppTheme.textMedium, letterSpacing: 0.5)),
+                                          Text(statusText, style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.bold, color: isLive ? context.colors.secondary : context.colors.textMedium, letterSpacing: 0.5)),
                                         ],
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(color: AppTheme.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
-                                      child: const Row(
+                                      decoration: BoxDecoration(color: context.colors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+                                      child: Row(
                                         children: [
-                                          Icon(Icons.group, size: 12, color: AppTheme.textMedium),
-                                          SizedBox(width: 4),
-                                          Text("12.4k fans", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textMedium)),
+                                          Icon(Icons.group, size: 12, color: context.colors.textMedium),
+                                          const SizedBox(width: 4),
+                                          Text("12.4k fans", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w600, color: context.colors.textMedium)),
                                         ],
                                       ),
                                     ),
@@ -798,7 +798,7 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                             ),
                           ],
                         ),
-                        IconButton(icon: const Icon(Icons.more_vert), color: AppTheme.textMedium, onPressed: () {}, splashRadius: 24),
+                        IconButton(icon: const Icon(Icons.more_vert), color: context.colors.textMedium, onPressed: () {}, splashRadius: 24),
                       ],
                     ),
                   ),
@@ -810,7 +810,7 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                 left: 8,
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back), 
-                  color: AppTheme.textMedium, 
+                  color: context.colors.textMedium, 
                   onPressed: () => Navigator.pop(context),
                   splashRadius: 24,
                 ),

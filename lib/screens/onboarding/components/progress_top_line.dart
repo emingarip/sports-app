@@ -11,16 +11,16 @@ class ProgressTopLine extends StatelessWidget {
     return Container(
       height: 2,
       width: double.infinity,
-      color: AppTheme.surfaceContainerHigh,
+      color: context.colors.surfaceContainerHigh,
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
         child: Container(
-          color: AppTheme.primaryContainer,
+          color: context.colors.primaryContainer,
           child: Container(
             decoration: BoxDecoration(
               boxShadow: [
-                BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.5), blurRadius: 4, offset: const Offset(0, 2)),
+                BoxShadow(color: context.colors.primaryContainer.withOpacity(0.5), blurRadius: 4, offset: const Offset(0, 2)),
               ],
             ),
           ),

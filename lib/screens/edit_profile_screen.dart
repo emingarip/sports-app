@@ -71,9 +71,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surfaceContainerLow,
+      backgroundColor: context.colors.surfaceContainerLow,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.8),
+        backgroundColor: context.colors.background.withOpacity(0.8),
         elevation: 0,
         centerTitle: true,
         flexibleSpace: ClipRect(
@@ -83,37 +83,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textHigh),
+          icon: Icon(Icons.arrow_back, color: context.colors.textHigh),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'EDIT PROFILE',
           style: TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 16,
             letterSpacing: 1,
-            color: AppTheme.textHigh,
+            color: context.colors.textHigh,
           ),
         ),
         actions: [
           if (_isSaving)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
+                padding: const EdgeInsets.only(right: 16.0),
                 child: SizedBox(
                    width: 20, height: 20,
-                   child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary)
+                   child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.primary)
                 ),
               ),
             )
           else
             TextButton(
               onPressed: _handleSave,
-              child: const Text(
+              child: Text(
                 'SAVE',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.primary,
+                  color: context.colors.primary,
                 ),
               ),
             ),
@@ -122,9 +122,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600),
-          decoration: const BoxDecoration(
-            color: AppTheme.background,
-            border: Border.symmetric(vertical: BorderSide(color: AppTheme.surfaceContainerLow, width: 2)),
+          decoration: BoxDecoration(
+            color: context.colors.background,
+            border: Border.symmetric(vertical: BorderSide(color: context.colors.surfaceContainerLow, width: 2)),
           ),
           child: ListView(
             padding: const EdgeInsets.all(24.0),
@@ -159,23 +159,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppTheme.surfaceContainer,
-              border: Border.all(color: AppTheme.outline, width: 2),
+              color: context.colors.surfaceContainer,
+              border: Border.all(color: context.colors.outline, width: 2),
             ),
             child: ClipOval(
               child: _avatarUrlController.text.isNotEmpty
                   ? Image.network(
                       _avatarUrlController.text,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 48, color: AppTheme.textMedium),
+                      errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: 48, color: context.colors.textMedium),
                     )
-                  : const Icon(Icons.person, size: 48, color: AppTheme.textMedium),
+                  : Icon(Icons.person, size: 48, color: context.colors.textMedium),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             'Preview',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textMedium),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.colors.textMedium),
           )
         ],
       ),
@@ -193,34 +193,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
             letterSpacing: 1,
-            color: AppTheme.textMedium,
+            color: context.colors.textMedium,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           onChanged: (_) => setState(() {}), // Triggers avatar preview update
-          style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textHigh),
+          style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.textHigh),
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: AppTheme.textLow),
+            prefixIcon: Icon(icon, color: context.colors.textLow),
             filled: true,
-            fillColor: AppTheme.surfaceContainerLowest,
+            fillColor: context.colors.surfaceContainerLowest,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.surfaceContainerLow),
+              borderSide: BorderSide(color: context.colors.surfaceContainerLow),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.surfaceContainerLow),
+              borderSide: BorderSide(color: context.colors.surfaceContainerLow),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.primaryContainer, width: 2),
+              borderSide: BorderSide(color: context.colors.primaryContainer, width: 2),
             ),
           ),
         ),

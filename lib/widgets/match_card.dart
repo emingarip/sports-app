@@ -24,7 +24,7 @@ class MatchCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          border: hasBorder ? const Border(bottom: BorderSide(color: AppTheme.surfaceContainerLow)) : null,
+          border: hasBorder ? Border(bottom: BorderSide(color: context.colors.surfaceContainerLow)) : null,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
         child: Row(
@@ -35,9 +35,9 @@ class MatchCard extends StatelessWidget {
             width: 48,
             child: Column(
               children: [
-                if (isLive) const Text("LIVE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppTheme.error, letterSpacing: 1.5)),
-                if (!isLive) Text(statusTime.replaceAll(" ", "\n"), textAlign: TextAlign.center, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textLow, letterSpacing: 0.5, height: 1.1)),
-                if (isLive) Text(statusTime, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.error)),
+                if (isLive) Text("LIVE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: context.colors.error, letterSpacing: 1.5)),
+                if (!isLive) Text(statusTime.replaceAll(" ", "\n"), textAlign: TextAlign.center, style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: context.colors.textLow, letterSpacing: 0.5, height: 1.1)),
+                if (isLive) Text(statusTime, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: context.colors.error)),
               ],
             ),
           ),
@@ -60,11 +60,11 @@ class MatchCard extends StatelessWidget {
                   child: FittedBox(
                     child: Row(
                       children: [
-                        Text(match.homeScore ?? "-", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isLive ? AppTheme.textHigh : AppTheme.textLow)),
+                        Text(match.homeScore ?? "-", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isLive ? context.colors.textHigh : context.colors.textLow)),
                         const SizedBox(width: 8),
-                        const Text("-", style: TextStyle(fontSize: 16, color: AppTheme.surfaceContainer)),
+                        Text("-", style: TextStyle(fontSize: 16, color: context.colors.surfaceContainer)),
                         const SizedBox(width: 8),
-                        Text(match.awayScore ?? "-", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.textHigh)),
+                        Text(match.awayScore ?? "-", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
                       ],
                     ),
                   ),
@@ -89,8 +89,8 @@ class MatchCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isLive ? Colors.transparent : AppTheme.surfaceContainerLow,
-                  border: isLive ? Border.all(color: AppTheme.secondaryContainer) : null,
+                  color: isLive ? Colors.transparent : context.colors.surfaceContainerLow,
+                  border: isLive ? Border.all(color: context.colors.secondaryContainer) : null,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -99,7 +99,7 @@ class MatchCard extends StatelessWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
-                    color: isLive ? AppTheme.secondary : AppTheme.textLow,
+                    color: isLive ? context.colors.secondary : context.colors.textLow,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -1,5 +1,5 @@
-import '../../lib/models/match.dart';
-import '../../lib/models/league.dart';
+import 'package:sports_app/models/match.dart';
+import 'package:sports_app/models/league.dart';
 
 /// Factory to create test Match objects with sensible defaults.
 Match createTestMatch({

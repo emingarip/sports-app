@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../../lib/models/league.dart';
+import 'package:sports_app/models/league.dart';
 
 void main() {
   group('League model', () {
     test('constructs with required fields', () {
-      final league = League(
+      const league = League(
         id: 'premier_league',
         name: 'Premier League',
         logoUrl: 'https://example.com/pl.png',
@@ -16,7 +16,7 @@ void main() {
     });
 
     test('tier defaults to 2', () {
-      final league = League(
+      const league = League(
         id: 'test',
         name: 'Test League',
         logoUrl: '',
@@ -26,7 +26,7 @@ void main() {
     });
 
     test('custom tier is accepted', () {
-      final league = League(
+      const league = League(
         id: 'cl',
         name: 'Champions League',
         logoUrl: '',
@@ -38,9 +38,9 @@ void main() {
 
     test('tier-based sorting works correctly', () {
       final leagues = [
-        League(id: 'c', name: 'League C', logoUrl: '', tier: 3),
-        League(id: 'a', name: 'League A', logoUrl: '', tier: 1),
-        League(id: 'b', name: 'League B', logoUrl: '', tier: 2),
+        const League(id: 'c', name: 'League C', logoUrl: '', tier: 3),
+        const League(id: 'a', name: 'League A', logoUrl: '', tier: 1),
+        const League(id: 'b', name: 'League B', logoUrl: '', tier: 2),
       ];
 
       leagues.sort((a, b) => a.tier.compareTo(b.tier));

@@ -44,8 +44,8 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.surfaceContainerLow : Colors.transparent,
-          border: isFirst ? null : Border(top: BorderSide(color: AppTheme.surfaceContainerHighest.withOpacity(0.4))),
+          color: isSelected ? context.colors.surfaceContainerLow : Colors.transparent,
+          border: isFirst ? null : Border(top: BorderSide(color: context.colors.surfaceContainerHighest.withOpacity(0.4))),
         ),
         child: Row(
           children: [
@@ -54,9 +54,9 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
               width: 56,
               height: 56,
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.surfaceContainer,
+                color: context.colors.surfaceContainer,
               ),
               child: Center(
                 child: comp["isLogo"]
@@ -64,17 +64,17 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                         width: double.infinity,
                         height: double.infinity,
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerHighest.withOpacity(0.5),
+                          color: context.colors.surfaceContainerHighest.withOpacity(0.5),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
                           child: Text(
                             comp["abbr"],
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Lexend',
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
-                              color: AppTheme.textMedium,
+                              color: context.colors.textMedium,
                             ),
                           ),
                         ),
@@ -83,11 +83,11 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                         width: double.infinity,
                         height: double.infinity,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryContainer.withOpacity(0.15),
+                          color: context.colors.primaryContainer.withOpacity(0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
-                          child: Icon(comp["icon"], color: AppTheme.primary, size: 24),
+                          child: Icon(comp["icon"], color: context.colors.primary, size: 24),
                         ),
                       ),
               ),
@@ -101,20 +101,20 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Lexend',
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textHigh,
+                      color: context.colors.textHigh,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     comp["subtitle"],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
-                      color: AppTheme.textMedium,
+                      color: context.colors.textMedium,
                     ),
                   ),
                 ],
@@ -128,17 +128,17 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
               height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? AppTheme.primaryContainer : Colors.transparent,
+                color: isSelected ? context.colors.primaryContainer : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? AppTheme.primaryContainer : AppTheme.surfaceContainerHighest,
+                  color: isSelected ? context.colors.primaryContainer : context.colors.surfaceContainerHighest,
                   width: 2,
                 ),
                 boxShadow: isSelected 
-                    ? [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))]
+                    ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))]
                     : [],
               ),
               child: isSelected 
-                  ? const Center(child: Icon(Icons.check, size: 18, color: AppTheme.onPrimaryContainer))
+                  ? Center(child: Icon(Icons.check, size: 18, color: context.colors.onPrimaryContainer))
                   : null,
             ),
           ],
@@ -150,7 +150,7 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -174,11 +174,11 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                         // Central Unified Card Container
                         Container(
                           decoration: BoxDecoration(
-                            color: AppTheme.surfaceContainerLowest,
+                            color: context.colors.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.textHigh.withOpacity(0.06),
+                                color: context.colors.textHigh.withOpacity(0.06),
                                 blurRadius: 32,
                                 offset: const Offset(0, 12),
                               )
@@ -212,7 +212,7 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                               ),
                             ),
                             style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.primary,
+                              foregroundColor: context.colors.primary,
                             ),
                           ),
                         ),

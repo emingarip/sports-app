@@ -25,15 +25,15 @@ class SelectionCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryContainer.withOpacity(0.1) : AppTheme.surfaceContainerLowest,
+          color: isSelected ? context.colors.primaryContainer.withOpacity(0.1) : context.colors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryContainer : AppTheme.surfaceContainerHighest,
+            color: isSelected ? context.colors.primaryContainer : context.colors.surfaceContainerHighest,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected 
-            ? [BoxShadow(color: AppTheme.primaryContainer.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))]
-            : [BoxShadow(color: AppTheme.textHigh.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
+            ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))]
+            : [BoxShadow(color: context.colors.textHigh.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Row(
           children: [
@@ -52,17 +52,17 @@ class SelectionCard extends StatelessWidget {
                       fontFamily: 'Lexend',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: isSelected ? AppTheme.primary : AppTheme.textHigh,
+                      color: isSelected ? context.colors.primary : context.colors.textHigh,
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
-                        color: AppTheme.textMedium,
+                        color: context.colors.textMedium,
                       ),
                     ),
                   ],
@@ -75,14 +75,14 @@ class SelectionCard extends StatelessWidget {
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? AppTheme.primaryContainer : Colors.transparent,
+                color: isSelected ? context.colors.primaryContainer : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? AppTheme.primaryContainer : AppTheme.surfaceContainerHighest,
+                  color: isSelected ? context.colors.primaryContainer : context.colors.surfaceContainerHighest,
                   width: 2,
                 ),
               ),
               child: isSelected
-                  ? const Center(child: Icon(Icons.check, size: 16, color: AppTheme.onPrimaryContainer))
+                  ? Center(child: Icon(Icons.check, size: 16, color: context.colors.onPrimaryContainer))
                   : null,
             )
           ],
