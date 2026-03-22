@@ -16,10 +16,20 @@ void main() {
       createTestMatch(id: '4', status: MatchStatus.live, isFavorite: true),
     ];
 
-    List<Match> applyFilter(String filter, List<Match> all) {
+    List<Match> applyFilter(String filter, List<Match> all, [DateTime? selectedDate]) {
+      final date = selectedDate ?? DateTime.now();
       return all.where((m) {
         if (filter == 'Live 🔴') return m.status == MatchStatus.live;
         if (filter == 'Starred ⭐') return m.isFavorite;
+
+        final localStart = m.startTime.toLocal();
+        final localSelected = date.toLocal();
+        if (localStart.year != localSelected.year || 
+            localStart.month != localSelected.month || 
+            localStart.day != localSelected.day) {
+          return false;
+        }
+
         if (filter == 'Finished') return m.status == MatchStatus.finished;
         return true;
       }).toList();
@@ -51,6 +61,49 @@ void main() {
     test('empty list returns empty for all filters', () {
       expect(applyFilter('All', []).length, 0);
       expect(applyFilter('Live 🔴', []).length, 0);
+    });
+
+    test('"All" and "Finished" respect selectedDate filter', () {
+      final today = DateTime.now();
+      final tomorrow = today.add(const Duration(days: 1));
+      
+      final dateMatches = [
+        createTestMatch(id: '1', startTime: today, status: MatchStatus.upcoming),
+        createTestMatch(id: '2', startTime: tomorrow, status: MatchStatus.upcoming),
+        createTestMatch(id: '3', startTime: tomorrow, status: MatchStatus.finished),
+      ];
+      
+      // Filter for today
+      final resultToday = applyFilter('All', dateMatches, today);
+      expect(resultToday.length, 1);
+      expect(resultToday.first.id, '1');
+      
+      // Filter for tomorrow
+      final resultTomorrow = applyFilter('All', dateMatches, tomorrow);
+      expect(resultTomorrow.length, 2);
+      
+      // Filter Finished for tomorrow
+      final resultFinishedTomorrow = applyFilter('Finished', dateMatches, tomorrow);
+      expect(resultFinishedTomorrow.length, 1);
+      expect(resultFinishedTomorrow.first.id, '3');
+    });
+
+    test('"Live" and "Starred" ignore selectedDate filter', () {
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      final today = DateTime.now();
+      
+      final dateMatches = [
+        createTestMatch(id: '1', startTime: yesterday, status: MatchStatus.live),
+        createTestMatch(id: '2', startTime: yesterday, isFavorite: true),
+      ];
+      
+      final resultLive = applyFilter('Live 🔴', dateMatches, today);
+      expect(resultLive.length, 1);
+      expect(resultLive.first.id, '1');
+
+      final resultStarred = applyFilter('Starred ⭐', dateMatches, today);
+      expect(resultStarred.length, 1);
+      expect(resultStarred.first.id, '2');
     });
   });
 
