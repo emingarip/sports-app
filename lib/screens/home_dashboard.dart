@@ -5,7 +5,6 @@ import 'match_room_screen.dart';
 import '../models/match.dart' as model;
 import '../models/league.dart';
 import '../models/notification.dart';
-import '../data/mock_data.dart';
 import '../widgets/league_group.dart';
 import '../widgets/filter_row.dart';
 import '../widgets/empty_state.dart';
@@ -32,7 +31,8 @@ class HomeDashboard extends ConsumerStatefulWidget {
 class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   int _selectedSportIndex = 0;
   final Set<String> _expandedLeagues = {};
-  late ScrollController _calendarScroller;
+  bool _hasInitializedExpansion = false;
+  late final ScrollController _calendarScroller;
 
   @override
   void initState() {
@@ -53,9 +53,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       }
     });
 
-    if (MockData.leagues.isNotEmpty) {
-      _expandedLeagues.add(MockData.leagues.first.id);
-    }
+    // No default expansion on init; wait for live data.
   }
 
   List<Widget> _buildLeagueSlivers() {
@@ -147,21 +145,27 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     
     final List<League> sortedLeagues = [];
     for (var lId in leagueMap.keys) {
-      final found = MockData.leagues.where((l) => l.id == lId).toList();
-      if (found.isNotEmpty) {
-        sortedLeagues.add(found.first);
-      } else {
-        // Fallback to dynamic creation from live API matches data stream
-        final representativeMatch = leagueMap[lId]!.first;
-        sortedLeagues.add(League(
-          id: lId,
-          name: representativeMatch.leagueName ?? 'League $lId',
-          logoUrl: representativeMatch.leagueLogoUrl ?? 'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
-          tier: 3,
-        ));
-      }
+      // Dynamically create League model from live API matches data stream
+      final representativeMatch = leagueMap[lId]!.first;
+      sortedLeagues.add(League(
+        id: lId,
+        name: representativeMatch.leagueName ?? 'League $lId',
+        logoUrl: representativeMatch.leagueLogoUrl ?? 'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
+        tier: 3,
+      ));
     }
     sortedLeagues.sort((a, b) => a.tier.compareTo(b.tier));
+
+    if (!_hasInitializedExpansion && sortedLeagues.isNotEmpty && matchState.activeFilter == 'All') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _expandedLeagues.add(sortedLeagues.first.id);
+            _hasInitializedExpansion = true;
+          });
+        }
+      });
+    }
 
     List<Widget> slivers = [];
     
@@ -221,7 +225,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           } else if (next == 'Starred ⭐') {
             _expandedLeagues.addAll(allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
           } else {
-             if (MockData.leagues.isNotEmpty) _expandedLeagues.add(MockData.leagues.first.id);
+             if (allMatches.isNotEmpty) _expandedLeagues.add(allMatches.first.leagueId);
           }
         });
       }

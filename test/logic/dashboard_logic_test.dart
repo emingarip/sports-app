@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sports_app/models/match.dart';
 import 'package:sports_app/models/league.dart';
-import 'package:sports_app/data/mock_data.dart';
 import '../helpers/test_helpers.dart';
 
 /// Tests the core dashboard logic: filtering, grouping, sorting, and
@@ -142,18 +141,6 @@ void main() {
 
   // ── Dynamic League Creation ────────────────────────────────────────
   group('Dynamic league creation', () {
-    test('known MockData league is used when available', () {
-      // This tests the logic from home_dashboard _buildLeagueSlivers
-      const knownId = 'premier_league';
-      final found = MockData.leagues.where((l) => l.id == knownId).toList();
-
-      // If MockData has premier_league, it should be found
-      if (found.isNotEmpty) {
-        expect(found.first.name, isNotEmpty);
-        expect(found.first.name, isNot(startsWith('League ')));
-      }
-    });
-
     test('unknown leagueId creates dynamic League with match metadata', () {
       final match = createTestMatch(
         leagueId: '999999',
