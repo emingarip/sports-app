@@ -422,7 +422,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
         child: Container(
           padding: const EdgeInsets.only(top: 12, bottom: 20, left: 16, right: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
+            color: context.colors.background.withOpacity(0.85),
             border: Border(top: BorderSide(color: context.colors.surfaceContainerHighest, width: 0.5)),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, -4))],
           ),
@@ -454,7 +454,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> with TickerProviderSt
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: _isInputFocused ? Colors.white : context.colors.surfaceContainerLow,
+                        color: _isInputFocused ? context.colors.background : context.colors.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: _isInputFocused ? context.colors.primaryContainer : context.colors.surfaceContainerHighest.withOpacity(0.5),
@@ -658,7 +658,7 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(1.0 - (1.0 - collapseForce) * 0.15), // from 0.85 to 1.0
+            color: context.colors.background.withOpacity(1.0 - (1.0 - collapseForce) * 0.15), // from 0.85 to 1.0
             border: Border(bottom: BorderSide(color: context.colors.surfaceContainer.withOpacity(collapseForce))),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(collapseForce * 0.04), blurRadius: 10)],
           ),
@@ -699,7 +699,7 @@ class MatchRoomHeaderDelegate extends SliverPersistentHeaderDelegate {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
+                            color: context.colors.background.withOpacity(0.95),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [

@@ -13,8 +13,8 @@ class VerificationScreen extends StatefulWidget {
 }
 
 class _VerificationScreenState extends State<VerificationScreen> with WidgetsBindingObserver {
-  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final List<TextEditingController> _controllers = List.generate(8, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(8, (_) => FocusNode());
   bool _isFilled = false;
   bool _isLoading = false;
 
@@ -42,7 +42,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 8; i++) {
       _controllers[i].addListener(_checkFilled);
     }
     // Auto focus first field
@@ -63,7 +63,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
     // Micro-delay prevents Flutter web life-cycle race conditions on tab switch
     Future.delayed(const Duration(milliseconds: 150), () {
       if (!mounted) return;
-      for (int i = 0; i < 6; i++) {
+      for (int i = 0; i < 8; i++) {
         if (_controllers[i].text.isEmpty) {
           FocusScope.of(context).requestFocus(_focusNodes[i]);
           return;
@@ -96,7 +96,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
   }
 
   void _onInputCustom(String value, int index) {
-    if (value.isNotEmpty && index < 5) {
+    if (value.isNotEmpty && index < 7) {
       FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
     } else if (value.isEmpty && index > 0) {
       FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
@@ -171,7 +171,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
-                            "Enter the 6-digit code we sent to ",
+                            "Enter the 8-digit code we sent to ",
                             style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: context.colors.textMedium),
                           ),
                           Text(
@@ -201,7 +201,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                       // OTP Grid
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(6, (index) {
+                        children: List.generate(8, (index) {
                           return Flexible(
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 2.0),
@@ -226,7 +226,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                                     decoration: InputDecoration(
                                       counterText: "",
                                       filled: true,
-                                      fillColor: _controllers[index].text.isNotEmpty ? Colors.white : context.colors.surfaceContainerLowest,
+                                      fillColor: _controllers[index].text.isNotEmpty ? context.colors.surfaceContainerHighest : context.colors.surfaceContainerLowest,
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(16),
                                         borderSide: BorderSide.none,

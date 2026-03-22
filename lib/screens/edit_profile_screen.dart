@@ -73,7 +73,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: context.colors.surfaceContainerLow,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.8),
+        backgroundColor: context.colors.background.withOpacity(0.8),
         elevation: 0,
         centerTitle: true,
         flexibleSpace: ClipRect(

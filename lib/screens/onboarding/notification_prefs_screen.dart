@@ -179,7 +179,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                color: context.colors.surfaceContainerLowest.withOpacity(0.9),
                                 borderRadius: BorderRadius.circular(32),
                                 boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                               ),

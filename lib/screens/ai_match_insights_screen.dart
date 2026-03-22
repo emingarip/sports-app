@@ -98,7 +98,7 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: AppBar(
-              backgroundColor: Colors.white.withOpacity(0.8),
+              backgroundColor: context.colors.background.withOpacity(0.8),
               elevation: 0,
               scrolledUnderElevation: 0,
               leading: IconButton(

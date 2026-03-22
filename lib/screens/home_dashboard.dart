@@ -171,8 +171,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   SliverAppBar _buildAppBar(BuildContext context) {
     return SliverAppBar(
       pinned: true,
-      floating: true,
-      backgroundColor: Colors.white.withOpacity(0.8),
+      floating: false,
+      toolbarHeight: 64,
+      collapsedHeight: 64,
+      expandedHeight: 124, // 64 + 60 (bottom)
+      backgroundColor: context.colors.background.withOpacity(0.8),
       elevation: 0,
       centerTitle: false,
       flexibleSpace: ClipRect(
@@ -238,11 +241,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       child: ChoiceChip(
         label: Row(
           children: [
-            Icon(icon, size: 18, color: isSelected ? context.colors.textHigh : context.colors.textMedium),
+            Icon(icon, size: 18, color: isSelected ? context.colors.onPrimaryContainer : context.colors.textMedium),
             const SizedBox(width: 8),
             Text(label, style: TextStyle(
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? context.colors.textHigh : context.colors.textMedium,
+              color: isSelected ? context.colors.onPrimaryContainer : context.colors.textMedium,
             )),
           ],
         ),
@@ -335,8 +338,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             ),
             child: Column(
               children: [
-                Text(day, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
-                Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
+                Text(day, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: context.colors.onPrimaryContainer)),
+                Text(num, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: context.colors.onPrimaryContainer)),
               ],
             ),
           ),

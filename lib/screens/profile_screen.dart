@@ -99,7 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   SliverAppBar _buildAppBar() {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: Colors.white.withOpacity(0.8),
+      backgroundColor: context.colors.background.withOpacity(0.8),
       elevation: 0,
       centerTitle: true,
       flexibleSpace: ClipRect(
