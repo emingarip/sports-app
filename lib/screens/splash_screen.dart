@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sports_app/services/supabase_service.dart';
-import 'package:sports_app/screens/home_dashboard.dart';
+import 'package:sports_app/screens/main_layout.dart';
 import 'package:sports_app/screens/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -28,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (session != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeDashboard()),
+        MaterialPageRoute(builder: (_) => const MainLayout()),
       );
     } else {
       Navigator.pushReplacement(

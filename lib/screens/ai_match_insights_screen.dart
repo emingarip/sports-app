@@ -2,40 +2,54 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/match_insight.dart';
-import '../models/match.dart' as model;
 import '../services/insight_service.dart';
-import '../widgets/custom_bottom_nav.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/match_provider.dart';
 
-class AiMatchInsightsScreen extends StatefulWidget {
-  final model.Match match;
-  const AiMatchInsightsScreen({super.key, required this.match});
+class AiMatchInsightsScreen extends ConsumerStatefulWidget {
+  const AiMatchInsightsScreen({super.key});
 
   @override
-  State<AiMatchInsightsScreen> createState() => _AiMatchInsightsScreenState();
+  ConsumerState<AiMatchInsightsScreen> createState() => _AiMatchInsightsScreenState();
 }
 
-class _AiMatchInsightsScreenState extends State<AiMatchInsightsScreen> {
+class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
   List<MatchInsight> _insights = [];
   bool _isLoading = true;
   final InsightService _insightService = InsightService();
 
+  String? _loadedMatchId;
+
   @override
   void initState() {
     super.initState();
-    _loadInsights();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final activeMatch = ref.read(matchStateProvider.notifier).activeLiveMatch;
+      if (activeMatch != null) {
+        _loadInsights(activeMatch.id);
+      } else {
+        setState(() => _isLoading = false);
+      }
+    });
   }
 
-  Future<void> _loadInsights() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadInsights(String matchId) async {
+    if (_loadedMatchId == matchId) return;
+
+    setState(() {
+      _isLoading = true;
+      _loadedMatchId = matchId;
+      _insights = [];
+    });
     
     try {
-      var insights = await _insightService.getInsightsForMatch(widget.match.id);
+      var insights = await _insightService.getInsightsForMatch(matchId);
       
       // If no insights exist, ask the edge function to generate some (if possible)
       // and re-fetch.
       if (insights.isEmpty) {
-        await _insightService.generateInsights(widget.match.id);
-        insights = await _insightService.getInsightsForMatch(widget.match.id);
+        await _insightService.generateInsights(matchId);
+        insights = await _insightService.getInsightsForMatch(matchId);
       }
       
       if (mounted) {
@@ -64,7 +78,10 @@ class _AiMatchInsightsScreenState extends State<AiMatchInsightsScreen> {
     });
     
     try {
-      await _insightService.voteInsight(insight.id, widget.match.id, vote, reason: insight.disagreeReason, customReason: insight.customReason);
+      final activeMatch = ref.read(matchStateProvider.notifier).activeLiveMatch;
+      if (activeMatch != null) {
+        await _insightService.voteInsight(insight.id, activeMatch.id, vote, reason: insight.disagreeReason, customReason: insight.customReason);
+      }
     } catch (e) {
       // Handle error gracefully
     }
@@ -160,7 +177,6 @@ class _AiMatchInsightsScreenState extends State<AiMatchInsightsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
     );
   }
 }

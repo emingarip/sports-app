@@ -4,7 +4,7 @@ import '../../theme/app_theme.dart';
 import 'components/progress_top_line.dart';
 import 'components/step_label.dart';
 import 'components/onboarding_bottom_bar.dart';
-import '../home_dashboard.dart';
+import '../main_layout.dart';
 import '../../services/supabase_service.dart';
 
 class OnboardingReadyScreen extends StatefulWidget {
@@ -152,7 +152,7 @@ class _OnboardingReadyScreenState extends State<OnboardingReadyScreen> with Sing
                 }
                 if (!context.mounted) return;
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomeDashboard()),
+                  MaterialPageRoute(builder: (_) => const MainLayout()),
                   (route) => false,
                 );
               },

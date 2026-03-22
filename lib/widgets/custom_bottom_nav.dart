@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
-import '../screens/home_dashboard.dart';
-import '../screens/ai_match_insights_screen.dart';
-import '../screens/prediction_market_screen.dart';
-import '../screens/profile_screen.dart';
-import '../providers/match_provider.dart';
+import '../providers/navigation_provider.dart';
 
 class CustomBottomNav extends ConsumerWidget {
-  final int currentIndex;
-
-  const CustomBottomNav({super.key, required this.currentIndex});
+  const CustomBottomNav({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Positioned(
-      bottom: 24,
-      left: 16,
-      right: 16,
-      child: Container(
+    final currentIndex = ref.watch(navigationProvider);
+    
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
+        child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E).withOpacity(0.95),
@@ -35,37 +31,26 @@ class CustomBottomNav extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(context, ref, 0, "Matches", Icons.sports_soccer),
-            _buildNavItem(context, ref, 1, "Insights", Icons.query_stats),
-            _buildNavItem(context, ref, 2, "Market", Icons.analytics),
-            _buildNavItem(context, ref, 3, "Profile", Icons.person),
+            _buildNavItem(context, ref, currentIndex, 0, "Matches", Icons.sports_soccer),
+            _buildNavItem(context, ref, currentIndex, 1, "Insights", Icons.query_stats),
+            _buildNavItem(context, ref, currentIndex, 2, "Market", Icons.analytics),
+            _buildNavItem(context, ref, currentIndex, 3, "Profile", Icons.person),
           ],
         ),
+      ),
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, WidgetRef ref, int index, String label, IconData icon) {
+  Widget _buildNavItem(BuildContext context, WidgetRef ref, int currentIndex, int index, String label, IconData icon) {
     final isSelected = currentIndex == index;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
         if (isSelected) return; // Ignore if already on this screen
 
-        // Routing Logic
-        if (index == 0) {
-          // Returning to home should pop the stack if pushed, or push replacement 
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeDashboard()), (route) => false);
-        } else if (index == 1) {
-          final activeMatch = ref.read(matchStateProvider.notifier).activeLiveMatch;
-          if (activeMatch != null) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => AiMatchInsightsScreen(match: activeMatch)));
-          }
-        } else if (index == 2) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PredictionMarketScreen()));
-        } else if (index == 3) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-        }
+        // Routing Logic: Update global shell state
+        ref.read(navigationProvider.notifier).setIndex(index);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

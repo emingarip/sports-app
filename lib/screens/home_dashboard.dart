@@ -523,6 +523,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   Widget _buildBottomNavBar() {
-    return const CustomBottomNav(currentIndex: 0);
+    return const CustomBottomNav();
   }
 }

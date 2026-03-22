@@ -3,7 +3,7 @@ import 'dart:ui';
 import '../theme/app_theme.dart';
 import 'onboarding/welcome_screen.dart';
 import '../services/supabase_service.dart';
-import 'home_dashboard.dart';
+import 'main_layout.dart';
 
 class VerificationSuccessScreen extends StatefulWidget {
   const VerificationSuccessScreen({super.key});
@@ -36,7 +36,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
         final bool onboardingCompleted = claim == true || claim == 'true' || claim == 1;
         
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => onboardingCompleted ? const HomeDashboard() : const WelcomeScreen()),
+          MaterialPageRoute(builder: (_) => onboardingCompleted ? const MainLayout() : const WelcomeScreen()),
           (route) => false,
         );
       }

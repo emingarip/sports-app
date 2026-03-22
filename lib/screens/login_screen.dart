@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'home_dashboard.dart';
+import 'main_layout.dart';
 import 'verification_screen.dart';
 
 import '../services/supabase_service.dart';
@@ -217,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: () {
                                   Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(builder: (_) => const HomeDashboard()),
+                                    MaterialPageRoute(builder: (_) => const MainLayout()),
                                   );
                                 },
                                 icon: Image.network(
