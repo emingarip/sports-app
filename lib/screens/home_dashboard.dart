@@ -15,7 +15,9 @@ import '../widgets/custom_bottom_nav.dart';
 
 
 class HomeDashboard extends ConsumerStatefulWidget {
-  const HomeDashboard({super.key});
+  final DateTime? initialDateOverride;
+  
+  const HomeDashboard({super.key, this.initialDateOverride});
 
   @override
   ConsumerState<HomeDashboard> createState() => _HomeDashboardState();
@@ -29,7 +31,14 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   @override
   void initState() {
     super.initState();
-    _calendarBaseDate = DateTime.now();
+    _calendarBaseDate = widget.initialDateOverride ?? DateTime.now();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.initialDateOverride != null) {
+        ref.read(matchStateProvider.notifier).setDate(widget.initialDateOverride!);
+      }
+    });
+
     if (MockData.leagues.isNotEmpty) {
       _expandedLeagues.add(MockData.leagues.first.id);
     }
