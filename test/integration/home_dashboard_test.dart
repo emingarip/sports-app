@@ -31,10 +31,11 @@ void main() {
 
     testWidgets('Dashboard renders live matches and filters correctly', (WidgetTester tester) async {
       await mockNetworkImagesFor(() async {
+        final today = DateTime.now();
         mockRepository.setMatches([
-          createTestMatch(id: '1', homeTeam: 'Arsenal', awayTeam: 'Spurs', status: model.MatchStatus.live),
-          createTestMatch(id: '2', homeTeam: 'Chelsea', awayTeam: 'Liverpool', status: model.MatchStatus.finished),
-          createTestMatch(id: '3', homeTeam: 'Real Madrid', awayTeam: 'Barcelona', status: model.MatchStatus.upcoming, isFavorite: true),
+          createTestMatch(id: '1', homeTeam: 'Arsenal', awayTeam: 'Spurs', status: model.MatchStatus.live, startTime: today),
+          createTestMatch(id: '2', homeTeam: 'Chelsea', awayTeam: 'Liverpool', status: model.MatchStatus.finished, startTime: today),
+          createTestMatch(id: '3', homeTeam: 'Real Madrid', awayTeam: 'Barcelona', status: model.MatchStatus.upcoming, isFavorite: true, startTime: today),
         ]);
 
         await tester.pumpWidget(buildTestableWidget());
@@ -62,9 +63,10 @@ void main() {
 
     testWidgets('Dashboard displays empty state when no matches pass filter', (WidgetTester tester) async {
       await mockNetworkImagesFor(() async {
+        final today = DateTime.now();
         mockRepository.setMatches([
-          createTestMatch(status: model.MatchStatus.upcoming),
-          createTestMatch(status: model.MatchStatus.finished),
+          createTestMatch(status: model.MatchStatus.upcoming, startTime: today),
+          createTestMatch(status: model.MatchStatus.finished, startTime: today),
         ]);
 
         await tester.pumpWidget(buildTestableWidget());
@@ -74,6 +76,38 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('No matches available for this filter'), findsOneWidget);
+      });
+    });
+
+    testWidgets('Dashboard Date Navigator filters by selected day', (WidgetTester tester) async {
+      await mockNetworkImagesFor(() async {
+        final today = DateTime.now();
+        final tomorrow = today.add(const Duration(days: 1));
+        
+        mockRepository.setMatches([
+          createTestMatch(id: '1', homeTeam: 'TodayTeam', awayTeam: 'A', status: model.MatchStatus.upcoming, startTime: today),
+          createTestMatch(id: '2', homeTeam: 'TomorrowTeam', awayTeam: 'B', status: model.MatchStatus.upcoming, startTime: tomorrow),
+        ]);
+
+        await tester.pumpWidget(buildTestableWidget());
+        await tester.pumpAndSettle();
+
+        // Initially defaults to today
+        expect(find.text('TodayTeam'), findsOneWidget);
+        expect(find.text('TomorrowTeam'), findsNothing);
+
+        // Tap tomorrow's date tab
+        // The day string is just the number (e.g. "20") if unselected.
+        await tester.tap(find.text('${tomorrow.day}').first);
+        await tester.pumpAndSettle();
+
+        // Should now show tomorrow's matches
+        expect(find.text('TodayTeam'), findsNothing);
+        expect(find.text('TomorrowTeam'), findsOneWidget);
+        
+        // Tap "Live" button. Date filter should be overridden.
+        // Wait, "TomorrowTeam" is upcoming, so if we click Live it will show empty.
+        // Let's just tap back to today using 'TODAY' text or '<'.
       });
     });
   });

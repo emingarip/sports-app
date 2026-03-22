@@ -17,7 +17,7 @@ void main() {
     ];
 
     List<Match> applyFilter(String filter, List<Match> all, [DateTime? selectedDate]) {
-      final date = selectedDate ?? DateTime.now();
+      final date = selectedDate ?? DateTime(2026, 3, 20);
       return all.where((m) {
         if (filter == 'Live 🔴') return m.status == MatchStatus.live;
         if (filter == 'Starred ⭐') return m.isFavorite;
@@ -94,7 +94,7 @@ void main() {
       
       final dateMatches = [
         createTestMatch(id: '1', startTime: yesterday, status: MatchStatus.live),
-        createTestMatch(id: '2', startTime: yesterday, isFavorite: true),
+        createTestMatch(id: '2', startTime: yesterday, isFavorite: true, status: MatchStatus.finished),
       ];
       
       final resultLive = applyFilter('Live 🔴', dateMatches, today);
