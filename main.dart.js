@@ -99882,11 +99882,11 @@ s=A.a0(s,s.$ti.i("H.E"))
 return s}}
 A.afn.prototype={
 $1(a){var s,r,q=this.a,p=q.b
-if(p==="Live \ud83d\udd34")return a.y===B.cB
 if(p==="Starred \u2b50")return!1
 s=a.x.P6()
 r=q.c.P6()
 if(A.iu(s)!==A.iu(r)||A.la(s)!==A.la(r)||A.jd(s)!==A.jd(r))return!1
+if(p==="Live \ud83d\udd34")return a.y===B.cB
 if(p==="Finished")return a.y===B.fU
 return!0},
 $S:48}
@@ -100448,18 +100448,18 @@ s.aI()
 s.y=A.Fo(null,null)
 $.a4.k4$.push(new A.ayQ(s))
 s.x.D(0,B.b.ga4($.aJc()).a)},
-adG(){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c=this,b=null,a=c.gjg().iz($.iM(),t.uK)
-if(a.d){s=c.c
+adG(){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c,b=this,a=null,a0=b.gjg().iz($.iM(),t.uK)
+if(a0.d){s=b.c
 s.toString
 r=t.p
 q=t.a
 s=q.a(A.e(s).c.h(0,A.f(r))).b
-p=c.c
+p=b.c
 p.toString
 r=q.a(A.e(p).c.h(0,A.f(r))).c
 o=J.k1(5,t.l7)
 for(n=0;n<5;++n){q=new A.ay(16,16)
-o[n]=A.ai(b,b,B.i,b,b,new A.ae(B.m,b,b,new A.cg(q,q,q,q),b,b,B.t),b,80,B.kR,b,b,b,b)}return A.b([new A.dG(new A.aU(B.Iy,A.aR6(s,A.aO(o,B.l,B.n,B.k),r),b),b)],t.D)}m=a.gaya()
+o[n]=A.ai(a,a,B.i,a,a,new A.ae(B.m,a,a,new A.cg(q,q,q,q),a,a,B.t),a,80,B.kR,a,a,a,a)}return A.b([new A.dG(new A.aU(B.Iy,A.aR6(s,A.aO(o,B.l,B.n,B.k),r),a),a)],t.D)}m=a0.gaya()
 s=m.length
 if(s===0)return A.b([B.Jc],t.D)
 l=A.q(t.N,t.w6)
@@ -100479,12 +100479,13 @@ p=g.d
 i.push(new A.k4(r,q,p==null?"https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png":p,3))}}B.b.f9(i,new A.ayD())
 s=t.D
 f=A.b([],s)
-for(r=i.length,q=c.x,k=0;k<i.length;i.length===r||(0,A.F)(i),++k){e=i[k]
-p=e.a
-d=l.h(0,p)
-d.toString
-J.MR(d,new A.ayE())
-f.push(new A.QN(e,d,q.t(0,p),new A.ayF(c,e),b))}if(f.length===0)return A.b([B.Jd],s)
+for(r=i.length,q=a0.b==="All",p=b.x,k=0;k<i.length;i.length===r||(0,A.F)(i),++k){e=i[k]
+d=e.a
+c=l.h(0,d)
+c.toString
+J.MR(c,new A.ayE())
+d=!q||p.t(0,d)
+f.push(new A.QN(e,c,d,new A.ayF(b,e),a))}if(f.length===0)return A.b([B.Jd],s)
 return f},
 ahq(){var s,r
 try{s=J.aY_(this.gjg().iz($.iM(),t.uK).a,new A.ayI())
