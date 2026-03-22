@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:network_image_mock/network_image_mock.dart';
+import 'package:sports_app/theme/app_theme.dart';
 import 'package:sports_app/widgets/league_group.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
   Widget buildTestableWidget(Widget child) {
     return MaterialApp(
+      theme: AppTheme.lightTheme,
       home: Scaffold(
         body: CustomScrollView(
           slivers: [child],

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sports_app/widgets/filter_row.dart';
 import 'package:sports_app/providers/match_provider.dart';
+import 'package:sports_app/theme/app_theme.dart';
 import '../helpers/mock_match_repository.dart';
 
 void main() {
@@ -19,8 +20,9 @@ void main() {
           overrides: [
             matchRepositoryProvider.overrideWithValue(mockRepo),
           ],
-          child: const MaterialApp(
-            home: Scaffold(body: FilterRow()),
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(body: FilterRow()),
           ),
         ),
       );
@@ -42,8 +44,9 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
-            home: Scaffold(body: FilterRow()),
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(body: FilterRow()),
           ),
         ),
       );
