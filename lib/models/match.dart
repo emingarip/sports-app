@@ -17,7 +17,7 @@ class Match {
   final bool isFeatured;
   final bool isFavorite;
 
-  Match({
+  const Match({
     required this.id,
     required this.leagueId,
     this.leagueName,

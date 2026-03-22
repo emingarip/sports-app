@@ -294,7 +294,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                       Center(
                         child: Wrap(
                           crossAxisAlignment: WrapCrossAlignment.center,
-                          children: const [
+                          children: [
                             Text(
                               "Didn't receive code? ",
                               style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500, color: context.colors.textMedium),

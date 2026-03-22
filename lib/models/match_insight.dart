@@ -11,7 +11,7 @@ class ConsensusData {
   final int disagreePercent;
   final String? fanLabel;
 
-  ConsensusData({
+  const ConsensusData({
     required this.agreePercent,
     required this.unsurePercent,
     required this.disagreePercent,
