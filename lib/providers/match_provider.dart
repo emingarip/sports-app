@@ -37,8 +37,6 @@ class MatchState {
 
   List<model.Match> get filteredMatches {
     return matches.where((m) {
-      // Live and Starred overrides date filters
-      if (activeFilter == 'Live 🔴') return m.status == model.MatchStatus.live;
       if (activeFilter == 'Starred ⭐') return m.isFavorite;
 
       // Ensure the match falls on exactly the selected date
@@ -50,6 +48,7 @@ class MatchState {
         return false;
       }
 
+      if (activeFilter == 'Live 🔴') return m.status == model.MatchStatus.live;
       if (activeFilter == 'Finished') return m.status == model.MatchStatus.finished;
       return true;
     }).toList();

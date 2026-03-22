@@ -123,7 +123,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
        slivers.add(LeagueGroup(
          league: league,
          matches: matches,
-         isExpanded: _expandedLeagues.contains(league.id),
+         isExpanded: matchState.activeFilter != 'All' || _expandedLeagues.contains(league.id),
          onToggle: () {
             setState(() {
               if (_expandedLeagues.contains(league.id)) {

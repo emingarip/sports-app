@@ -1,7 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 Deno.serve(async (req) => {
+  // Handle CORS Preflight requests for browser environments
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     // 1. Initialize Supabase Admin Client using secure Service Role key to bypass RLS
     const supabaseClient = createClient(
@@ -44,7 +54,7 @@ Deno.serve(async (req) => {
 
     if (!shouldFetchFromAPI) {
       return new Response(JSON.stringify({ success: true, cached: true, message: "Returned cached data from Supabase DB" }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       })
     }
@@ -68,7 +78,7 @@ Deno.serve(async (req) => {
     const payloadMatches = data.data || []
     if (payloadMatches.length === 0) {
       return new Response(JSON.stringify({ success: true, message: "No live matches" }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
 
@@ -83,8 +93,25 @@ Deno.serve(async (req) => {
         }
       }
 
-      const isFinished = hlMatch.state?.description?.toLowerCase().includes('finished');
-      const isNotStarted = hlMatch.state?.description?.toLowerCase().includes('not started');
+      const desc = hlMatch.state?.description?.toLowerCase() || '';
+      
+      const isFinished = desc.includes('finished') || desc.includes('ended');
+      const isNotStarted = desc.includes('not started') || desc.includes('postponed') || desc.includes('canceled') || desc.includes('tbd');
+      const isLiveRaw = desc.includes('half') || desc.includes('playing') || desc.includes('live') || desc.includes('pause') || desc.includes('injury');
+
+      const matchDate = new Date(hlMatch.date || new Date().toISOString());
+      let derivedStatus = 'pre_match';
+
+      if (isFinished) {
+        derivedStatus = 'finished';
+      } else if (isLiveRaw) {
+        derivedStatus = 'live';
+      } else if (!isNotStarted && matchDate <= new Date()) {
+        // Fallback: If it's past kick-off time and neither finished nor explicitly not started, we assume it's live
+        derivedStatus = 'live';
+      } else {
+        derivedStatus = 'pre_match';
+      }
 
       return {
         // Unique abstraction identifier prevents dupe matches if we poll every minute
@@ -97,7 +124,7 @@ Deno.serve(async (req) => {
         home_logo_url: hlMatch.homeTeam?.logo,
         away_logo_url: hlMatch.awayTeam?.logo,
         // Status mapping ensures Flutter enum compatibility (Flutter natively casts `pre_match` fallback to `upcoming`)
-        status: isFinished ? 'finished' : (isNotStarted ? 'pre_match' : 'live'),
+        status: derivedStatus,
         home_score: hScore,
         away_score: aScore,
         minute: hlMatch.state?.clock ? `${hlMatch.state.clock}'` : "0'",
@@ -118,12 +145,12 @@ Deno.serve(async (req) => {
       .upsert({ date: targetDate, last_synced_at: new Date().toISOString() })
 
     return new Response(JSON.stringify({ success: true, upserted_count: unifiableMap.length }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     })
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     })
   }
