@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
+  static Future<void>? _initializeFuture;
 
   factory SupabaseService() {
     return _instance;
@@ -13,7 +14,11 @@ class SupabaseService {
 
   static SupabaseClient get client => Supabase.instance.client;
 
-  static Future<void> initialize() async {
+  static Future<void> initialize() {
+    return _initializeFuture ??= _initializeOnce();
+  }
+
+  static Future<void> _initializeOnce() async {
     try {
       await dotenv.load(fileName: ".env");
     } catch (e) {
