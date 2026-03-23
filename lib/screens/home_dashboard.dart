@@ -236,6 +236,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         final newNotifications = next.where((n) => !previous.any((p) => p.id == n.id)).toList();
         
         for (var n in newNotifications) {
+          // Prevent historical notifications from flooding the screen on app startup
+          // Only show SnackBars for genuinely recent events (last 2 minutes).
+          final ageInMinutes = DateTime.now().toUtc().difference(n.createdAt.toUtc()).inMinutes.abs();
+          if (ageInMinutes > 2) continue;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
