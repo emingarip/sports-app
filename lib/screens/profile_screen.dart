@@ -7,6 +7,7 @@ import '../services/supabase_service.dart';
 import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
+import 'notification_preferences_screen.dart';
 import '../providers/wallet_provider.dart';
 import 'store_front_screen.dart';
 
@@ -189,6 +190,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
               icon: const Icon(Icons.edit, size: 16),
               label: const Text('Edit Profile'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.textHigh,
+                side: BorderSide(color: context.colors.surfaceContainerHigh),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen()),
+                );
+              },
+              icon: const Icon(Icons.notifications_active, size: 16),
+              label: const Text('Notification Settings'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.textHigh,
                 side: BorderSide(color: context.colors.surfaceContainerHigh),
