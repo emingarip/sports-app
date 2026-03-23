@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
@@ -212,6 +213,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.textHigh,
                 side: BorderSide(color: context.colors.surfaceContainerHigh),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                await SupabaseService.client.auth.updateUser(
+                  UserAttributes(data: {'onboarding_completed': false}),
+                );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Onboarding sıfırlandı. Lütfen uygulamayı kapatıp açın.')),
+                );
+              },
+              icon: const Icon(Icons.restore, size: 16),
+              label: const Text('Reset Onboarding (Test Yalnızca)'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.error,
+                side: BorderSide(color: context.colors.error),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),

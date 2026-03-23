@@ -18,6 +18,7 @@ import '../providers/notification_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
 import '../widgets/notification_bell.dart';
+import 'profile_screen.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -442,11 +443,19 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       ),
       title: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: context.colors.surfaceContainer,
-            radius: 18,
-            child:
-                Icon(Icons.person, color: context.colors.textMedium, size: 20),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+            child: CircleAvatar(
+              backgroundColor: context.colors.surfaceContainer,
+              radius: 18,
+              child:
+                  Icon(Icons.person, color: context.colors.textMedium, size: 20),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(

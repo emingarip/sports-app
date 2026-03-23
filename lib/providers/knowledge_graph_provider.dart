@@ -117,13 +117,17 @@ final personalizedMatchesProvider = Provider<List<model.Match>>((ref) {
   final baseList = ref.watch(filteredMatchesProvider);
   final kgState = ref.watch(knowledgeGraphProvider);
 
-  // If no scores are loaded, return the base list (chronological)
+  // If no scores are loaded, return an empty list
   if (kgState.matchScores.isEmpty) {
-    return baseList;
+    return [];
   }
 
-  // Create a modifiable copy
-  final personalizedList = List<model.Match>.from(baseList);
+  // Filter to only include matches with a meaningful relevance score (>= 0.5)
+  // The default fallback score from the backend is 0.1
+  final personalizedList = baseList.where((m) {
+    final score = kgState.matchScores[m.id] ?? 0.0;
+    return score >= 0.5;
+  }).toList();
 
   // Sort logically:
   // 1. First by Live vs Upcoming
