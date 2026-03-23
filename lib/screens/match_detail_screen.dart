@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
 import '../services/chat_service.dart';
+import '../widgets/match_stats_view.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -270,18 +271,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
   }
 
   Widget _buildStatsTab() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.analytics, size: 48, color: context.colors.surfaceContainerHigh),
-          const SizedBox(height: 16),
-          Text("Match Statistics", style: TextStyle(fontFamily: 'Lexend', fontSize: 18, color: context.colors.textHigh, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text("Possession, shots, and more...", style: TextStyle(color: context.colors.textMedium)),
-        ],
-      ),
-    );
+    return MatchStatsView(match: widget.match);
   }
 
   Widget _buildChatTab() {
