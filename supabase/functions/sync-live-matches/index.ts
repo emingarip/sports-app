@@ -44,8 +44,8 @@ Deno.serve(async (req) => {
       const today = new Date().toISOString().split('T')[0];
       
       if (targetDate === today) {
-        // Live matches (today): Cache for 2 minutes to block spam
-        if (diffMinutes <= 2) shouldFetchFromAPI = false;
+        // Live matches (today): Cache for 15 minutes to conserve API free quota
+        if (diffMinutes <= 15) shouldFetchFromAPI = false;
       } else {
         // Scheduled or Past matches: Cache for 24 hours (1440 mins)
         if (diffMinutes <= 1440) shouldFetchFromAPI = false;
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
       const desc = hlMatch.state?.description?.toLowerCase() || '';
       
       const isFinished = desc.includes('finished') || desc.includes('ended');
-      const isNotStarted = desc.includes('not started') || desc.includes('postponed') || desc.includes('canceled') || desc.includes('tbd');
+      const isNotStarted = desc.includes('postponed') || desc.includes('canceled') || desc.includes('tbd');
       const isLiveRaw = desc.includes('half') || desc.includes('playing') || desc.includes('live') || desc.includes('pause') || desc.includes('injury');
 
       const matchDate = new Date(hlMatch.date || new Date().toISOString());
