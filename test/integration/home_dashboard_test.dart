@@ -8,6 +8,7 @@ import 'package:sports_app/providers/match_provider.dart';
 import 'package:sports_app/providers/favorites_provider.dart';
 import 'package:sports_app/providers/notification_provider.dart';
 import 'package:sports_app/models/notification.dart';
+import 'package:sports_app/providers/knowledge_graph_provider.dart';
 import 'package:sports_app/theme/app_theme.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
@@ -45,6 +46,7 @@ void main() {
           matchRepositoryProvider.overrideWithValue(mockRepository),
           favoritesProvider.overrideWith(() => MockFavoritesNotifier()),
           notificationProvider.overrideWith(() => MockNotificationNotifier()),
+          personalizedMatchesProvider.overrideWith((ref) => <model.Match>[]),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
