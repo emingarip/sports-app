@@ -123,8 +123,8 @@ class MatchCard extends ConsumerWidget {
             ),
           ),
           
-          GestureDetector(
-            onTap: () async {
+          IconButton(
+            onPressed: () async {
               ref.read(favoritesProvider.notifier).toggleFavorite(match.id);
               if (!isFavorite) {
                 // If they just favorited, check if we should soft prompt for notifications
@@ -137,13 +137,11 @@ class MatchCard extends ConsumerWidget {
                 }
               }
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              child: Icon(
-                isFavorite ? Icons.star : Icons.star_border,
-                color: isFavorite ? context.colors.primary : context.colors.textLow,
-                size: 20,
-              ),
+            padding: const EdgeInsets.all(12.0),
+            icon: Icon(
+              isFavorite ? Icons.star : Icons.star_border,
+              color: isFavorite ? context.colors.primary : context.colors.textLow,
+              size: 24,
             ),
           )
         ],
