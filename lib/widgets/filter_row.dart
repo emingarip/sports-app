@@ -13,25 +13,36 @@ class FilterRow extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildStatusChip(
-            context,
-            label: 'Live',
-            isActive: matchState.isLiveOnly,
-            onTap: () {
-              ref.read(matchStateProvider.notifier).toggleLiveFilter();
-            },
-            leading: const _LiveDot(),
-          ),
-          const SizedBox(width: 10),
-          _buildStatusChip(
-            context,
-            label: 'Finished',
-            isActive: matchState.isFinishedOnly,
-            onTap: () {
-              ref.read(matchStateProvider.notifier).toggleFinishedFilter();
-            },
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildStatusChip(
+                    context,
+                    label: 'Live',
+                    isActive: matchState.isLiveOnly,
+                    onTap: () {
+                      ref.read(matchStateProvider.notifier).toggleLiveFilter();
+                    },
+                    leading: const _LiveDot(),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildStatusChip(
+                    context,
+                    label: 'Finished',
+                    isActive: matchState.isFinishedOnly,
+                    onTap: () {
+                      ref
+                          .read(matchStateProvider.notifier)
+                          .toggleFinishedFilter();
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(width: 10),
           _buildStarredToggle(
