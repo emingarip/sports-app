@@ -8,6 +8,7 @@ import '../services/push_notification_service.dart';
 import 'home_dashboard.dart';
 import 'ai_match_insights_screen.dart';
 import 'prediction_market_screen.dart';
+import 'leaderboard_screen.dart';
 import 'profile_screen.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
@@ -43,6 +44,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                   HomeDashboard(),
                   AiMatchInsightsScreen(),
                   PredictionMarketScreen(),
+                  LeaderboardScreen(),
                   ProfileScreen(),
                 ],
               ),
