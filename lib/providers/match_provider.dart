@@ -60,6 +60,10 @@ class MatchNotifier extends Notifier<MatchState> {
     _subscription = repo.getMatchesStream().listen((data) {
       state = state.copyWith(matches: data);
     });
+    
+    // Explicitly seed the initial fetch for Today's matches since the default init 
+    // bypasses the `setDate` network fetch correctly to avoid duplicate calls.
+    repo.fetchMatchesForDate(DateTime.now());
   }
 
   void setFilter(String filter) {

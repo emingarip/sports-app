@@ -317,12 +317,13 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const _BouncingChevron(),
             const Icon(
               Icons.calendar_month, 
               color: Color(0xFFFACC15), 
               size: 20
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               "$dayPrefix $monthStr",
               style: const TextStyle(
@@ -382,6 +383,44 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BouncingChevron extends StatefulWidget {
+  const _BouncingChevron();
+  @override
+  State<_BouncingChevron> createState() => _BouncingChevronState();
+}
+
+class _BouncingChevronState extends State<_BouncingChevron> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, -3 * _controller.value),
+          child: const Icon(Icons.keyboard_arrow_up, color: Color(0x88FACC15), size: 16),
+        );
+      },
     );
   }
 }

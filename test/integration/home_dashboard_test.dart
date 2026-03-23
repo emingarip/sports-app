@@ -63,21 +63,24 @@ void main() {
         ]);
 
         await tester.pumpWidget(buildTestableWidget(overrideDate: today));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
 
         expect(find.text('Arsenal'), findsOneWidget);
         expect(find.text('Chelsea'), findsOneWidget);
         expect(find.text('Real Madrid'), findsOneWidget);
         
         await tester.tap(find.text('Live 🔴'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
         
         expect(find.text('Arsenal'), findsOneWidget);
         expect(find.text('Chelsea'), findsNothing);
         expect(find.text('Real Madrid'), findsNothing);
         
         await tester.tap(find.text('Starred ⭐'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
         
         expect(find.text('Real Madrid'), findsOneWidget);
         expect(find.text('Arsenal'), findsNothing);
@@ -94,10 +97,12 @@ void main() {
         ]);
 
         await tester.pumpWidget(buildTestableWidget(overrideDate: today));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
 
         await tester.tap(find.text('Live 🔴'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
 
         expect(find.text('No matches available for this filter'), findsOneWidget);
       });
@@ -114,7 +119,8 @@ void main() {
         ]);
 
         await tester.pumpWidget(buildTestableWidget(overrideDate: today));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
 
         // Initially defaults to today
         expect(find.text('TodayTeam'), findsOneWidget);
@@ -126,7 +132,8 @@ void main() {
         final container = ProviderScope.containerOf(element);
         container.read(matchStateProvider.notifier).setDate(tomorrow);
         
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
 
         // Should now show tomorrow's matches
         expect(find.text('TodayTeam'), findsNothing);
