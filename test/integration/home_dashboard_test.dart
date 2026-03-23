@@ -54,7 +54,7 @@ void main() {
     }
 
     testWidgets('Dashboard renders live matches and filters correctly', (WidgetTester tester) async {
-      final today = DateTime(2026, 3, 22);
+      final today = DateTime.now();
       await mockNetworkImagesFor(() async {
         mockRepository.setMatches([
           createTestMatch(id: '1', homeTeam: 'Arsenal', awayTeam: 'Spurs', status: model.MatchStatus.live, startTime: today),
@@ -86,7 +86,7 @@ void main() {
     });
 
     testWidgets('Dashboard displays empty state when no matches pass filter', (WidgetTester tester) async {
-      final today = DateTime(2026, 3, 22);
+      final today = DateTime.now();
       await mockNetworkImagesFor(() async {
         mockRepository.setMatches([
           createTestMatch(status: model.MatchStatus.upcoming, startTime: today),
@@ -104,7 +104,7 @@ void main() {
     });
 
     testWidgets('Dashboard Date Navigator filters by selected day', (WidgetTester tester) async {
-      final today = DateTime(2026, 3, 22);
+      final today = DateTime.now();
       final tomorrow = today.add(const Duration(days: 1));
       
       await mockNetworkImagesFor(() async {
