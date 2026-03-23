@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import 'verification_success_screen.dart';
 import '../services/supabase_service.dart';
@@ -96,6 +97,22 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
   }
 
   void _onInputCustom(String value, int index) {
+    if (value.length > 1) {
+      // Handle Paste or Autofill
+      final digits = value.replaceAll(RegExp(r'[^0-9]'), '').split('');
+      for (int i = 0; i < digits.length; i++) {
+        if (index + i < 8) {
+          _controllers[index + i].text = digits[i];
+        }
+      }
+      
+      // Move focus to the end of the pasted string
+      int nextFocus = index + digits.length;
+      if (nextFocus >= 8) nextFocus = 7;
+      FocusScope.of(context).requestFocus(_focusNodes[nextFocus]);
+      return;
+    }
+
     if (value.isNotEmpty && index < 7) {
       FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
     } else if (value.isEmpty && index > 0) {
@@ -221,7 +238,11 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                                     focusNode: _focusNodes[index],
                                     keyboardType: TextInputType.number,
                                     textAlign: TextAlign.center,
-                                    maxLength: 1,
+                                    autofillHints: const [AutofillHints.oneTimeCode],
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(8),
+                                    ],
                                     style: TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w900, color: context.colors.primary),
                                     decoration: InputDecoration(
                                       counterText: "",
