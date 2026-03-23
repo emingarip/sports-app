@@ -61,38 +61,92 @@ Deno.serve(async (req) => {
     // --- END CACHING LOGIC ---
 
     // --- HIGH AVAILABILITY API FALLBACK LOGIC ---
+    let data = { data: [] }; // Default empty struct
+    
     const fetchHighlightly = async (baseUrl: string, hostHeader: string) => {
-      const endpoint = `${baseUrl}?date=${targetDate}&timezone=Europe/Istanbul`;
-      return await fetch(endpoint, {
-        headers: { 
-          'x-rapidapi-key': highlightlyKey,
-          'x-rapidapi-host': hostHeader,
-          'Content-Type': 'application/json'
+      let allMatches: any[] = [];
+      let offset = 0;
+      const limit = 100;
+      let morePages = true;
+
+      let lastResponse: Response | null = null;
+
+      while (morePages) {
+        const endpoint = `${baseUrl}?date=${targetDate}&timezone=Europe/Istanbul&limit=${limit}&offset=${offset}`;
+        const response = await fetch(endpoint, {
+          headers: { 
+            'x-rapidapi-key': highlightlyKey,
+            'x-rapidapi-host': hostHeader,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        lastResponse = response;
+
+        if (!response.ok) {
+          return response; // Exit early on error (e.g., 404, 429) so outer fallback jumps in
         }
+
+        const json = await response.json();
+        const matches = json.data || [];
+        allMatches = [...allMatches, ...matches];
+
+        // If returned payload is smaller than limit, we reached the end
+        if (matches.length < limit) {
+          morePages = false;
+        } else {
+          offset += limit;
+        }
+      }
+
+      // Re-package the aggregated massive array into a standard 200 OK Response 
+      // so the existing fallback evaluation `.json()` works seamlessly
+      return new Response(JSON.stringify({ data: allMatches }), { 
+        status: 200, 
+        headers: { 'Content-Type': 'application/json' } 
       });
     };
 
-    let response = await fetchHighlightly('https://sports.highlightly.net/football/matches', 'sports.highlightly.net');
-    
-    // Fallback if Primary API hits rate limits (429) or goes down (5xx)
-    if (!response.ok) {
-      console.log(`Primary API (sports.highlightly.net) failed with status: ${response.status}. Falling back to soccer.highlightly.net...`);
-      // Try the secondary dedicated soccer API endpoint
-      response = await fetchHighlightly('https://soccer.highlightly.net/matches', 'soccer.highlightly.net');
+    try {
+      let response: Response | null = null;
       
-      // If the path on soccer.highlightly.net requires /football/ too, catch 404 and retry
-      if (response.status === 404) {
-        console.log("Secondary API returned 404 on /matches, trying /football/matches...");
-        response = await fetchHighlightly('https://soccer.highlightly.net/football/matches', 'soccer.highlightly.net');
+      try {
+        response = await fetchHighlightly('https://sports.highlightly.net/football/matches', 'sports.highlightly.net');
+      } catch (primaryErr) {
+        console.error(`Primary API (sports) network/DNS error: ${primaryErr}`);
       }
+
+      // If response is null (network error) OR not OK (e.g. 429 Rate Limit)
+      if (!response || !response.ok) {
+        if (response) {
+          console.log(`Primary API failed with status ${response.status}. Attempting fallback (soccer)...`);
+        } else {
+          console.log(`Primary API completely unreachable. Attempting fallback (soccer)...`);
+        }
+        
+        try {
+          // Secondary endpoint for Football explicit quota
+          response = await fetchHighlightly('https://soccer.highlightly.net/football/matches', 'soccer.highlightly.net');
+          
+          if (response && response.status === 404) {
+            console.log("Fallback API 404 on /football/matches, retrying plain /matches...");
+            response = await fetchHighlightly('https://soccer.highlightly.net/matches', 'soccer.highlightly.net');
+          }
+        } catch (fallbackErr) {
+          console.error(`Fallback API (soccer) network/DNS error: ${fallbackErr}`);
+        }
+      }
+
+      // Final evaluation
+      if (response && response.ok) {
+        data = await response.json();
+      } else {
+        const status = response ? response.status : 'NETWORK_ERROR';
+        console.error(`All Highlightly endpoints failed. Final status: ${status}. Proceeding with cached DB state.`);
+      }
+    } catch (criticalErr) {
+      console.error(`Critical overarching fallback error: ${criticalErr}`);
     }
-    
-    if (!response.ok) {
-       const errBody = await response.text().catch(() => '');
-       throw new Error(`Failed to fetch Highlightly data from all endpoints. Final status: ${response.status} ${response.statusText} ${errBody}`);
-    }
-    
-    const data = await response.json();
     
     // 3. Map highlightly payload array to our agnostic DB schema to prevent UI lock-in
     const payloadMatches = data.data || []
@@ -102,7 +156,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const unifiableMap = payloadMatches.slice(0, 100).map((hlMatch: any) => {
+    const unifiableMap = payloadMatches.map((hlMatch: any) => {
       // safely parse '3 - 1' strings
       let hScore = 0, aScore = 0;
       if (hlMatch.state?.score?.current) {
@@ -134,7 +188,6 @@ Deno.serve(async (req) => {
       }
 
       return {
-        // Unique abstraction identifier prevents dupe matches if we poll every minute
         provider_id: `highlightly_${hlMatch.id}`,
         league_id: hlMatch.league?.id?.toString() || 'default_league', 
         league_name: hlMatch.league?.name || 'Unknown League',
@@ -143,7 +196,6 @@ Deno.serve(async (req) => {
         away_team: hlMatch.awayTeam?.name || 'Unknown',
         home_logo_url: hlMatch.homeTeam?.logo,
         away_logo_url: hlMatch.awayTeam?.logo,
-        // Status mapping ensures Flutter enum compatibility (Flutter natively casts `pre_match` fallback to `upcoming`)
         status: derivedStatus,
         home_score: hScore,
         away_score: aScore,
@@ -152,12 +204,18 @@ Deno.serve(async (req) => {
       }
     })
 
-    // 4. Upsert into Supabase `matches` table
-    const { error } = await supabaseClient
-      .from('matches')
-      .upsert(unifiableMap, { onConflict: 'provider_id' })
-
-    if (error) throw error
+    // 4. Chunk Upsert into Supabase `matches` table to bypass huge payload limits
+    const chunkSize = 300;
+    for (let i = 0; i < unifiableMap.length; i += chunkSize) {
+      const chunk = unifiableMap.slice(i, i + chunkSize);
+      const { error } = await supabaseClient
+        .from('matches')
+        .upsert(chunk, { onConflict: 'provider_id' });
+      if (error) {
+        console.error(`Error upserting chunk ${i}:`, error.message);
+        throw error;
+      }
+    }
 
     // 5. Update the sync log to track the successful fetch
     await supabaseClient
