@@ -427,7 +427,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
         _dateItemHorizontalDragDistance = 0.0;
       },
       child: Transform.translate(
-        offset: Offset(0, chipLift),
+        offset: const Offset(0, chipLift),
         child: Transform.scale(
           scale: chipScale,
           child: Stack(
@@ -503,7 +503,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                         ),
                       ),
                       Transform.translate(
-                        offset: Offset(0, contentLift),
+                        offset: const Offset(0, contentLift),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [

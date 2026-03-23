@@ -16,7 +16,9 @@ import 'package:shimmer/shimmer.dart';
 import '../widgets/match_card.dart';
 import '../providers/notification_provider.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/knowledge_graph_provider.dart';
 import '../widgets/notification_bell.dart';
+import 'profile_screen.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -58,26 +60,93 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               baseColor: context.colors.surfaceContainerLow,
               highlightColor: context.colors.surfaceContainer,
               child: Column(
-                children: List.generate(
-                  5,
-                  (index) => _buildSkeletonMatchCard(),
-                ),
+                children:
+                    List.generate(5, (index) => _buildSkeletonMatchCard()),
               ),
             ),
           ),
-        ),
+        )
       ];
     }
 
     final filtered = ref.watch(filteredMatchesProvider);
     if (filtered.isEmpty) {
       return [
-        const EmptyState(message: "No matches available for this filter"),
+        const EmptyState(message: "No matches available for this filter")
       ];
     }
 
-    // Flat chronological watchlist when favorites overlay is active.
-    if (matchState.starredOnly) {
+    // Flat List for 'Senin İçin ✨' Filter (Personalized via Knowledge Graph)
+    if (matchState.activeFilter == 'Senin İçin ✨') {
+      final personalizedList = ref.watch(personalizedMatchesProvider);
+      
+      if (personalizedList.isEmpty) {
+        return [
+          const EmptyState(message: "Sana özel öneriler oluşturuluyor... Bol bol maç incele!")
+        ];
+      }
+
+      return [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final match = personalizedList[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Container(
+                      decoration: BoxDecoration(
+                        color: context.colors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: context.colors.primary.withValues(alpha: 0.3)), // Special border for AI recs
+                      ),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 12, top: 12, right: 12),
+                                child: Row(children: [
+                                  Image.network(
+                                      match.leagueLogoUrl ??
+                                          'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
+                                      width: 14,
+                                      height: 14,
+                                      errorBuilder: (ctx, err, _) =>
+                                          const Icon(Icons.shield, size: 14)),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                        match.leagueName ?? 'Unknown League',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: context.colors.textLow,
+                                            fontWeight: FontWeight.bold),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                  Icon(Icons.auto_awesome, size: 12, color: context.colors.primary),
+                                  const SizedBox(width: 4),
+                                  Text("Önerilen", style: TextStyle(
+                                      fontSize: 10,
+                                      color: context.colors.primary,
+                                      fontWeight: FontWeight.bold)),
+                                ])),
+                            MatchCard(match: match, hasBorder: false),
+                          ])),
+                );
+              },
+              childCount: personalizedList.length,
+            ),
+          ),
+        )
+      ];
+    }
+
+    // Flat Chronological Watchlist for Starred Filter
+    if (matchState.activeFilter == 'Starred ⭐') {
       final starredList = List<model.Match>.from(filtered);
       starredList.sort((a, b) {
         if (a.status != b.status) {
@@ -93,61 +162,52 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final match = starredList[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.colors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: context.colors.surfaceContainerLow,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 12,
-                          top: 12,
-                          right: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            Image.network(
-                              match.leagueLogoUrl ??
-                                  'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
-                              width: 14,
-                              height: 14,
-                              errorBuilder: (ctx, err, _) =>
-                                  const Icon(Icons.shield, size: 14),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                match.leagueName ?? 'Unknown League',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: context.colors.textLow,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final match = starredList[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Container(
+                      decoration: BoxDecoration(
+                        color: context.colors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: context.colors.surfaceContainerLow),
                       ),
-                      MatchCard(match: match, hasBorder: false),
-                    ],
-                  ),
-                ),
-              );
-            }, childCount: starredList.length),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 12, top: 12, right: 12),
+                                child: Row(children: [
+                                  Image.network(
+                                      match.leagueLogoUrl ??
+                                          'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
+                                      width: 14,
+                                      height: 14,
+                                      errorBuilder: (ctx, err, _) =>
+                                          const Icon(Icons.shield, size: 14)),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                        match.leagueName ?? 'Unknown League',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: context.colors.textLow,
+                                            fontWeight: FontWeight.bold),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                ])),
+                            MatchCard(match: match, hasBorder: false),
+                          ])),
+                );
+              },
+              childCount: starredList.length,
+            ),
           ),
-        ),
+        )
       ];
     }
 
@@ -163,21 +223,19 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     for (var lId in leagueMap.keys) {
       // Dynamically create League model from live API matches data stream
       final representativeMatch = leagueMap[lId]!.first;
-      sortedLeagues.add(
-        League(
-          id: lId,
-          name: representativeMatch.leagueName ?? 'League $lId',
-          logoUrl: representativeMatch.leagueLogoUrl ??
-              'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
-          tier: 3,
-        ),
-      );
+      sortedLeagues.add(League(
+        id: lId,
+        name: representativeMatch.leagueName ?? 'League $lId',
+        logoUrl: representativeMatch.leagueLogoUrl ??
+            'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
+        tier: 3,
+      ));
     }
     sortedLeagues.sort((a, b) => a.tier.compareTo(b.tier));
 
     if (!_hasInitializedExpansion &&
         sortedLeagues.isNotEmpty &&
-        matchState.isAll) {
+        matchState.activeFilter == 'All') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
@@ -204,22 +262,21 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         return a.startTime.compareTo(b.startTime);
       });
 
-      slivers.add(
-        LeagueGroup(
-          league: league,
-          matches: matches,
-          isExpanded: !matchState.isAll || _expandedLeagues.contains(league.id),
-          onToggle: () {
-            setState(() {
-              if (_expandedLeagues.contains(league.id)) {
-                _expandedLeagues.remove(league.id);
-              } else {
-                _expandedLeagues.add(league.id);
-              }
-            });
-          },
-        ),
-      );
+      slivers.add(LeagueGroup(
+        league: league,
+        matches: matches,
+        isExpanded: matchState.activeFilter != 'All' ||
+            _expandedLeagues.contains(league.id),
+        onToggle: () {
+          setState(() {
+            if (_expandedLeagues.contains(league.id)) {
+              _expandedLeagues.remove(league.id);
+            } else {
+              _expandedLeagues.add(league.id);
+            }
+          });
+        },
+      ));
     }
 
     if (slivers.isEmpty) {
@@ -241,23 +298,26 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<String>(matchStateProvider.select((s) => s.filterSelectionKey), (
-      previous,
-      next,
-    ) {
+    ref.listen<String>(matchStateProvider.select((s) => s.activeFilter),
+        (previous, next) {
       if (previous != next) {
         setState(() {
           _expandedLeagues.clear();
-          final matchState = ref.read(matchStateProvider);
-          final filteredMatches = ref.read(filteredMatchesProvider);
-          if (matchState.isAll) {
-            if (filteredMatches.isNotEmpty) {
-              _expandedLeagues.add(filteredMatches.first.leagueId);
-            }
-          } else {
+          final allMatches = ref.read(matchStateProvider).matches;
+          if (next == 'Live 🔴') {
+            _expandedLeagues.addAll(allMatches
+                .where((m) => m.status == model.MatchStatus.live)
+                .map((m) => m.leagueId));
+          } else if (next == 'Starred ⭐') {
             _expandedLeagues.addAll(
-              filteredMatches.map((match) => match.leagueId),
-            );
+                allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
+          } else if (next == 'Senin İçin ✨') {
+            ref.read(knowledgeGraphProvider.notifier).calculatePersonalizedFeed();
+            // Automatically expand leagues is not applicable since it's a flat list
+          } else {
+            if (allMatches.isNotEmpty) {
+              _expandedLeagues.add(allMatches.first.leagueId);
+            }
           }
         });
       }
@@ -283,28 +343,22 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               content: Row(
                 children: [
                   Icon(
-                    n.type == 'GOAL'
-                        ? Icons.sports_soccer
-                        : Icons.notifications_active,
-                    color: Colors.white,
-                  ),
+                      n.type == 'GOAL'
+                          ? Icons.sports_soccer
+                          : Icons.notifications_active,
+                      color: Colors.white),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          n.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          n.message,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
+                        Text(n.title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white)),
+                        Text(n.message,
+                            style: const TextStyle(color: Colors.white70)),
                       ],
                     ),
                   ),
@@ -313,8 +367,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               backgroundColor: context.colors.primary,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  borderRadius: BorderRadius.circular(12)),
               duration: const Duration(seconds: 4),
             ),
           );
@@ -323,7 +376,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     });
 
     var featured = _getFeaturedMatch();
-    final matchState = ref.watch(matchStateProvider);
+    final activeFilter = ref.watch(matchStateProvider).activeFilter;
 
     return Scaffold(
       backgroundColor: context.colors.surfaceContainerLow,
@@ -333,11 +386,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           decoration: BoxDecoration(
             color: context.colors.background,
             border: Border.symmetric(
-              vertical: BorderSide(
-                color: context.colors.surfaceContainerLow,
-                width: 2,
-              ),
-            ),
+                vertical: BorderSide(
+                    color: context.colors.surfaceContainerLow, width: 2)),
           ),
           child: Stack(
             children: [
@@ -352,15 +402,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   slivers: [
                     _buildAppBar(context),
                     _buildStickyContext(context),
-                    if (featured != null && matchState.isAll)
+                    if (featured != null &&
+                        (activeFilter == 'All' || activeFilter == 'Starred ⭐'))
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 16.0,
-                        ),
+                            horizontal: 16.0, vertical: 16.0),
                         sliver: SliverToBoxAdapter(
-                          child: _buildFeaturedMatchCard(featured),
-                        ),
+                            child: _buildFeaturedMatchCard(featured)),
                       ),
                     ..._buildLeagueSlivers(),
                     const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -384,7 +432,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       toolbarHeight: 64,
       collapsedHeight: 64,
       expandedHeight: 124, // 64 + 60 (bottom)
-      backgroundColor: context.colors.background.withOpacity(0.8),
+      backgroundColor: context.colors.background.withValues(alpha: 0.8),
       elevation: 0,
       centerTitle: false,
       flexibleSpace: ClipRect(
@@ -395,13 +443,18 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       ),
       title: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: context.colors.surfaceContainer,
-            radius: 18,
-            child: Icon(
-              Icons.person,
-              color: context.colors.textMedium,
-              size: 20,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+            child: CircleAvatar(
+              backgroundColor: context.colors.surfaceContainer,
+              radius: 18,
+              child:
+                  Icon(Icons.person, color: context.colors.textMedium, size: 20),
             ),
           ),
           const SizedBox(width: 8),
@@ -420,11 +473,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.search, color: context.colors.textMedium),
-          onPressed: () {
-            showSearch(context: context, delegate: MatchSearchDelegate(ref));
-          },
-        ),
+            icon: Icon(Icons.search, color: context.colors.textMedium),
+            onPressed: () {
+              showSearch(
+                context: context,
+                delegate: MatchSearchDelegate(ref),
+              );
+            }),
         const NotificationBell(),
         const SizedBox(width: 8),
       ],
@@ -436,10 +491,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               height: 50,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 6,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
                 children: [
                   _buildSportChip(0, 'Football', Icons.sports_soccer),
                   _buildSportChip(1, 'Basketball', Icons.sports_basketball),
@@ -462,23 +515,19 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       child: ChoiceChip(
         label: Row(
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected
-                  ? context.colors.onPrimaryContainer
-                  : context.colors.textMedium,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            Icon(icon,
+                size: 18,
                 color: isSelected
                     ? context.colors.onPrimaryContainer
-                    : context.colors.textMedium,
-              ),
-            ),
+                    : context.colors.textMedium),
+            const SizedBox(width: 8),
+            Text(label,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected
+                      ? context.colors.onPrimaryContainer
+                      : context.colors.textMedium,
+                )),
           ],
         ),
         selected: isSelected,
@@ -511,7 +560,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               color: context.colors.background.withValues(alpha: 0.85),
               child: const Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [FilterRow()],
+                children: [
+                  FilterRow(),
+                ],
               ),
             ),
           ),
@@ -525,9 +576,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       height: 80,
       decoration: BoxDecoration(
-        color: Colors.white, // Color is overridden by Shimmer masks
-        borderRadius: BorderRadius.circular(16),
-      ),
+          color: Colors.white, // Color is overridden by Shimmer masks
+          borderRadius: BorderRadius.circular(16)),
     );
   }
 
@@ -538,10 +588,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 8)),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -555,7 +604,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: context.colors.secondaryContainer.withOpacity(0.1),
+                color: context.colors.secondaryContainer.withValues(alpha: 0.1),
               ),
             ),
           ),
@@ -570,36 +619,28 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: context.colors.secondaryContainer.withOpacity(
-                            0.1,
-                          ),
+                          color: context.colors.secondaryContainer
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: context.colors.secondaryContainer,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                    color: context.colors.secondaryContainer,
+                                    shape: BoxShape.circle)),
                             const SizedBox(width: 6),
-                            Text(
-                              "EL CLÁSICO • FEATURED",
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.secondaryContainer,
-                                letterSpacing: 1,
-                              ),
-                            ),
+                            Text("EL CLÁSICO • FEATURED",
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: context.colors.secondaryContainer,
+                                    letterSpacing: 1)),
                           ],
                         ),
                       ),
@@ -608,38 +649,27 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
-                            child: _buildBentoTeam(
-                              match.homeTeam,
-                              match.homeLogo,
-                            ),
-                          ),
+                              child: _buildBentoTeam(
+                                  match.homeTeam, match.homeLogo)),
                           Column(
                             children: [
-                              Text(
-                                "Starts at",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: context.colors.textLow,
-                                ),
-                              ),
+                              Text("Starts at",
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: context.colors.textLow)),
                               const SizedBox(height: 4),
                               Text(
-                                '${match.startTime.hour.toString().padLeft(2, '0')}:${match.startTime.minute.toString().padLeft(2, '0')}',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  color: context.colors.textHigh,
-                                ),
-                              ),
+                                  '${match.startTime.hour.toString().padLeft(2, '0')}:${match.startTime.minute.toString().padLeft(2, '0')}',
+                                  style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: context.colors.textHigh)),
                             ],
                           ),
                           Expanded(
-                            child: _buildBentoTeam(
-                              match.awayTeam,
-                              match.awayLogo,
-                            ),
-                          ),
+                              child: _buildBentoTeam(
+                                  match.awayTeam, match.awayLogo)),
                         ],
                       ),
                     ],
@@ -651,33 +681,26 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: context.colors.primaryContainer,
-                        shape: BoxShape.circle,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.star,
-                        color: context.colors.onPrimaryContainer,
-                      ),
+                          color: context.colors.primaryContainer,
+                          shape: BoxShape.circle,
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: Offset(0, 2))
+                          ]),
+                      child: Icon(Icons.star,
+                          color: context.colors.onPrimaryContainer),
                     ),
                     const SizedBox(height: 12),
                     Container(
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: context.colors.surfaceContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.share,
-                        color: context.colors.textMedium,
-                      ),
+                          color: context.colors.surfaceContainer,
+                          shape: BoxShape.circle),
+                      child:
+                          Icon(Icons.share, color: context.colors.textMedium),
                     ),
                   ],
                 ),
@@ -700,18 +723,14 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             color: context.colors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Image.network(
-            logourl,
-            errorBuilder: (ctx, err, _) => const Icon(Icons.shield),
-          ),
+          child: Image.network(logourl,
+              errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
         ),
         const SizedBox(height: 12),
-        Text(
-          name,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
+        Text(name,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1),
       ],
     );
   }
@@ -725,15 +744,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           final allMatches = ref.read(matchStateProvider).matches;
           if (allMatches.isEmpty) return;
           final activeMatch = allMatches.firstWhere(
-            (m) => m.status == model.MatchStatus.live,
-            orElse: () => allMatches.first,
-          );
+              (m) => m.status == model.MatchStatus.live,
+              orElse: () => allMatches.first);
           Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MatchDetailScreen(match: activeMatch),
-            ),
-          );
+              context,
+              MaterialPageRoute(
+                  builder: (_) => MatchDetailScreen(match: activeMatch)));
         },
         child: Container(
           padding: const EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8),
@@ -742,12 +758,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10)),
             ],
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
           child: Row(
             children: [
@@ -755,37 +770,26 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEAB308),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.mic,
-                  color: Color(0xFF0F172A),
-                  size: 20,
-                ),
+                    color: Color(0xFFEAB308), shape: BoxShape.circle),
+                child:
+                    const Icon(Icons.mic, color: Color(0xFF0F172A), size: 20),
               ),
               const SizedBox(width: 12),
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    "LIVE ROOM",
-                    style: TextStyle(
-                      color: Color(0xFFFACC15),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  Text(
-                    "Match Reaction • 2.4k",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text("LIVE ROOM",
+                      style: TextStyle(
+                          color: Color(0xFFFACC15),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5)),
+                  Text("Match Reaction • 2.4k",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(width: 8),
@@ -797,7 +801,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   const SizedBox(width: 2),
                   _buildBar(10),
                 ],
-              ),
+              )
             ],
           ),
         ),
