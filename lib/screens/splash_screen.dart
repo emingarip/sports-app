@@ -4,7 +4,16 @@ import 'package:sports_app/screens/main_layout.dart';
 import 'package:sports_app/screens/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final bool Function()? isAuthenticatedResolver;
+  final WidgetBuilder? authenticatedBuilder;
+  final WidgetBuilder? unauthenticatedBuilder;
+
+  const SplashScreen({
+    super.key,
+    this.isAuthenticatedResolver,
+    this.authenticatedBuilder,
+    this.unauthenticatedBuilder,
+  });
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -14,26 +23,30 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _initializeApp();
+    });
   }
 
-  Future<void> _initializeApp() async {
-    // Fire up Supabase in the background
-    await SupabaseService.initialize();
+  void _initializeApp() {
+    final isAuthenticated =
+        widget.isAuthenticatedResolver?.call() ??
+        SupabaseService().getCurrentUser() != null;
 
-    if (!mounted) return;
-
-    // Check auth state to navigate
-    final session = SupabaseService().getCurrentUser();
-    if (session != null) {
+    if (isAuthenticated) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainLayout()),
+        MaterialPageRoute(
+          builder: widget.authenticatedBuilder ?? (_) => const MainLayout(),
+        ),
       );
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(
+          builder: widget.unauthenticatedBuilder ?? (_) => const LoginScreen(),
+        ),
       );
     }
   }
