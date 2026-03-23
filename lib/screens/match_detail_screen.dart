@@ -6,6 +6,8 @@ import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
 import '../services/chat_service.dart';
 import '../widgets/match_stats_view.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/knowledge_graph_provider.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -43,15 +45,15 @@ class FloatingReaction {
   });
 }
 
-class MatchDetailScreen extends StatefulWidget {
+class MatchDetailScreen extends ConsumerStatefulWidget {
   final model.Match match;
   const MatchDetailScreen({super.key, required this.match});
 
   @override
-  State<MatchDetailScreen> createState() => _MatchDetailScreenState();
+  ConsumerState<MatchDetailScreen> createState() => _MatchDetailScreenState();
 }
 
-class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProviderStateMixin {
+class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -98,6 +100,26 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
     });
 
     _tabController = TabController(length: 3, vsync: this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final notifier = ref.read(knowledgeGraphProvider.notifier);
+      
+      notifier.trackEvent(
+        eventType: 'match_viewed',
+        entityType: 'team',
+        entityId: widget.match.homeTeam,
+      );
+      notifier.trackEvent(
+        eventType: 'match_viewed',
+        entityType: 'team',
+        entityId: widget.match.awayTeam,
+      );
+      notifier.trackEvent(
+        eventType: 'match_viewed',
+        entityType: 'league',
+        entityId: widget.match.leagueId,
+      );
+    });
     _tabController.addListener(() {
       if (_tabController.index == 2) {
         if (_chatSubscription == null) _subscribeToChat();
@@ -145,6 +167,14 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
 
     try {
       await _chatService.sendMessage(widget.match.id, text);
+      
+      // Track chat activity for the knowledge graph 
+      ref.read(knowledgeGraphProvider.notifier).trackEvent(
+        eventType: 'chat_message_sent',
+        entityType: 'league',
+        entityId: widget.match.leagueId,
+      );
+
       _scrollToBottom();
     } catch (e) {
       debugPrint('Error sending message: $e');
@@ -299,10 +329,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: isGoal ? context.colors.primaryContainer.withOpacity(0.12) : context.colors.surfaceContainerLow.withOpacity(0.8),
+            color: isGoal ? context.colors.primaryContainer.withValues(alpha: 0.12) : context.colors.surfaceContainerLow.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isGoal ? context.colors.primaryContainer.withOpacity(0.4) : context.colors.surfaceContainerHighest.withOpacity(0.5)),
-            boxShadow: isGoal ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.05), blurRadius: 10)] : [],
+            border: Border.all(color: isGoal ? context.colors.primaryContainer.withValues(alpha: 0.4) : context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
+            boxShadow: isGoal ? [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.05), blurRadius: 10)] : [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -311,7 +341,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: isGoal ? context.colors.primaryContainer.withOpacity(0.4) : context.colors.surfaceContainerHigh.withOpacity(0.6),
+                    color: isGoal ? context.colors.primaryContainer.withValues(alpha: 0.4) : context.colors.surfaceContainerHigh.withValues(alpha: 0.6),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -428,9 +458,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
                       bottomLeft: Radius.circular((!isMe && isNextSameUser) ? 4 : (!isMe ? 4 : 20)),
                       bottomRight: Radius.circular((isMe && isNextSameUser) ? 4 : (isMe ? 4 : 20)),
                     ),
-                    border: isMe ? null : Border.all(color: context.colors.surfaceContainerHigh.withOpacity(0.5)),
+                    border: isMe ? null : Border.all(color: context.colors.surfaceContainerHigh.withValues(alpha: 0.5)),
                     boxShadow: [
-                      BoxShadow(color: context.colors.surfaceContainerHighest.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 1))
+                      BoxShadow(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 1))
                     ],
                   ),
                   child: Text(
@@ -477,9 +507,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
         child: Container(
           padding: const EdgeInsets.only(top: 12, bottom: 20, left: 16, right: 16),
           decoration: BoxDecoration(
-            color: context.colors.background.withOpacity(0.85),
+            color: context.colors.background.withValues(alpha: 0.85),
             border: Border(top: BorderSide(color: context.colors.surfaceContainerHighest, width: 0.5)),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, -4))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, -4))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -512,10 +542,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
                         color: _isInputFocused ? context.colors.background : context.colors.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: _isInputFocused ? context.colors.primaryContainer : context.colors.surfaceContainerHighest.withOpacity(0.5),
+                          color: _isInputFocused ? context.colors.primaryContainer : context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
                           width: _isInputFocused ? 2 : 1,
                         ),
-                        boxShadow: _isInputFocused ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.1), blurRadius: 8)] : [],
+                        boxShadow: _isInputFocused ? [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.1), blurRadius: 8)] : [],
                       ),
                       child: TextField(
                         controller: _msgController,
@@ -524,7 +554,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
                         style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
                         decoration: InputDecoration(
                           hintText: "Add to the moment...",
-                          hintStyle: TextStyle(color: context.colors.textMedium.withOpacity(0.6), fontSize: 14),
+                          hintStyle: TextStyle(color: context.colors.textMedium.withValues(alpha: 0.6), fontSize: 14),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                         ),
@@ -539,7 +569,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
                     decoration: BoxDecoration(
                       color: _hasText ? context.colors.primaryContainer : context.colors.surfaceContainer,
                       shape: BoxShape.circle,
-                      boxShadow: _hasText ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))] : [],
+                      boxShadow: _hasText ? [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 3))] : [],
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -662,7 +692,7 @@ class _ReactionButtonState extends State<_ReactionButton> with SingleTickerProvi
               decoration: BoxDecoration(
                 color: context.colors.background,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: context.colors.surfaceContainerHighest.withOpacity(0.6)),
+                border: Border.all(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.6)),
                 boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 1, offset: Offset(0, 1))],
               ),
               child: Center(child: Text(widget.emoji, style: const TextStyle(fontSize: 20))),
@@ -713,9 +743,9 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: context.colors.background.withOpacity(1.0 - (1.0 - collapseForce) * 0.15), // from 0.85 to 1.0
-            border: Border(bottom: BorderSide(color: context.colors.surfaceContainer.withOpacity(collapseForce))),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(collapseForce * 0.04), blurRadius: 10)],
+            color: context.colors.background.withValues(alpha: 1.0 - (1.0 - collapseForce) * 0.15), // from 0.85 to 1.0
+            border: Border(bottom: BorderSide(color: context.colors.surfaceContainer.withValues(alpha: collapseForce))),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: collapseForce * 0.04), blurRadius: 10)],
           ),
           child: Stack(
             fit: StackFit.expand,
@@ -734,7 +764,7 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              context.colors.primaryContainer.withOpacity(0.08 + (bgPulseController.value * 0.04)),
+                              context.colors.primaryContainer.withValues(alpha: 0.08 + (bgPulseController.value * 0.04)),
                               Colors.transparent,
                             ],
                           ),
@@ -747,18 +777,18 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(color: context.colors.primaryContainer.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-                          child: Text("MATCH PULSE", style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: context.colors.primary.withOpacity(0.8))),
+                          decoration: BoxDecoration(color: context.colors.primaryContainer.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                          child: Text("MATCH PULSE", style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: context.colors.primary.withValues(alpha: 0.8))),
                         ),
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
                           decoration: BoxDecoration(
-                            color: context.colors.background.withOpacity(0.95),
+                            color: context.colors.background.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
-                              BoxShadow(color: context.colors.primaryContainer.withOpacity(0.1), blurRadius: 24, offset: const Offset(0, 12)),
+                              BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 12)),
                               const BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
                             ],
                           ),
@@ -778,13 +808,13 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                                   const SizedBox(height: 8),
                                   Text(homeAbbr, style: TextStyle(fontFamily: 'Lexend', fontSize: 24, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
                                   const SizedBox(height: 6),
-                                  Container(height: 5, width: 36, decoration: BoxDecoration(color: context.colors.primaryContainer, borderRadius: BorderRadius.circular(3), boxShadow: [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.5), blurRadius: 4)])),
+                                  Container(height: 5, width: 36, decoration: BoxDecoration(color: context.colors.primaryContainer, borderRadius: BorderRadius.circular(3), boxShadow: [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.5), blurRadius: 4)])),
                                 ],
                               ),
                               Container(
                                 margin: const EdgeInsets.symmetric(horizontal: 24),
                                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                                decoration: BoxDecoration(border: Border(left: BorderSide(color: context.colors.surfaceContainerHighest.withOpacity(0.3)), right: BorderSide(color: context.colors.surfaceContainerHighest.withOpacity(0.3)))),
+                                decoration: BoxDecoration(border: Border(left: BorderSide(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.3)), right: BorderSide(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.3)))),
                                 child: Text(scoreStr, style: TextStyle(fontFamily: 'Lexend', fontSize: 32, fontWeight: FontWeight.w900, color: context.colors.primary, letterSpacing: -1.0)),
                               ),
                               Column(
@@ -834,7 +864,7 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(color: isLive ? context.colors.secondary.withOpacity(0.08) : context.colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+                                      decoration: BoxDecoration(color: isLive ? context.colors.secondary.withValues(alpha: 0.08) : context.colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
                                       child: Row(
                                         children: [
                                           if (isLive) AnimatedBuilder(

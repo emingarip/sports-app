@@ -4,7 +4,6 @@ import '../models/k_coin_package.dart';
 import 'package:sports_app/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'wallet_provider.g.dart';
 

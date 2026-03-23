@@ -1,0 +1,99 @@
+﻿00:00 +0: loading D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart
+00:00 +0: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping maps live match correctly
+00:00 +1: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping maps finished match correctly
+00:00 +2: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping maps pre_match as upcoming
+00:00 +3: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping unknown status defaults to upcoming
+00:00 +4: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping null league_id defaults to premier_league
+00:00 +5: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping null logo URLs get fallback values
+00:00 +6: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping null league_name stays null
+00:00 +7: D:/Projects/SportsApp/test/data/supabase_match_provider_test.dart: Supabase JSON -> Match mapping scores are converted to strings
+00:00 +8: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +9: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +10: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +11: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +12: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +13: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +14: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +15: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +16: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +17: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +18: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +19: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +20: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +21: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:00 +22: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +23: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +24: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +25: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +26: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +27: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +28: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +29: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +30: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+00:01 +31: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly
+
+Warning: A call to tap() with finder "Found 1 widget with text "Starred Γ¡É": [
+  Text("Starred Γ¡É", inherit: true, color: Color(alpha: 1.0000, red: 0.3412, green: 0.3608, blue: 0.3765, colorSpace: ColorSpace.sRGB), size: 14.0, weight: 500, dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
+]" derived an Offset (Offset(836.9, 145.5)) that would not hit test on the specified widget.
+Maybe the widget is actually off-screen, or another widget is obscuring it, or the widget cannot receive pointer events.
+Indeed, Offset(836.9, 145.5) is outside the bounds of the root of the render tree, Size(800.0, 600.0).
+The finder corresponds to this RenderBox: RenderParagraph#5756f relayoutBoundary=up17
+The hit test result at that offset is: HitTestResult(HitTestEntry<HitTestTarget>#6de83(_ReusableRenderView#1e276), HitTestEntry<HitTestTarget>#32e46(<AutomatedTestWidgetsFlutterBinding>))
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2158:25)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1942:12)
+#2      WidgetController.tap (package:flutter_test/src/controller.dart:1075:7)
+#3      main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///D:/Projects/SportsApp/test/integration/home_dashboard_test.dart:81:22)
+<asynchronous suspension>
+#4      main.<anonymous closure>.<anonymous closure> (file:///D:/Projects/SportsApp/test/integration/home_dashboard_test.dart:58:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1682:5)
+<asynchronous suspension>
+#7      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+To silence this warning, pass "warnIfMissed: false" to "tap()".
+To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.
+
+ΓòÉΓòÉΓòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Γò₧ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Real Madrid": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///D:/Projects/SportsApp/test/integration/home_dashboard_test.dart:85:9)
+<asynchronous suspension>
+#5      main.<anonymous closure>.<anonymous closure> (file:///D:/Projects/SportsApp/test/integration/home_dashboard_test.dart:58:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1682:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///D:/Projects/SportsApp/test/integration/home_dashboard_test.dart line 85
+The test description was:
+  Dashboard renders live matches and filters correctly
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+00:02 +31 -1: D:/Projects/SportsApp/test/screens/splash_screen_test.dart: SplashScreen does not navigate during build and pushes login after first frame
+00:02 +31 -1: D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: HomeDashboard Integration Tests Dashboard renders live matches and filters correctly [E]
+  Test failed. See exception logs above.
+  The test description was: Dashboard renders live matches and filters correctly
+  
+00:02 +32 -1: D:/Projects/SportsApp/test/screens/splash_screen_test.dart: SplashScreen does not navigate during build and pushes login after first frame
+00:02 +33 -1: D:/Projects/SportsApp/test/store_front_screen_test.dart: StoreFrontScreen compiles and displays packages and balance
+00:02 +34 -1: D:/Projects/SportsApp/test/store_front_screen_test.dart: StoreFrontScreen compiles and displays packages and balance
+00:02 +35 -1: D:/Projects/SportsApp/test/store_front_screen_test.dart: StoreFrontScreen compiles and displays packages and balance
+00:03 +36 -1: D:/Projects/SportsApp/test/widgets/empty_state_test.dart: EmptyState Widget renders correct message and icon
+00:03 +37 -1: D:/Projects/SportsApp/test/widgets/filter_row_test.dart: FilterRow Widget renders all four filter chips
+00:03 +38 -1: D:/Projects/SportsApp/test/widgets/league_group_test.dart: LeagueGroup Widget renders league header and match count
+00:03 +39 -1: D:/Projects/SportsApp/test/widgets/league_group_test.dart: LeagueGroup Widget renders league header and match count
+00:03 +40 -1: D:/Projects/SportsApp/test/widgets/match_card_test.dart: MatchCard Widget renders live match correctly
+00:03 +41 -1: D:/Projects/SportsApp/test/widgets/match_card_test.dart: MatchCard Widget renders live match correctly
+00:03 +42 -1: D:/Projects/SportsApp/test/widgets/league_group_test.dart: LeagueGroup Widget renders MatchCards when expanded
+00:03 +43 -1: D:/Projects/SportsApp/test/widgets/match_card_test.dart: MatchCard Widget renders finished match correctly
+00:03 +44 -1: D:/Projects/SportsApp/test/widgets/match_card_test.dart: MatchCard Widget renders upcoming match correctly with time and VS tag
+00:04 +45 -1: Some tests failed.

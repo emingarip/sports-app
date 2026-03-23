@@ -51,6 +51,7 @@ class MatchState {
 
 class MatchNotifier extends Notifier<MatchState> {
   StreamSubscription<List<model.Match>>? _subscription;
+  Timer? _pollingTimer;
 
   @override
   MatchState build() {
@@ -60,6 +61,7 @@ class MatchNotifier extends Notifier<MatchState> {
 
     ref.onDispose(() {
       _subscription?.cancel();
+      _pollingTimer?.cancel();
     });
 
     return MatchState(matches: [], selectedDate: DateTime.now());
@@ -75,6 +77,18 @@ class MatchNotifier extends Notifier<MatchState> {
     // Explicitly seed the initial fetch for Today's matches since the default init
     // bypasses the `setDate` network fetch correctly to avoid duplicate calls.
     repo.fetchMatchesForDate(DateTime.now());
+
+    // Setup periodic polling to keep live matches updated
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      // Only poll from edge function if looking at today's matches
+      final now = DateTime.now();
+      if (state.selectedDate.year == now.year &&
+          state.selectedDate.month == now.month &&
+          state.selectedDate.day == now.day) {
+        repo.fetchMatchesForDate(now);
+      }
+    });
   }
 
   void setFilter(String filter) {

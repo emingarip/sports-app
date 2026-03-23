@@ -15,6 +15,7 @@ class PredictionService {
   }
 
   // Place a bet
+  // [TODO KnowledgeGraph]: Call refs trackEvent(eventType: 'prediction_placed') when used
   Future<void> placeBet(String predictionId, int amount, int potentialPayout) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not logged in');

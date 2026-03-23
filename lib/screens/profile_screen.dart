@@ -4,21 +4,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'notification_preferences_screen.dart';
 import '../providers/wallet_provider.dart';
+import '../providers/badge_provider.dart';
 import 'store_front_screen.dart';
+import 'badges_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   UserProfile? _profile;
   List<Map<String, dynamic>> _bets = [];
   bool _isLoading = true;
@@ -87,6 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 )
               else ...[
                 _buildHeroSection(),
+                _buildBadgeShowcase(),
                 _buildMetricsGrid(),
                 _buildRecentActivityHeader(),
                 if (_bets.isEmpty) _buildEmptyActivityState() else _buildBetsList(),
@@ -209,6 +213,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.textHigh,
                 side: BorderSide(color: context.colors.surfaceContainerHigh),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                await SupabaseService.client.auth.updateUser(
+                  UserAttributes(data: {'onboarding_completed': false}),
+                );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Onboarding sıfırlandı. Lütfen uygulamayı kapatıp açın.')),
+                );
+              },
+              icon: const Icon(Icons.restore, size: 16),
+              label: const Text('Reset Onboarding (Test Yalnızca)'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.error,
+                side: BorderSide(color: context.colors.error),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -498,5 +521,185 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildBadgeShowcase() {
+    final badgeState = ref.watch(badgeProvider);
+    if (badgeState.isLoading) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+    final recentBadges = badgeState.recentlyUnlocked;
+    final unlockedCount = badgeState.unlockedCount;
+    final totalCount = badgeState.definitions.length;
+
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.military_tech, size: 18, color: context.colors.accent),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Rozetler',
+                      style: TextStyle(
+                        color: context.colors.textHigh,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: context.colors.accent.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$unlockedCount/$totalCount',
+                        style: TextStyle(
+                          color: context.colors.accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BadgesScreen()),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Tümü',
+                        style: TextStyle(
+                          color: context.colors.accent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, size: 16, color: context.colors.accent),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (recentBadges.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: context.colors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.colors.outline.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.emoji_events_outlined, size: 32, color: context.colors.textMedium),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Henüz rozet kazanmadın. Uygulama kullanarak rozet aç!',
+                        style: TextStyle(color: context.colors.textMedium, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              SizedBox(
+                height: 80,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: recentBadges.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final badge = recentBadges[index];
+                    final ub = badgeState.progressFor(badge.id);
+                    final tierColor = _badgeTierColor(ub.currentTier);
+                    return GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const BadgesScreen()),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: tierColor.withOpacity(0.15),
+                              border: Border.all(color: tierColor, width: 2),
+                            ),
+                            child: Icon(
+                              _badgeIcon(badge.iconName),
+                              size: 24,
+                              color: tierColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          SizedBox(
+                            width: 60,
+                            child: Text(
+                              badge.nameTr,
+                              style: TextStyle(
+                                color: context.colors.textMedium,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _badgeTierColor(int tier) {
+    switch (tier) {
+      case 1: return const Color(0xFFCD7F32);
+      case 2: return const Color(0xFFC0C0C0);
+      case 3: return const Color(0xFFFFD700);
+      default: return Colors.grey;
+    }
+  }
+
+  IconData _badgeIcon(String iconName) {
+    const iconMap = <String, IconData>{
+      'person_add': Icons.person_add,
+      'verified': Icons.verified,
+      'camera_alt': Icons.camera_alt,
+      'visibility': Icons.visibility,
+      'explore': Icons.explore,
+      'casino': Icons.casino,
+      'gps_fixed': Icons.gps_fixed,
+      'local_fire_department': Icons.local_fire_department,
+      'savings': Icons.savings,
+      'shopping_cart': Icons.shopping_cart,
+      'trending_up': Icons.trending_up,
+      'emoji_events': Icons.emoji_events,
+      'date_range': Icons.date_range,
+      'loyalty': Icons.loyalty,
+    };
+    return iconMap[iconName] ?? Icons.military_tech;
   }
 }

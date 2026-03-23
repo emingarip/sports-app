@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'knowledge_graph_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class FavoritesNotifier extends Notifier<Set<String>> {
   SupabaseClient get _client => Supabase.instance.client;
@@ -67,9 +69,16 @@ class FavoritesNotifier extends Notifier<Set<String>> {
         await _client
             .from('user_favorite_matches')
             .insert({'user_id': user.id, 'match_id': matchId});
+            
+        // Track the favorited match in Knowledge Graph
+        ref.read(knowledgeGraphProvider.notifier).trackEvent(
+          eventType: 'match_favorited',
+          entityType: 'match',
+          entityId: matchId,
+        );
       }
     } catch (e) {
-      print('Failed to toggle favorite: $e');
+      if (kDebugMode) print('Failed to toggle favorite: $e');
       // Revert if failed
       if (isFavorite) {
         state = {...state, matchId};

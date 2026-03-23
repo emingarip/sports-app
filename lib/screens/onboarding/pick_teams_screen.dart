@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/onboarding_provider.dart';
 import 'components/progress_top_line.dart';
 import 'components/step_label.dart';
 import 'components/onboarding_header.dart';
 import 'components/onboarding_bottom_bar.dart';
 import 'pick_competitions_screen.dart';
 
-class PickTeamsScreen extends StatefulWidget {
+class PickTeamsScreen extends ConsumerStatefulWidget {
   const PickTeamsScreen({super.key});
 
   @override
-  State<PickTeamsScreen> createState() => _PickTeamsScreenState();
+  ConsumerState<PickTeamsScreen> createState() => _PickTeamsScreenState();
 }
 
-class _PickTeamsScreenState extends State<PickTeamsScreen> {
+class _PickTeamsScreenState extends ConsumerState<PickTeamsScreen> {
   final List<Map<String, dynamic>> _teams = [
     {"name": "Arsenal FC", "league": "Premier League", "abbr": "ARS"},
     {"name": "Real Madrid", "league": "La Liga", "abbr": "RMA"},
@@ -23,7 +25,6 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
     {"name": "Beşiktaş", "league": "Trendyol Süper Lig", "abbr": "BJK"},
   ];
 
-  final Set<String> _selectedTeams = {};
   final Set<String> _alertsOn = {};
 
   late PageController _pageController;
@@ -42,13 +43,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
   }
 
   void _toggleTeam(String teamName) {
-    setState(() {
-      if (_selectedTeams.contains(teamName)) {
-        _selectedTeams.remove(teamName);
-      } else {
-        _selectedTeams.add(teamName);
-      }
-    });
+    ref.read(onboardingProvider.notifier).toggleTeam(teamName);
   }
 
   void _toggleAlert(String teamName, bool value) {
@@ -64,7 +59,8 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
   Widget _buildCarouselCard(int index) {
     final team = _teams[index];
     final String teamName = team["name"];
-    final bool isSelected = _selectedTeams.contains(teamName);
+    final selectedTeams = ref.watch(onboardingProvider).selectedTeams;
+    final bool isSelected = selectedTeams.contains(teamName);
     final bool alertOn = _alertsOn.contains(teamName);
 
     return AnimatedBuilder(
@@ -102,14 +98,14 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               decoration: BoxDecoration(
-                color: isSelected ? context.colors.surfaceContainerLowest : context.colors.surfaceContainerHighest.withOpacity(0.5),
+                color: isSelected ? context.colors.surfaceContainerLowest : context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: isSelected ? context.colors.primaryContainer : Colors.transparent,
                   width: 2,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 24, offset: const Offset(0, 12))]
+                    ? [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 12))]
                     : const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
               ),
               child: Stack(
@@ -239,6 +235,8 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedTeams = ref.watch(onboardingProvider).selectedTeams;
+
     return Scaffold(
       backgroundColor: context.colors.background,
       body: SafeArea(
@@ -265,7 +263,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                   // Selection Counter
                   Center(
                     child: Text(
-                      "${_selectedTeams.length} OF 3 SELECTED",
+                      "${selectedTeams.length} OF 3 SELECTED",
                       style: TextStyle(
                         fontFamily: 'Lexend',
                         fontSize: 11,
@@ -324,7 +322,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.swipe, size: 16, color: context.colors.textMedium.withOpacity(0.8)),
+                      Icon(Icons.swipe, size: 16, color: context.colors.textMedium.withValues(alpha: 0.8)),
                       const SizedBox(width: 8),
                       Text(
                         "SWIPE TO EXPLORE",
@@ -333,7 +331,7 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2.0,
-                          color: context.colors.textMedium.withOpacity(0.8),
+                          color: context.colors.textMedium.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -344,10 +342,10 @@ class _PickTeamsScreenState extends State<PickTeamsScreen> {
             
             // Structural Component
             OnboardingBottomBar(
-              primaryText: _selectedTeams.isNotEmpty 
-                  ? "CONTINUE (${_selectedTeams.length})" 
+              primaryText: selectedTeams.isNotEmpty 
+                  ? "CONTINUE (${selectedTeams.length})" 
                   : "CONTINUE",
-              onPrimaryPressed: _selectedTeams.isNotEmpty ? () {
+              onPrimaryPressed: selectedTeams.isNotEmpty ? () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PickCompetitionsScreen()),
                 );

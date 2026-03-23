@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/onboarding_provider.dart';
+import '../../providers/knowledge_graph_provider.dart';
 import 'components/progress_top_line.dart';
 import 'components/step_label.dart';
 import 'components/onboarding_bottom_bar.dart';
 import '../main_layout.dart';
 import '../../services/supabase_service.dart';
 
-class OnboardingReadyScreen extends StatefulWidget {
+class OnboardingReadyScreen extends ConsumerStatefulWidget {
   const OnboardingReadyScreen({super.key});
 
   @override
-  State<OnboardingReadyScreen> createState() => _OnboardingReadyScreenState();
+  ConsumerState<OnboardingReadyScreen> createState() => _OnboardingReadyScreenState();
 }
 
-class _OnboardingReadyScreenState extends State<OnboardingReadyScreen> with SingleTickerProviderStateMixin {
+class _OnboardingReadyScreenState extends ConsumerState<OnboardingReadyScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -56,7 +59,7 @@ class _OnboardingReadyScreenState extends State<OnboardingReadyScreen> with Sing
                       height: 320,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: context.colors.primaryContainer.withOpacity(0.2),
+                        color: context.colors.primaryContainer.withValues(alpha: 0.2),
                       ),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
@@ -89,7 +92,7 @@ class _OnboardingReadyScreenState extends State<OnboardingReadyScreen> with Sing
                                         height: 128,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: context.colors.primaryContainer.withOpacity(0.2),
+                                          color: context.colors.primaryContainer.withValues(alpha: 0.2),
                                         ),
                                       ),
                                     );
@@ -102,7 +105,7 @@ class _OnboardingReadyScreenState extends State<OnboardingReadyScreen> with Sing
                                     shape: BoxShape.circle,
                                     color: context.colors.primaryContainer,
                                     boxShadow: [
-                                      BoxShadow(color: context.colors.primary.withOpacity(0.15), blurRadius: 40, offset: const Offset(0, 20)),
+                                      BoxShadow(color: context.colors.primary.withValues(alpha: 0.15), blurRadius: 40, offset: const Offset(0, 20)),
                                     ],
                                   ),
                                   child: Center(
@@ -146,6 +149,27 @@ class _OnboardingReadyScreenState extends State<OnboardingReadyScreen> with Sing
               primaryText: "GO TO DASHBOARD",
               onPrimaryPressed: () async {
                 try {
+                  // Push onboarding selections to Knowledge Graph
+                  final selectedTeams = ref.read(onboardingProvider).selectedTeams;
+                  final selectedCompetitions = ref.read(onboardingProvider).selectedCompetitions;
+                  final kg = ref.read(knowledgeGraphProvider.notifier);
+
+                  for (final team in selectedTeams) {
+                    kg.trackEvent(
+                      eventType: 'onboarding_selected', 
+                      entityType: 'team', 
+                      entityId: team
+                    );
+                  }
+
+                  for (final comp in selectedCompetitions) {
+                    kg.trackEvent(
+                      eventType: 'onboarding_selected', 
+                      entityType: 'league', 
+                      entityId: comp
+                    );
+                  }
+
                   await SupabaseService().completeOnboarding();
                 } catch (e) {
                   debugPrint("Failed to update onboarding status: $e");
