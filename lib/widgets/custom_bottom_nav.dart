@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
@@ -141,107 +142,114 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav> {
             child: Stack(
             alignment: Alignment.center,
             children: [
-              NotificationListener<ScrollEndNotification>(
+              NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
-                  // Snap effect: Calculate nearest item (64px width)
-                  final position = _calendarScroller.position.pixels;
-                  final screenWidth = MediaQuery.of(context).size.width;
-                  final containerWidth = (screenWidth > 600 ? 600.0 : screenWidth) - 32.0;
-                  
-                  // The item in the absolute center
-                  final centerOffset = position + (containerWidth / 2) - 32.0;
-                  final nearestIndex = (centerOffset / 64.0).round();
-                  
-                  final int offsetFromToday = nearestIndex - 10000;
-                  final snapDate = now.add(Duration(days: offsetFromToday));
+                  // Only run snap if user has actually lifted their finger AND stopped moving.
+                  if (notification is UserScrollNotification && notification.direction == ScrollDirection.idle) {
+                    final position = _calendarScroller.position.pixels;
+                    final screenWidth = MediaQuery.of(context).size.width;
+                    final containerWidth = (screenWidth > 600 ? 600.0 : screenWidth) - 32.0;
+                    
+                    final centerOffset = position + (containerWidth / 2) - 32.0;
+                    final nearestIndex = (centerOffset / 64.0).round();
+                    
+                    final targetOffset = (nearestIndex * 64.0) - (containerWidth / 2) + 32.0;
 
-                  // If snapped date is different from selected date, automatically select it!
-                  if (snapDate.difference(selectedDate).inDays != 0) {
-                      HapticFeedback.selectionClick();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                          ref.read(matchStateProvider.notifier).setDate(snapDate);
+                    if ((position - targetOffset).abs() > 1.0) {
+                      Future.microtask(() {
+                        if (_calendarScroller.hasClients) {
+                          _calendarScroller.animateTo(
+                            targetOffset.clamp(0.0, _calendarScroller.position.maxScrollExtent),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                          );
+                        }
                       });
-                  }
-
-                  // Animate physical scroll structurally onto the exact centered pixel
-                  final targetOffset = (nearestIndex * 64.0) - (containerWidth / 2) + 32.0;
-                  Future.microtask(() {
-                    if (_calendarScroller.hasClients) {
-                      _calendarScroller.animateTo(
-                        targetOffset.clamp(0.0, _calendarScroller.position.maxScrollExtent),
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOutCubic,
-                      );
                     }
-                  });
+
+                    final int offsetFromToday = nearestIndex - 10000;
+                    final snapDate = now.add(Duration(days: offsetFromToday));
+
+                    if (snapDate.difference(selectedDate).inDays != 0) {
+                        HapticFeedback.selectionClick();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                            ref.read(matchStateProvider.notifier).setDate(snapDate);
+                        });
+                    }
+                  }
                   return false;
                 },
-                child: ListView.builder(
-                  controller: _calendarScroller,
-                  scrollDirection: Axis.horizontal,
-                  itemExtent: 64.0,
-                  itemCount: 20000,
-                  itemBuilder: (context, index) {
-                    final int offsetFromToday = index - 10000;
-                    final date = now.add(Duration(days: offsetFromToday));
-                    
-                    final isSelected = date.year == selectedDate.year &&
-                                       date.month == selectedDate.month &&
-                                       date.day == selectedDate.day;
-                    
-                    final isToday = date.year == now.year &&
-                                    date.month == now.month &&
-                                    date.day == now.day;
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse, PointerDeviceKind.trackpad},
+                  ),
+                  child: ListView.builder(
+                    controller: _calendarScroller,
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemExtent: 64.0,
+                    itemCount: 20000,
+                    itemBuilder: (context, index) {
+                      final int offsetFromToday = index - 10000;
+                      final date = now.add(Duration(days: offsetFromToday));
+                      
+                      final isSelected = date.year == selectedDate.year &&
+                                         date.month == selectedDate.month &&
+                                         date.day == selectedDate.day;
+                      
+                      final isToday = date.year == now.year &&
+                                      date.month == now.month &&
+                                      date.day == now.day;
 
-                    String dayName = DateFormat('E').format(date).toUpperCase();
-                    String dayNum = DateFormat('d').format(date);
-                    
-                    if (isToday) dayName = "TDY";
+                      String dayName = DateFormat('E').format(date).toUpperCase();
+                      String dayNum = DateFormat('d').format(date);
+                      
+                      if (isToday) dayName = "TDY";
 
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        ref.read(matchStateProvider.notifier).setDate(date);
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          ref.read(matchStateProvider.notifier).setDate(date);
 
-                        // Keep it open, but gently center it
-                        final screenWidth = MediaQuery.of(context).size.width;
-                        final containerWidth = (screenWidth > 600 ? 600.0 : screenWidth) - 32.0;
-                        final targetOffset = (index * 64.0) - (containerWidth / 2) + 32.0;
+                          final screenWidth = MediaQuery.of(context).size.width;
+                          final containerWidth = (screenWidth > 600 ? 600.0 : screenWidth) - 32.0;
+                          final targetOffset = (index * 64.0) - (containerWidth / 2) + 32.0;
 
-                        _calendarScroller.animateTo(
-                           targetOffset.clamp(0.0, _calendarScroller.position.maxScrollExtent), 
-                           duration: const Duration(milliseconds: 300), 
-                           curve: Curves.easeInOut
-                        );
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              dayName,
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                                color: isSelected ? const Color(0xFFFACC15) : context.colors.textMedium,
+                          _calendarScroller.animateTo(
+                             targetOffset.clamp(0.0, _calendarScroller.position.maxScrollExtent), 
+                             duration: const Duration(milliseconds: 300), 
+                             curve: Curves.easeInOut
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                dayName,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                                  color: isSelected ? const Color(0xFFFACC15) : context.colors.textMedium,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              dayNum,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w900,
-                                color: isSelected ? const Color(0xFFFACC15) : context.colors.textHigh,
+                              const SizedBox(height: 2),
+                              Text(
+                                dayNum,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  color: isSelected ? const Color(0xFFFACC15) : context.colors.textHigh,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      )
-                    );
-                  },
+                            ],
+                          ),
+                        )
+                      );
+                    },
+                  ),
                 ),
               ),
               
@@ -314,25 +322,37 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav> {
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.3)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
           children: [
-            const _BouncingChevron(),
-            const Icon(
-              Icons.calendar_month, 
-              color: Color(0xFFFACC15), 
-              size: 20
-            ),
-            const SizedBox(height: 2),
-            Text(
-              "$dayPrefix $monthStr",
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                color: Color(0xFFFACC15),
+            const Positioned(
+              top: -15,
+              child: Opacity(
+                opacity: 0.8,
+                child: _BouncingChevron(),
               ),
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_month, 
+                  color: Color(0xFFFACC15), 
+                  size: 20
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "$dayPrefix $monthStr",
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: Color(0xFFFACC15),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
