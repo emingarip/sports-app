@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sports_app/widgets/filter_row.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:sports_app/providers/match_provider.dart';
 import 'package:sports_app/theme/app_theme.dart';
+import 'package:sports_app/widgets/filter_row.dart';
+
 import '../helpers/mock_match_repository.dart';
 
 void main() {
@@ -14,7 +15,7 @@ void main() {
       mockRepo = MockMatchRepository();
     });
 
-    testWidgets('renders all four filter chips', (WidgetTester tester) async {
+    testWidgets('renders compact filter controls', (WidgetTester tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -27,20 +28,20 @@ void main() {
         ),
       );
 
-      expect(find.text('All'), findsOneWidget);
-      expect(find.text('Live 🔴'), findsOneWidget);
-      expect(find.text('Starred ⭐'), findsOneWidget);
+      expect(find.text('Live'), findsOneWidget);
       expect(find.text('Finished'), findsOneWidget);
+      expect(find.byIcon(Icons.star_outline_rounded), findsOneWidget);
+      expect(find.text('All'), findsNothing);
     });
 
-    testWidgets('updates global provider state on click', (WidgetTester tester) async {
-      // Create a dedicated container to read state changes natively
+    testWidgets('updates global provider state on click',
+        (WidgetTester tester) async {
       final container = ProviderContainer(
         overrides: [
           matchRepositoryProvider.overrideWithValue(mockRepo),
         ],
       );
-      
+
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -51,22 +52,25 @@ void main() {
         ),
       );
 
-      // Verify Initial State
-      expect(container.read(matchStateProvider).activeFilter, 'All');
+      expect(container.read(matchStateProvider).isAll, isTrue);
+      expect(container.read(matchStateProvider).starredOnly, isFalse);
 
-      // Tap on 'Live 🔴'
-      await tester.tap(find.text('Live 🔴'));
+      await tester.tap(find.text('Live'));
       await tester.pump();
 
-      // Assert state updated
-      expect(container.read(matchStateProvider).activeFilter, 'Live 🔴');
-      
-      // Tap on 'Finished'
+      expect(container.read(matchStateProvider).isLiveOnly, isTrue);
+
       await tester.tap(find.text('Finished'));
       await tester.pump();
-      
-      expect(container.read(matchStateProvider).activeFilter, 'Finished');
-      
+
+      expect(container.read(matchStateProvider).isFinishedOnly, isTrue);
+      expect(container.read(matchStateProvider).isLiveOnly, isFalse);
+
+      await tester.tap(find.byIcon(Icons.star_outline_rounded));
+      await tester.pump();
+
+      expect(container.read(matchStateProvider).starredOnly, isTrue);
+
       container.dispose();
     });
   });
