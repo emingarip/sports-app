@@ -1,0 +1,216 @@
+﻿00:00 +0: loading D:/Projects/SportsApp/test/integration/home_dashboard_test.dart
+flutter : lib/screens/home_dashb
+oard.dart:80:20: Error: The 
+getter 'activeFilter' isn't 
+defined for the type 
+'MatchState'.
+At line:1 char:1
++ flutter test test/integration/
+home_dashboard_test.dart 
+test/widgets/f ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo          : N 
+   otSpecified: (lib/screens/h  
+  om...e 'MatchState'.:String   
+ ) [], RemoteException
+    + FullyQualifiedErrorId : N 
+   ativeCommandError
+ 
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+    if (matchState.activeFilter 
+== 'Senin ─░├ºin Γ£¿') {
+                   ^^^^^^^^^^^^
+lib/screens/home_dashboard.dart:
+149:20: Error: The getter 
+'activeFilter' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+    if (matchState.activeFilter 
+== 'Starred Γ¡É') {
+                   ^^^^^^^^^^^^
+lib/screens/home_dashboard.dart:
+238:20: Error: The getter 
+'activeFilter' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+        matchState.activeFilter 
+== 'All') {
+                   ^^^^^^^^^^^^
+lib/screens/home_dashboard.dart:
+268:32: Error: The getter 
+'activeFilter' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+        isExpanded: 
+matchState.activeFilter != 
+'All' ||
+                               
+^^^^^^^^^^^^
+lib/screens/home_dashboard.dart:
+301:59: Error: The getter 
+'activeFilter' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+    ref.listen<String>(matchStat
+eProvider.select((s) => 
+s.activeFilter),
+                                
+                          
+^^^^^^^^^^^^
+lib/screens/home_dashboard.dart:
+379:56: Error: The getter 
+'activeFilter' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+    final activeFilter = ref.wat
+ch(matchStateProvider).activeFil
+ter;
+                                
+                       
+^^^^^^^^^^^^
+lib/widgets/filter_row.dart:11:5
+6: Error: The getter 
+'activeFilter' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+    final activeFilter = ref.wat
+ch(matchStateProvider).activeFil
+ter;
+                                
+                       
+^^^^^^^^^^^^
+00:00 +0 -1: loading D:/Projects/SportsApp/test/integration/home_dashboard_test.dart [E]
+  Failed to load "D:/Projects/SportsApp/test/integration/home_dashboard_test.dart":
+  Compilation failed for testPath=D:/Projects/SportsApp/test/integration/home_dashboard_test.dart: lib/screens/home_dashboard.dart:80:20: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+      if (matchState.activeFilter == 'Senin ─░├ºin Γ£¿') {
+                     ^^^^^^^^^^^^
+  lib/screens/home_dashboard.dart:149:20: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+      if (matchState.activeFilter == 'Starred Γ¡É') {
+                     ^^^^^^^^^^^^
+  lib/screens/home_dashboard.dart:238:20: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+          matchState.activeFilter == 'All') {
+                     ^^^^^^^^^^^^
+  lib/screens/home_dashboard.dart:268:32: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+          isExpanded: matchState.activeFilter != 'All' ||
+                                 ^^^^^^^^^^^^
+  lib/screens/home_dashboard.dart:301:59: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+      ref.listen<String>(matchStateProvider.select((s) => s.activeFilter),
+                                                            ^^^^^^^^^^^^
+  lib/screens/home_dashboard.dart:379:56: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+      final activeFilter = ref.watch(matchStateProvider).activeFilter;
+                                                         ^^^^^^^^^^^^
+  lib/widgets/filter_row.dart:11:56: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+      final activeFilter = ref.watch(matchStateProvider).activeFilter;
+                                                         ^^^^^^^^^^^^
+  .
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 939:11    DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 733:19                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 726:19                      _CustomZone.run
+  dart:async/zone.dart 625:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 666:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 194:5      _RawReceivePort._handleMessage
+  
+lib/widgets/filter_row.dart:11:5
+6: Error: The getter 
+'activeFilter' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'activeFilter'.
+    final activeFilter = ref.wat
+ch(matchStateProvider).activeFil
+ter;
+                                
+                       
+^^^^^^^^^^^^
+00:00 +0 -2: loading D:/Projects/SportsApp/test/widgets/filter_row_test.dart [E]
+  Failed to load "D:/Projects/SportsApp/test/widgets/filter_row_test.dart":
+  Compilation failed for testPath=D:/Projects/SportsApp/test/widgets/filter_row_test.dart: lib/widgets/filter_row.dart:11:56: Error: The getter 'activeFilter' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'activeFilter'.
+      final activeFilter = ref.watch(matchStateProvider).activeFilter;
+                                                         ^^^^^^^^^^^^
+  .
+00:00 +0 -2: Some tests failed.

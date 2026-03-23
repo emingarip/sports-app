@@ -33,9 +33,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   int _selectedSportIndex = 0;
   final Set<String> _expandedLeagues = {};
   bool _hasInitializedExpansion = false;
+  late final PageController _pageController;
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: 0);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialDateOverride != null) {
@@ -46,6 +48,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     });
 
     // No default expansion on init; wait for live data.
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   List<Widget> _buildLeagueSlivers() {
@@ -76,77 +84,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       ];
     }
 
-    // Flat List for 'Senin İçin ✨' Filter (Personalized via Knowledge Graph)
-    if (matchState.activeFilter == 'Senin İçin ✨') {
-      final personalizedList = ref.watch(personalizedMatchesProvider);
-      
-      if (personalizedList.isEmpty) {
-        return [
-          const EmptyState(message: "Sana özel öneriler oluşturuluyor... Bol bol maç incele!")
-        ];
-      }
-
-      return [
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final match = personalizedList[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Container(
-                      decoration: BoxDecoration(
-                        color: context.colors.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: context.colors.primary.withValues(alpha: 0.3)), // Special border for AI recs
-                      ),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 12, top: 12, right: 12),
-                                child: Row(children: [
-                                  Image.network(
-                                      match.leagueLogoUrl ??
-                                          'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
-                                      width: 14,
-                                      height: 14,
-                                      errorBuilder: (ctx, err, _) =>
-                                          const Icon(Icons.shield, size: 14)),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                        match.leagueName ?? 'Unknown League',
-                                        style: TextStyle(
-                                            fontSize: 10,
-                                            color: context.colors.textLow,
-                                            fontWeight: FontWeight.bold),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                  Icon(Icons.auto_awesome, size: 12, color: context.colors.primary),
-                                  const SizedBox(width: 4),
-                                  Text("Önerilen", style: TextStyle(
-                                      fontSize: 10,
-                                      color: context.colors.primary,
-                                      fontWeight: FontWeight.bold)),
-                                ])),
-                            MatchCard(match: match, hasBorder: false),
-                          ])),
-                );
-              },
-              childCount: personalizedList.length,
-            ),
-          ),
-        )
-      ];
-    }
+    // We removed 'Senin İçin ✨' from here because it's now in Page 1 of the PageView
+    // _buildPersonalizedFeed handles that view.
 
     // Flat Chronological Watchlist for Starred Filter
-    if (matchState.activeFilter == 'Starred ⭐') {
+    if (matchState.isStarredFilter) {
       final starredList = List<model.Match>.from(filtered);
       starredList.sort((a, b) {
         if (a.status != b.status) {
@@ -235,7 +177,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
     if (!_hasInitializedExpansion &&
         sortedLeagues.isNotEmpty &&
-        matchState.activeFilter == 'All') {
+        matchState.statusFilter == StatusFilter.all &&
+        !matchState.isStarredFilter) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
@@ -265,7 +208,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       slivers.add(LeagueGroup(
         league: league,
         matches: matches,
-        isExpanded: matchState.activeFilter != 'All' ||
+        isExpanded: matchState.statusFilter != StatusFilter.all || matchState.isStarredFilter ||
             _expandedLeagues.contains(league.id),
         onToggle: () {
           setState(() {
@@ -298,27 +241,33 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<String>(matchStateProvider.select((s) => s.activeFilter),
+    ref.listen<StatusFilter>(matchStateProvider.select((s) => s.statusFilter),
         (previous, next) {
       if (previous != next) {
         setState(() {
           _expandedLeagues.clear();
           final allMatches = ref.read(matchStateProvider).matches;
-          if (next == 'Live 🔴') {
+          if (next == StatusFilter.live) {
             _expandedLeagues.addAll(allMatches
                 .where((m) => m.status == model.MatchStatus.live)
                 .map((m) => m.leagueId));
-          } else if (next == 'Starred ⭐') {
-            _expandedLeagues.addAll(
-                allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
-          } else if (next == 'Senin İçin ✨') {
-            ref.read(knowledgeGraphProvider.notifier).calculatePersonalizedFeed();
-            // Automatically expand leagues is not applicable since it's a flat list
           } else {
             if (allMatches.isNotEmpty) {
               _expandedLeagues.add(allMatches.first.leagueId);
             }
           }
+        });
+      }
+    });
+
+    ref.listen<bool>(matchStateProvider.select((s) => s.isStarredFilter),
+        (previous, next) {
+      if (previous != next && next) {
+        setState(() {
+          _expandedLeagues.clear();
+          final allMatches = ref.read(matchStateProvider).matches;
+          _expandedLeagues.addAll(
+            allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
         });
       }
     });
@@ -376,7 +325,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     });
 
     var featured = _getFeaturedMatch();
-    final activeFilter = ref.watch(matchStateProvider).activeFilter;
+    final statusFilter = ref.watch(matchStateProvider).statusFilter;
+    final isStarredFilter = ref.watch(matchStateProvider).isStarredFilter;
 
     return Scaffold(
       backgroundColor: context.colors.surfaceContainerLow,
@@ -398,21 +348,40 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     ref.read(calendarOverlayProvider.notifier).setState(false);
                   }
                 },
-                child: CustomScrollView(
-                  slivers: [
-                    _buildAppBar(context),
-                    _buildStickyContext(context),
-                    if (featured != null &&
-                        (activeFilter == 'All' || activeFilter == 'Starred ⭐'))
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 16.0),
-                        sliver: SliverToBoxAdapter(
-                            child: _buildFeaturedMatchCard(featured)),
+                child: NestedScrollView(
+                  headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+                    return <Widget>[
+                      _buildAppBar(context),
+                      _buildStickyContext(context),
+                    ];
+                  },
+                  body: PageView(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      if (index == 1) {
+                        ref.read(knowledgeGraphProvider.notifier).calculatePersonalizedFeed();
+                      }
+                    },
+                    children: [
+                      // Page 0: Main Feed
+                      CustomScrollView(
+                        slivers: [
+                          if (featured != null &&
+                              statusFilter == StatusFilter.all && !isStarredFilter)
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 16.0),
+                              sliver: SliverToBoxAdapter(
+                                  child: _buildFeaturedMatchCard(featured)),
+                            ),
+                          ..._buildLeagueSlivers(),
+                          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                        ],
                       ),
-                    ..._buildLeagueSlivers(),
-                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                  ],
+                      // Page 1: Senin İçin ✨ Feed
+                      _buildPersonalizedFeed(),
+                    ],
+                  ),
                 ),
               ),
               _buildFloatingAudioRoom(),
@@ -424,6 +393,110 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   // --- UI Components below (Top / Bottom app bars) ---
+
+  Widget _buildPersonalizedFeed() {
+    final personalizedList = ref.watch(personalizedMatchesProvider);
+    
+    if (personalizedList.isEmpty) {
+      return CustomScrollView(
+        slivers: [
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 40),
+              child: EmptyState(message: "Sana özel öneriler oluşturuluyor... Bol bol maç incele!"),
+            ),
+          )
+        ]
+      );
+    }
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: context.colors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text("Senin İçin", 
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: context.colors.textHigh,
+                      )
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text("İlgilendiğin maçlara göre yapay zeka tarafından senin için seçildi.", 
+                  style: TextStyle(fontSize: 12, color: context.colors.textMedium)
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final match = personalizedList[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Container(
+                      decoration: BoxDecoration(
+                        color: context.colors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: context.colors.primary.withValues(alpha: 0.3)), // Special border for AI recs
+                      ),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 12, top: 12, right: 12),
+                                child: Row(children: [
+                                  Image.network(
+                                      match.leagueLogoUrl ??
+                                          'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
+                                      width: 14,
+                                      height: 14,
+                                      errorBuilder: (ctx, err, _) =>
+                                          const Icon(Icons.shield, size: 14)),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                        match.leagueName ?? 'Unknown League',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: context.colors.textLow,
+                                            fontWeight: FontWeight.bold),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                  Icon(Icons.auto_awesome, size: 12, color: context.colors.primary),
+                                  const SizedBox(width: 4),
+                                  Text("Önerilen", style: TextStyle(
+                                      fontSize: 10,
+                                      color: context.colors.primary,
+                                      fontWeight: FontWeight.bold)),
+                                ])),
+                            MatchCard(match: match, hasBorder: false),
+                          ])),
+                );
+              },
+              childCount: personalizedList.length,
+            ),
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+      ],
+    );
+  }
 
   SliverAppBar _buildAppBar(BuildContext context) {
     return SliverAppBar(
@@ -558,10 +631,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
               color: context.colors.background.withValues(alpha: 0.85),
-              child: const Column(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  FilterRow(),
+                  const FilterRow(),
+                  // Add a Page indicator dots
+                  _buildPageIndicator(context),
                 ],
               ),
             ),
@@ -817,6 +892,37 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         color: const Color(0xFFFACC15),
         borderRadius: BorderRadius.circular(2),
       ),
+    );
+  }
+
+  Widget _buildPageIndicator(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pageController,
+      builder: (context, child) {
+        double page = 0.0;
+        if (_pageController.position.haveDimensions) {
+          page = _pageController.page ?? 0.0;
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(2, (index) {
+              final isSelected = (page.round() == index);
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                height: 6.0,
+                width: isSelected ? 24.0 : 6.0,
+                decoration: BoxDecoration(
+                  color: isSelected ? context.colors.primary : context.colors.textLow.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(3.0),
+                ),
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 }

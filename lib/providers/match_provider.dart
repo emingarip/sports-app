@@ -9,28 +9,34 @@ final matchRepositoryProvider = Provider<MatchRepository>((ref) {
   return SupabaseMatchProvider();
 });
 
+enum StatusFilter { all, live, finished }
+
 class MatchState {
   final List<model.Match> matches;
-  final String activeFilter;
+  final StatusFilter statusFilter;
+  final bool isStarredFilter;
   final DateTime selectedDate;
   final bool isLoading;
 
   MatchState({
     required this.matches,
-    required this.activeFilter,
+    required this.statusFilter,
+    required this.isStarredFilter,
     required this.selectedDate,
     this.isLoading = false,
   });
 
   MatchState copyWith({
     List<model.Match>? matches,
-    String? activeFilter,
+    StatusFilter? statusFilter,
+    bool? isStarredFilter,
     DateTime? selectedDate,
     bool? isLoading,
   }) {
     return MatchState(
       matches: matches ?? this.matches,
-      activeFilter: activeFilter ?? this.activeFilter,
+      statusFilter: statusFilter ?? this.statusFilter,
+      isStarredFilter: isStarredFilter ?? this.isStarredFilter,
       selectedDate: selectedDate ?? this.selectedDate,
       isLoading: isLoading ?? this.isLoading,
     );
@@ -53,7 +59,12 @@ class MatchNotifier extends Notifier<MatchState> {
       _pollingTimer?.cancel();
     });
 
-    return MatchState(matches: [], activeFilter: 'All', selectedDate: DateTime.now());
+    return MatchState(
+      matches: [], 
+      statusFilter: StatusFilter.all, 
+      isStarredFilter: false,
+      selectedDate: DateTime.now()
+    );
   }
 
   void _initStream() {
@@ -80,8 +91,12 @@ class MatchNotifier extends Notifier<MatchState> {
     });
   }
 
-  void setFilter(String filter) {
-    state = state.copyWith(activeFilter: filter);
+  void setFilter(StatusFilter filter) {
+    state = state.copyWith(statusFilter: filter);
+  }
+  
+  void toggleStarred() {
+    state = state.copyWith(isStarredFilter: !state.isStarredFilter);
   }
 
   Future<void> setDate(DateTime date) async {
@@ -130,12 +145,13 @@ final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
       return false;
     }
 
-    if (matchState.activeFilter == 'Starred ⭐') {
-      return favorites.contains(m.id);
+    if (matchState.isStarredFilter && !favorites.contains(m.id)) {
+      return false;
     }
 
-    if (matchState.activeFilter == 'Live 🔴') return m.status == model.MatchStatus.live;
-    if (matchState.activeFilter == 'Finished') return m.status == model.MatchStatus.finished;
+    if (matchState.statusFilter == StatusFilter.live && m.status != model.MatchStatus.live) return false;
+    if (matchState.statusFilter == StatusFilter.finished && m.status != model.MatchStatus.finished) return false;
+
     return true;
   }).toList();
 });

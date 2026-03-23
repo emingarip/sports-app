@@ -1,0 +1,150 @@
+﻿00:00 +0: loading D:/Projects/SportsApp/test/widgets/filter_row_test.dart
+flutter : test/widgets/filter_ro
+w_test.dart:55:49: Error: The 
+getter 'isAll' isn't defined 
+for the type 'MatchState'.
+At line:1 char:1
++ flutter test test/widgets/filt
+er_row_test.dart > 
+filter_test.txt 2>&1 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo          : N 
+   otSpecified: (test/widgets/  
+  fi...e 'MatchState'.:String   
+ ) [], RemoteException
+    + FullyQualifiedErrorId : N 
+   ativeCommandError
+ 
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'isAll'.
+      expect(container.read(matc
+hStateProvider).isAll, isTrue);
+                                
+                ^^^^^
+test/widgets/filter_row_test.dar
+t:56:49: Error: The getter 
+'starredOnly' isn't defined for 
+the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'starredOnly'.
+      expect(container.read(matc
+hStateProvider).starredOnly, 
+isFalse);
+                                
+                ^^^^^^^^^^^
+test/widgets/filter_row_test.dar
+t:61:49: Error: The getter 
+'isLiveOnly' isn't defined for 
+the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'isLiveOnly'.
+      expect(container.read(matc
+hStateProvider).isLiveOnly, 
+isTrue);
+                                
+                ^^^^^^^^^^
+test/widgets/filter_row_test.dar
+t:66:49: Error: The getter 
+'isFinishedOnly' isn't defined 
+for the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'isFinishedOnly'.
+      expect(container.read(matc
+hStateProvider).isFinishedOnly, 
+isTrue);
+                                
+                ^^^^^^^^^^^^^^
+test/widgets/filter_row_test.dar
+t:67:49: Error: The getter 
+'isLiveOnly' isn't defined for 
+the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'isLiveOnly'.
+      expect(container.read(matc
+hStateProvider).isLiveOnly, 
+isFalse);
+                                
+                ^^^^^^^^^^
+test/widgets/filter_row_test.dar
+t:72:49: Error: The getter 
+'starredOnly' isn't defined for 
+the type 'MatchState'.
+ - 'MatchState' is from 'package
+:sports_app/providers/match_prov
+ider.dart' ('lib/providers/match
+_provider.dart').
+Try correcting the name to the 
+name of an existing getter, or 
+defining a getter or field 
+named 'starredOnly'.
+      expect(container.read(matc
+hStateProvider).starredOnly, 
+isTrue);
+                                
+                ^^^^^^^^^^^
+00:00 +0 -1: loading D:/Projects/SportsApp/test/widgets/filter_row_test.dart [E]
+  Failed to load "D:/Projects/SportsApp/test/widgets/filter_row_test.dart":
+  Compilation failed for testPath=D:/Projects/SportsApp/test/widgets/filter_row_test.dart: test/widgets/filter_row_test.dart:55:49: Error: The getter 'isAll' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'isAll'.
+        expect(container.read(matchStateProvider).isAll, isTrue);
+                                                  ^^^^^
+  test/widgets/filter_row_test.dart:56:49: Error: The getter 'starredOnly' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'starredOnly'.
+        expect(container.read(matchStateProvider).starredOnly, isFalse);
+                                                  ^^^^^^^^^^^
+  test/widgets/filter_row_test.dart:61:49: Error: The getter 'isLiveOnly' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'isLiveOnly'.
+        expect(container.read(matchStateProvider).isLiveOnly, isTrue);
+                                                  ^^^^^^^^^^
+  test/widgets/filter_row_test.dart:66:49: Error: The getter 'isFinishedOnly' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'isFinishedOnly'.
+        expect(container.read(matchStateProvider).isFinishedOnly, isTrue);
+                                                  ^^^^^^^^^^^^^^
+  test/widgets/filter_row_test.dart:67:49: Error: The getter 'isLiveOnly' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'isLiveOnly'.
+        expect(container.read(matchStateProvider).isLiveOnly, isFalse);
+                                                  ^^^^^^^^^^
+  test/widgets/filter_row_test.dart:72:49: Error: The getter 'starredOnly' isn't defined for the type 'MatchState'.
+   - 'MatchState' is from 'package:sports_app/providers/match_provider.dart' ('lib/providers/match_provider.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'starredOnly'.
+        expect(container.read(matchStateProvider).starredOnly, isTrue);
+                                                  ^^^^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.

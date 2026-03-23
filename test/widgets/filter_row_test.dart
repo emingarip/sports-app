@@ -28,11 +28,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Live 🔴'), findsOneWidget);
-      expect(find.text('Finished'), findsOneWidget);
-      expect(find.text('Starred ⭐'), findsOneWidget);
-      expect(find.text('All'), findsOneWidget);
-      expect(find.text('Senin İçin ✨'), findsOneWidget);
+      expect(find.text('Canlı'), findsOneWidget);
+      expect(find.text('Biten'), findsOneWidget);
+      expect(find.text('Favoriler'), findsOneWidget);
     });
 
     testWidgets('updates global provider state on click',
@@ -53,22 +51,26 @@ void main() {
         ),
       );
 
-      expect(container.read(matchStateProvider).activeFilter, 'All');
+      expect(container.read(matchStateProvider).statusFilter, StatusFilter.all);
+      expect(container.read(matchStateProvider).isStarredFilter, false);
 
-      await tester.tap(find.text('Live 🔴'));
+      await tester.tap(find.text('Canlı'));
       await tester.pump();
 
-      expect(container.read(matchStateProvider).activeFilter, 'Live 🔴');
+      expect(container.read(matchStateProvider).statusFilter, StatusFilter.live);
+      expect(container.read(matchStateProvider).isStarredFilter, false);
 
-      await tester.tap(find.text('Finished'));
+      await tester.tap(find.text('Biten'));
       await tester.pump();
 
-      expect(container.read(matchStateProvider).activeFilter, 'Finished');
+      expect(container.read(matchStateProvider).statusFilter, StatusFilter.finished);
+      expect(container.read(matchStateProvider).isStarredFilter, false);
 
-      await tester.tap(find.text('Starred ⭐'));
+      await tester.tap(find.text('Favoriler'));
       await tester.pump();
 
-      expect(container.read(matchStateProvider).activeFilter, 'Starred ⭐');
+      expect(container.read(matchStateProvider).statusFilter, StatusFilter.finished);
+      expect(container.read(matchStateProvider).isStarredFilter, true);
 
       container.dispose();
     });

@@ -70,7 +70,7 @@ void main() {
         expect(find.text('Chelsea'), findsOneWidget);
         expect(find.text('Real Madrid'), findsOneWidget);
         
-        await tester.tap(find.text('Live 🔴'));
+        await tester.tap(find.text('Canlı'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
         
@@ -78,9 +78,14 @@ void main() {
         expect(find.text('Chelsea'), findsNothing);
         expect(find.text('Real Madrid'), findsNothing);
         
-        await tester.ensureVisible(find.text('Starred ⭐'));
+        // Disable "Canlı" toggle to go back to ALL
+        await tester.tap(find.text('Canlı'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
+
+        await tester.ensureVisible(find.text('Favoriler'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Starred ⭐'));
+        await tester.tap(find.text('Favoriler'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
         
@@ -102,7 +107,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
 
-        await tester.tap(find.text('Live 🔴'));
+        await tester.tap(find.text('Canlı'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
 
