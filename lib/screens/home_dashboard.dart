@@ -17,6 +17,7 @@ import 'package:flutter/services.dart';
 import 'package:shimmer/shimmer.dart';
 import '../widgets/match_card.dart';
 import '../providers/notification_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../widgets/notification_bell.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
@@ -32,24 +33,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   int _selectedSportIndex = 0;
   final Set<String> _expandedLeagues = {};
   bool _hasInitializedExpansion = false;
-  late final ScrollController _calendarScroller;
-
   @override
   void initState() {
     super.initState();
-    _calendarScroller = ScrollController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialDateOverride != null) {
         ref.read(matchStateProvider.notifier).setDate(widget.initialDateOverride!);
-      }
-      
-      // Initial centering of the calendar on today (index 10000)
-      if (_calendarScroller.hasClients) {
-         final screenWidth = MediaQuery.of(context).size.width;
-         final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
-         final centerOffset = (10000 * 72.0) - (containerWidth / 2) + 36.0;
-         _calendarScroller.jumpTo(centerOffset);
       }
     });
 
@@ -283,21 +273,29 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           ),
           child: Stack(
             children: [
-              CustomScrollView(
-                slivers: [
-                  _buildAppBar(context),
-                  _buildStickyContext(context),
-                  
-                  if (featured != null && (activeFilter == 'All' || activeFilter == 'Starred ⭐'))
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                      sliver: SliverToBoxAdapter(child: _buildFeaturedMatchCard(featured)),
-                    ),
+              Listener(
+                behavior: HitTestBehavior.deferToChild,
+                onPointerDown: (_) {
+                  if (ref.read(calendarOverlayProvider)) {
+                    ref.read(calendarOverlayProvider.notifier).setState(false);
+                  }
+                },
+                child: CustomScrollView(
+                  slivers: [
+                    _buildAppBar(context),
+                    _buildStickyContext(context),
+                    
+                    if (featured != null && (activeFilter == 'All' || activeFilter == 'Starred ⭐'))
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                        sliver: SliverToBoxAdapter(child: _buildFeaturedMatchCard(featured)),
+                      ),
 
-                  ..._buildLeagueSlivers(),
+                    ..._buildLeagueSlivers(),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                ],
+                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  ],
+                ),
               ),
               _buildFloatingAudioRoom(),
               _buildBottomNavBar(),
@@ -415,8 +413,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   Widget _buildStickyContext(BuildContext context) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final dynamicHeight = 60.0 + (74.0 * textScale);
+    final dynamicHeight = 60.0;
     
     return SliverPersistentHeader(
       pinned: true,
@@ -430,185 +427,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               color: context.colors.background.withOpacity(0.85),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildDateNavigatorContent(context),
-                  const FilterRow(),
+                children: const [
+                  FilterRow(),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateNavigatorContent(BuildContext context) {
-    final selectedDate = ref.watch(matchStateProvider).selectedDate;
-    final now = DateTime.now();
-    
-    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
-    
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-      child: Stack(
-         alignment: Alignment.center,
-         children: [
-           SizedBox(
-            height: 25.0 + (45.0 * textScale), // Scales dynamically to prevent RenderFlex
-            child: ListView.builder(
-              controller: _calendarScroller,
-              scrollDirection: Axis.horizontal,
-              itemExtent: 72.0,
-              itemCount: 20000,
-              itemBuilder: (context, index) {
-                 final int offsetFromToday = index - 10000;
-                 final date = now.add(Duration(days: offsetFromToday));
-                 
-                 final isSelected = date.year == selectedDate.year &&
-                                    date.month == selectedDate.month &&
-                                    date.day == selectedDate.day;
-                 
-                 final isToday = date.year == now.year &&
-                                 date.month == now.month &&
-                                 date.day == now.day;
-
-                 final days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-                 final weekdayStr = days[date.weekday - 1];
-                 
-                 String dayStr = isToday ? 'TODAY' : weekdayStr;
-                 String numStr = isSelected ? '$weekdayStr ${date.day}' : '${date.day}';
-
-                 return GestureDetector(
-                   key: ValueKey('date_tab_$offsetFromToday'),
-                   behavior: HitTestBehavior.opaque,
-                   onTap: () {
-                     HapticFeedback.lightImpact();
-                     ref.read(matchStateProvider.notifier).setDate(date);
-                     
-                     // Smooth center
-                     final screenWidth = MediaQuery.of(context).size.width;
-                     final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
-                     final targetOffset = (index * 72.0) - (containerWidth / 2) + 36.0;
-                     _calendarScroller.animateTo(
-                        targetOffset.clamp(0.0, _calendarScroller.position.maxScrollExtent), 
-                        duration: const Duration(milliseconds: 300), 
-                        curve: Curves.easeInOut
-                     );
-                   },
-                   child: SizedBox(
-                     width: 72,
-                     child: _buildRefinedDateTab(dayStr, numStr, isSelected, isToday),
-                   )
-                 );
-              },
-            ),
-          ),
-          
-          AnimatedBuilder(
-            animation: _calendarScroller,
-            builder: (context, child) {
-              bool showSnapBtn = false;
-              if (_calendarScroller.hasClients) {
-                 final screenWidth = MediaQuery.of(context).size.width;
-                 final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
-                 final centerOffset = (10000 * 72.0) - (containerWidth / 2) + 36.0;
-                 final currentOffset = _calendarScroller.offset;
-                 
-                 final differenceInPixels = (currentOffset - centerOffset).abs();
-                 // Show button if scrolled 7 days (7 * 72.0 pixels) away
-                 if (differenceInPixels >= (7 * 72.0)) {
-                    showSnapBtn = true;
-                 }
-              }
-
-              return Positioned(
-                 right: 16,
-                 child: IgnorePointer(
-                   ignoring: !showSnapBtn,
-                   child: AnimatedOpacity(
-                     opacity: showSnapBtn ? 1.0 : 0.0, 
-                     duration: const Duration(milliseconds: 300),
-                     child: InkWell(
-                        onTap: () {
-                           HapticFeedback.selectionClick();
-                           ref.read(matchStateProvider.notifier).setDate(now);
-                           final screenWidth = MediaQuery.of(context).size.width;
-                           final containerWidth = screenWidth > 600 ? 600.0 : screenWidth;
-                           final targetOffset = (10000 * 72.0) - (containerWidth / 2) + 36.0;
-                           _calendarScroller.animateTo(targetOffset, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                        },
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                           decoration: BoxDecoration(
-                              color: context.colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))]
-                           ),
-                           child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.today, size: 14, color: context.colors.onPrimaryContainer),
-                                const SizedBox(width: 4),
-                                Text("Bugün", style: TextStyle(color: context.colors.onPrimaryContainer, fontWeight: FontWeight.bold, fontSize: 12)),
-                              ]
-                           )
-                        ),
-                     )
-                   ),
-                 ),
-              );
-            }
-          ),
-         ]
-      )
-    );
-  }
-
-  Widget _buildRefinedDateTab(String day, String num, bool isSelected, [bool isToday = false]) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: isSelected
-          ? BoxDecoration(
-              color: context.colors.primaryContainer,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-            )
-          : const BoxDecoration(color: Colors.transparent),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              day,
-              style: TextStyle(
-                fontSize: isSelected ? 9 : 10,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              num,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
-              ),
-            ),
-            if (isToday)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isSelected ? context.colors.onPrimaryContainer : context.colors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
         ),
       ),
     );

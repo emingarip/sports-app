@@ -120,18 +120,17 @@ void main() {
         expect(find.text('TodayTeam'), findsOneWidget);
         expect(find.text('TomorrowTeam'), findsNothing);
 
-        // Tap tomorrow's date tab
-        // Tomorrow is offsetFromToday = 1
-        await tester.tap(find.byKey(const ValueKey('date_tab_1')));
+        // UI Calendar was refactored into a bottom-nav overlay
+        // We simulate the date change by pushing state natively into the provider just like the overlay does.
+        final element = tester.element(find.byType(HomeDashboard));
+        final container = ProviderScope.containerOf(element);
+        container.read(matchStateProvider.notifier).setDate(tomorrow);
+        
         await tester.pumpAndSettle();
 
         // Should now show tomorrow's matches
         expect(find.text('TodayTeam'), findsNothing);
         expect(find.text('TomorrowTeam'), findsOneWidget);
-        
-        // Tap "Live" button. Date filter should be overridden.
-        // Wait, "TomorrowTeam" is upcoming, so if we click Live it will show empty.
-        // Let's just tap back to today using 'TODAY' text or '<'.
       });
     });
   });

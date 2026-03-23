@@ -10,3 +10,14 @@ class NavigationNotifier extends Notifier<int> {
 }
 
 final navigationProvider = NotifierProvider<NavigationNotifier, int>(NavigationNotifier.new);
+
+class CalendarOverlayNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setState(bool isVisible) {
+    state = isVisible;
+  }
+}
+
+final calendarOverlayProvider = NotifierProvider<CalendarOverlayNotifier, bool>(CalendarOverlayNotifier.new);
