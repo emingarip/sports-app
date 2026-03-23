@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/onboarding_provider.dart';
 import 'components/progress_top_line.dart';
 import 'components/step_label.dart';
 import 'components/onboarding_header.dart';
 import 'components/onboarding_bottom_bar.dart';
 import 'notification_prefs_screen.dart';
 
-class PickCompetitionsScreen extends StatefulWidget {
+class PickCompetitionsScreen extends ConsumerStatefulWidget {
   const PickCompetitionsScreen({super.key});
 
   @override
-  State<PickCompetitionsScreen> createState() => _PickCompetitionsScreenState();
+  ConsumerState<PickCompetitionsScreen> createState() => _PickCompetitionsScreenState();
 }
 
-class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
+class _PickCompetitionsScreenState extends ConsumerState<PickCompetitionsScreen> {
   final List<Map<String, dynamic>> _competitions = [
     {"title": "Trendyol Super Lig", "subtitle": "Turkey", "icon": Icons.emoji_events, "isLogo": false},
     {"title": "Premier League", "subtitle": "England", "abbr": "PL", "isLogo": true},
@@ -21,21 +23,15 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
     {"title": "UEFA Champions League", "subtitle": "Europe", "icon": Icons.emoji_events, "isLogo": false},
     {"title": "Serie A", "subtitle": "Italy", "abbr": "SA", "isLogo": true}
   ];
-  final Set<String> _selected = {};
 
   void _toggleCompetition(String title) {
-    setState(() {
-      if (_selected.contains(title)) {
-        _selected.remove(title);
-      } else {
-        _selected.add(title);
-      }
-    });
+    ref.read(onboardingProvider.notifier).toggleCompetition(title);
   }
 
   Widget _buildCompetitionItem(Map<String, dynamic> comp, bool isFirst) {
     final title = comp["title"];
-    final isSelected = _selected.contains(title);
+    final selectedCompetitions = ref.watch(onboardingProvider).selectedCompetitions;
+    final isSelected = selectedCompetitions.contains(title);
 
     return GestureDetector(
       onTap: () => _toggleCompetition(title),
@@ -45,7 +41,7 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: isSelected ? context.colors.surfaceContainerLow : Colors.transparent,
-          border: isFirst ? null : Border(top: BorderSide(color: context.colors.surfaceContainerHighest.withOpacity(0.4))),
+          border: isFirst ? null : Border(top: BorderSide(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.4))),
         ),
         child: Row(
           children: [
@@ -64,7 +60,7 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                         width: double.infinity,
                         height: double.infinity,
                         decoration: BoxDecoration(
-                          color: context.colors.surfaceContainerHighest.withOpacity(0.5),
+                          color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -83,7 +79,7 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                         width: double.infinity,
                         height: double.infinity,
                         decoration: BoxDecoration(
-                          color: context.colors.primaryContainer.withOpacity(0.15),
+                          color: context.colors.primaryContainer.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -134,7 +130,7 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                   width: 2,
                 ),
                 boxShadow: isSelected 
-                    ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))]
+                    ? [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.4), blurRadius: 4, offset: const Offset(0, 2))]
                     : [],
               ),
               child: isSelected 
@@ -149,6 +145,8 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedCompetitions = ref.watch(onboardingProvider).selectedCompetitions;
+
     return Scaffold(
       backgroundColor: context.colors.background,
       body: SafeArea(
@@ -178,7 +176,7 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: context.colors.textHigh.withOpacity(0.06),
+                                color: context.colors.textHigh.withValues(alpha: 0.06),
                                 blurRadius: 32,
                                 offset: const Offset(0, 12),
                               )
@@ -226,8 +224,8 @@ class _PickCompetitionsScreenState extends State<PickCompetitionsScreen> {
             
             // Sticky Action Bar
             OnboardingBottomBar(
-              primaryText: _selected.isNotEmpty ? "CONTINUE (${_selected.length})" : "CONTINUE",
-              onPrimaryPressed: _selected.isNotEmpty ? () {
+              primaryText: selectedCompetitions.isNotEmpty ? "CONTINUE (${selectedCompetitions.length})" : "CONTINUE",
+              onPrimaryPressed: selectedCompetitions.isNotEmpty ? () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const NotificationPrefsScreen()),
                 );
