@@ -492,7 +492,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                    },
                    child: SizedBox(
                      width: 72,
-                     child: _buildRefinedDateTab(dayStr, numStr, isSelected),
+                     child: _buildRefinedDateTab(dayStr, numStr, isSelected, isToday),
                    )
                  );
               },
@@ -560,7 +560,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     );
   }
 
-  Widget _buildRefinedDateTab(String day, String num, bool isSelected) {
+  Widget _buildRefinedDateTab(String day, String num, bool isSelected, [bool isToday = false]) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: isSelected
@@ -576,25 +576,35 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-          Text(
-            day,
-            style: TextStyle(
-              fontSize: isSelected ? 9 : 10,
-              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-              color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
+            Text(
+              day,
+              style: TextStyle(
+                fontSize: isSelected ? 9 : 10,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            num,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
+            const SizedBox(height: 2),
+            Text(
+              num,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: isSelected ? context.colors.onPrimaryContainer : context.colors.textLow,
+              ),
             ),
-          ),
-        ],
-      ),
+            if (isToday)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isSelected ? context.colors.onPrimaryContainer : context.colors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
