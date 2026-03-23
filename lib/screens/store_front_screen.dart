@@ -142,7 +142,7 @@ class StoreFrontScreen extends ConsumerWidget {
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to claim reward: \$e')),
+                    const SnackBar(content: Text('Failed to claim reward: \$e')),
                   );
                 }
               }
@@ -207,7 +207,7 @@ class StoreFrontScreen extends ConsumerWidget {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Purchase failed: \$e')),
+                      const SnackBar(content: Text('Purchase failed: \$e')),
                     );
                   }
                 }

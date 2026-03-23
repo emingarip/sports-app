@@ -177,7 +177,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
           ),
           child: Icon(icon, color: context.colors.primary, size: 20),
         ),
-        activeColor: context.colors.onPrimaryContainer,
+        activeThumbColor: context.colors.onPrimaryContainer,
         activeTrackColor: context.colors.primaryContainer,
         inactiveThumbColor: context.colors.textMedium,
         inactiveTrackColor: context.colors.surfaceContainerHigh,

@@ -78,6 +78,8 @@ void main() {
         expect(find.text('Chelsea'), findsNothing);
         expect(find.text('Real Madrid'), findsNothing);
         
+        await tester.ensureVisible(find.text('Starred ⭐'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Starred ⭐'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));

@@ -16,6 +16,7 @@ class FilterRow extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
+          _buildFilterChip(context, ref, 'Senin İçin ✨', activeFilter),
           _buildFilterChip(context, ref, 'Live 🔴', activeFilter),
           _buildFilterChip(context, ref, 'All', activeFilter),
           _buildFilterChip(context, ref, 'Finished', activeFilter),
