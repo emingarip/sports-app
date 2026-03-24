@@ -126,7 +126,7 @@ class _ParticipantAvatar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          participant.name.isNotEmpty ? participant.name : 'Unknown',
+          participant.name.isNotEmpty ? '@${participant.name}' : 'Unknown',
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

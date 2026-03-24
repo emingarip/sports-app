@@ -128,6 +128,23 @@ class SupabaseService {
     }
   }
 
+  Future<bool> isUsernameAvailable(String username) async {
+    try {
+      if (username.trim().isEmpty) return false;
+      
+      final response = await client
+          .from('users')
+          .select('id')
+          .eq('username', username.trim())
+          .maybeSingle();
+          
+      return response == null; // Available if no existing row is found
+    } catch (e) {
+      debugPrint('Error checking username availability: $e');
+      return false; 
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getUserBets(String userId) async {
     try {
       final response = await client

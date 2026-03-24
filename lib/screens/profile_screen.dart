@@ -165,7 +165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _profile!.username,
+              '@${_profile!.username}',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,

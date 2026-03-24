@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
@@ -17,6 +18,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _usernameController;
   late TextEditingController _avatarUrlController;
   bool _isSaving = false;
+  
+  bool _isCheckingUsername = false;
+  bool _isUsernameAvailable = true;
+  String? _usernameError;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -27,18 +33,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _usernameController.dispose();
     _avatarUrlController.dispose();
     super.dispose();
+  }
+  
+  void _onUsernameChanged(String value) {
+    setState(() {}); // Updates avatar preview
+    
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    
+    final RegExp usernameRegExp = RegExp(r'^[a-z0-9_]{3,15}$');
+    final trimmed = value.trim();
+    
+    if (trimmed.isEmpty) {
+      setState(() {
+        _usernameError = 'Kullanıcı adı boş olamaz.';
+        _isUsernameAvailable = false; 
+      });
+      return;
+    } else if (!usernameRegExp.hasMatch(trimmed)) {
+       setState(() {
+        _usernameError = '3-15 krt. Sadece küçük harf, rakam ve alt tire.';
+        _isUsernameAvailable = false; 
+      });
+      return;
+    } else if (trimmed == widget.profile.username) {
+       setState(() {
+        _usernameError = null;
+        _isUsernameAvailable = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _usernameError = null;
+      _isCheckingUsername = true;
+    });
+
+    _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
+      final available = await SupabaseService().isUsernameAvailable(trimmed);
+      if (mounted) {
+        setState(() {
+          _isCheckingUsername = false;
+          _isUsernameAvailable = available;
+          if (!available) {
+            _usernameError = 'Bu kullanıcı adı zaten alınmış.';
+          }
+        });
+      }
+    });
   }
 
   Future<void> _handleSave() async {
     final newUsername = _usernameController.text.trim();
     final newAvatarUrl = _avatarUrlController.text.trim();
 
-    if (newUsername.isEmpty) {
+    if (newUsername.isEmpty || _usernameError != null || (!_isUsernameAvailable && newUsername != widget.profile.username)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username cannot be empty.')),
+        const SnackBar(content: Text('Lütfen geçerli bir kullanıcı adı belirleyin.')),
       );
       return;
     }
@@ -131,16 +185,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               _buildAvatarPreview(),
               const SizedBox(height: 32),
-              _buildInputField(
-                label: 'USERNAME',
-                controller: _usernameController,
-                icon: Icons.person_outline,
-              ),
+              
+              // Custom Input Field for Username
+              _buildUsernameField(),
+              
               const SizedBox(height: 24),
               _buildInputField(
                 label: 'AVATAR URL',
                 controller: _avatarUrlController,
                 icon: Icons.image_outlined,
+                onChanged: (_) => setState(() {}),
                 hint: 'https://example.com/avatar.png',
               ),
             ],
@@ -182,10 +236,85 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Widget _buildUsernameField() {
+    Widget? suffixIcon;
+    var borderColor = context.colors.surfaceContainerLow;
+    var iconColor = context.colors.textLow;
+
+    if (_isCheckingUsername) {
+      suffixIcon = Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: SizedBox(
+          width: 16, height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.primary),
+        ),
+      );
+    } else if (_usernameController.text.trim().isNotEmpty && _usernameController.text.trim() != widget.profile.username) {
+      if (_isUsernameAvailable && _usernameError == null) {
+        suffixIcon = const Icon(Icons.check_circle, color: Colors.green);
+        borderColor = Colors.green;
+        iconColor = Colors.green;
+      } else {
+        suffixIcon = const Icon(Icons.error, color: Colors.red);
+        borderColor = Colors.red;
+        iconColor = Colors.red;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'USERNAME',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1,
+            color: context.colors.textMedium,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _usernameController,
+          onChanged: _onUsernameChanged,
+          style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.textHigh),
+          decoration: InputDecoration(
+            hintText: 'cool_user123',
+            prefixIcon: Icon(Icons.person_outline, color: iconColor),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: context.colors.surfaceContainerLowest,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: _usernameError != null ? Colors.red : context.colors.primaryContainer, width: 2),
+            ),
+          ),
+        ),
+        if (_usernameError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, left: 16.0),
+            child: Text(
+              _usernameError!,
+              style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildInputField({
     required String label,
     required TextEditingController controller,
     required IconData icon,
+    void Function(String)? onChanged,
     String? hint,
   }) {
     return Column(
@@ -203,7 +332,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          onChanged: (_) => setState(() {}), // Triggers avatar preview update
+          onChanged: onChanged,
           style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.textHigh),
           decoration: InputDecoration(
             hintText: hint,
@@ -228,3 +357,4 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 }
+

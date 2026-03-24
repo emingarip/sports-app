@@ -11,6 +11,8 @@ import 'ai_match_insights_screen.dart';
 import 'prediction_market_screen.dart';
 import 'leaderboard_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/username_setup_dialog.dart';
+import '../services/supabase_service.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   const MainLayout({super.key});
@@ -25,7 +27,27 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(pushNotificationServiceProvider).initialize();
+      _checkUsernameRequirement();
     });
+  }
+
+  Future<void> _checkUsernameRequirement() async {
+    final user = SupabaseService().getCurrentUser();
+    if (user != null) {
+      final profile = await SupabaseService().getUserProfile(user.id);
+      if (profile == null) return;
+      
+      final username = profile['username'] as String?;
+      
+      if (username == null || username.trim().isEmpty) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const UsernameSetupDialog(),
+        );
+      }
+    }
   }
 
   @override
