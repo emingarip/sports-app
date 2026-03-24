@@ -74,15 +74,15 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     return const VoiceRoomState();
   }
 
-  Future<void> joinRoom(String roomName) async {
+  Future<void> joinRoom(String roomName, {bool forceIsHost = false}) async {
     state = state.copyWith(isConnecting: true, error: null);
     
     try {
       final user = SupabaseService.client.auth.currentUser;
       final participantName = user?.userMetadata?['username'] ?? user?.email ?? 'Anonymous';
 
-      bool isHost = false;
-      if (user != null) {
+      bool isHost = forceIsHost;
+      if (!isHost && user != null) {
         final roomData = await SupabaseService.client
             .from('audio_rooms')
             .select('host_id')
@@ -134,7 +134,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         });
       }
       
-      await joinRoom(uniqueRoomName);
+      await joinRoom(uniqueRoomName, forceIsHost: true);
     } catch (e) {
       state = state.copyWith(
         isConnecting: false,
