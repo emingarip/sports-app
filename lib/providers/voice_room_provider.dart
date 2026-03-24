@@ -130,7 +130,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     }
   }
 
-  Future<void> createAndJoinRoom(String matchId, String baseRoomName) async {
+  Future<void> createAndJoinRoom(String matchId, String baseRoomName, {bool isPrivate = false, String? pinCode}) async {
     final uniqueRoomName = '${baseRoomName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     
     state = state.copyWith(isConnecting: true, error: null);
@@ -143,6 +143,8 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
           'match_id': matchId,
           'status': 'active',
           'listener_count': 0,
+          'is_private': isPrivate,
+          if (isPrivate && pinCode != null) 'pin_code': pinCode,
         });
       }
       

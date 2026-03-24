@@ -487,8 +487,12 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
 
     return GestureDetector(
       onTap: () {
-        ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+        if (room.isPrivate) {
+          _showPinEntryDialog(room);
+        } else {
+          ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -547,11 +551,11 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6),
+                                color: room.isPrivate ? const Color(0xFFEAB308) : const Color(0xFF3B82F6),
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.white, width: 2),
                               ),
-                              child: const Icon(Icons.verified, color: Colors.white, size: 10),
+                              child: Icon(room.isPrivate ? Icons.lock : Icons.verified, color: Colors.white, size: 10),
                             ),
                           ),
                         ],
@@ -668,21 +672,170 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   void _showCreateMatchRoomDialog() {
     final TextEditingController roomController = TextEditingController(
         text: '${widget.match.homeTeam} vs ${widget.match.awayTeam} Sohbeti');
+    final TextEditingController pinController = TextEditingController();
+    bool isPrivate = false;
 
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: context.colors.surfaceContainerHigh,
+              title: const Text('🗣️ Canlı Oda Başlat', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: roomController,
+                    decoration: InputDecoration(
+                      hintText: 'Oda Adı',
+                      filled: true,
+                      fillColor: context.colors.surfaceContainerLow,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Gizli Oda (Şifreli)', style: TextStyle(color: context.colors.textMedium)),
+                      Switch(
+                        value: isPrivate,
+                        onChanged: (val) => setState(() => isPrivate = val),
+                        activeColor: context.colors.primary,
+                      ),
+                    ],
+                  ),
+                  if (isPrivate) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: pinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      decoration: InputDecoration(
+                        hintText: '4 Haneli PIN',
+                        filled: true,
+                        fillColor: context.colors.surfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        counterText: '',
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('İptal', style: TextStyle(color: context.colors.textMedium)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.colors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final roomName = roomController.text.trim();
+                    final pinCode = pinController.text.trim();
+
+                    if (roomName.isNotEmpty) {
+                      if (isPrivate && (pinCode.length != 4 || int.tryParse(pinCode) == null)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Lütfen 4 haneli sayısal bir PIN giriniz.')),
+                        );
+                        return;
+                      }
+
+                      // Show loading indicator
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(child: CircularProgressIndicator()),
+                      );
+
+                      try {
+                        // Check if user is already hosting a room
+                        final userId = Supabase.instance.client.auth.currentUser?.id;
+                        if (userId != null) {
+                          final existingRooms = await Supabase.instance.client
+                              .from('audio_rooms')
+                              .select('id')
+                              .eq('host_id', userId)
+                              .eq('status', 'active');
+                          
+                          if (!context.mounted) return;
+
+                          if (existingRooms.isNotEmpty) {
+                            Navigator.of(context).pop(); // close loading
+                            Navigator.of(context).pop(); // close dialog
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Zaten aktif bir odanız bulunuyor. Önce onu kapatmalısınız.'),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
+                        }
+
+                        ref.read(voiceRoomProvider.notifier).createAndJoinRoom(
+                          widget.match.id, 
+                          roomName,
+                          isPrivate: isPrivate,
+                          pinCode: isPrivate ? pinCode : null,
+                        );
+                        
+                        if (!context.mounted) return;
+                        Navigator.of(context).pop(); // close loading
+                        Navigator.of(context).pop(); // close dialog
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        Navigator.of(context).pop(); // close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Hata: $e')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Oluştur'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showPinEntryDialog(AudioRoom room) {
+    final TextEditingController pinController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: context.colors.surfaceContainerHigh,
-          title: const Text('🗣️ Canlı Oda Başlat', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: roomController,
-            decoration: InputDecoration(
-              hintText: 'Oda Adı',
-              filled: true,
-              fillColor: context.colors.surfaceContainerLow,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            ),
+          title: const Text('🔒 Gizli Oda', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${room.roomName}\nodasına katılmak için PIN giriniz.', style: TextStyle(color: context.colors.textMedium)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinController,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: '4 Haneli PIN',
+                  filled: true,
+                  fillColor: context.colors.surfaceContainerLow,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  counterText: '',
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -694,58 +847,18 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                 backgroundColor: context.colors.primary,
                 foregroundColor: Colors.white,
               ),
-              onPressed: () async {
-                final roomName = roomController.text.trim();
-                if (roomName.isNotEmpty) {
-                  // Show loading indicator
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(child: CircularProgressIndicator()),
+              onPressed: () {
+                if (pinController.text.trim() == room.pinCode) {
+                  Navigator.of(context).pop();
+                  ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Hatalı PIN kodu!'), backgroundColor: Colors.red),
                   );
-
-                  try {
-                    // Check if user is already hosting a room
-                    final userId = Supabase.instance.client.auth.currentUser?.id;
-                    if (userId != null) {
-                      final existingRooms = await Supabase.instance.client
-                          .from('audio_rooms')
-                          .select('id')
-                          .eq('host_id', userId)
-                          .eq('status', 'active');
-                      
-                      if (!context.mounted) return;
-
-                      if (existingRooms.isNotEmpty) {
-                        Navigator.of(context).pop(); // close loading
-                        Navigator.of(context).pop(); // close dialog
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Zaten aktif bir odanız bulunuyor. Önce onu kapatmalısınız.'),
-                            backgroundColor: Colors.red,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        return;
-                      }
-                    }
-
-                    ref.read(voiceRoomProvider.notifier).createAndJoinRoom(widget.match.id, roomName);
-                    
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop(); // close loading
-                    Navigator.of(context).pop(); // close dialog
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop(); // close loading
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Hata: $e')),
-                    );
-                  }
                 }
               },
-              child: const Text('Oluştur'),
+              child: const Text('Katıl'),
             ),
           ],
         );
