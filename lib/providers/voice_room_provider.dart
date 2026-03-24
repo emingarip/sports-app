@@ -340,10 +340,24 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
   }
 
   Future<void> leaveRoom() async {
+    final currentRoomName = state.currentRoomName;
+    final isHost = state.isHost;
+
     _listener?.dispose();
     _listener = null;
     await _liveKitService.disconnect();
     state = const VoiceRoomState(); // Reset state
+    
+    if (isHost && currentRoomName != null) {
+      try {
+        await SupabaseService.client
+            .from('audio_rooms')
+            .delete()
+            .eq('room_name', currentRoomName);
+      } catch (e) {
+        debugPrint('Failed to delete room $currentRoomName from database: $e');
+      }
+    }
   }
 
   Future<void> toggleMute() async {
