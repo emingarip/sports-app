@@ -35,7 +35,7 @@ class LiveKitService {
     try {
       final token = await _fetchToken(roomName, participantName);
       
-      var url = dotenv.env['LIVEKIT_URL'] ?? 'wss://your-livekit-project.livekit.cloud';
+      var url = dotenv.env['LIVEKIT_URL'] ?? 'wss://boskalecom-2zi7gj0y.livekit.cloud';
 
       if (url.contains('your-livekit-project')) {
           debugPrint('WARNING: LIVEKIT_URL is not set in .env. Using placeholder.');
