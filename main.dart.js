@@ -122605,7 +122605,7 @@ s=6
 return A.f(o.EV(a,b),$async$Av)
 case 6:n=d
 j=$.ajc().gSG().h(0,"LIVEKIT_URL")
-m=j==null?"wss://your-livekit-project.livekit.cloud":j
+m=j==null?"wss://boskalecom-2zi7gj0y.livekit.cloud":j
 if(J.qD(m,"your-livekit-project"))A.ej().$1("WARNING: LIVEKIT_URL is not set in .env. Using placeholder.")
 l=B.a0y
 i=A.byu()
