@@ -342,10 +342,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
               }
               return SliverGrid(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 200,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  mainAxisExtent: 180, // Fixed card height
+                  maxCrossAxisExtent: 280, // Wider for detailed card
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  mainAxisExtent: 240, // Taller card for the rich Stitch design
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -479,9 +479,11 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   }
 
   Widget _buildBentoRoomCard(AudioRoom room) {
-    // Generate some deterministic colors for avatars based on room name length
-    final colors = [Colors.blue, Colors.red, Colors.green, Colors.purple, Colors.orange, Colors.teal];
-    
+    // Determine dynamic properties
+    final isLive = room.listenerCount > 0; // Using listenerCount as a proxy for live status if needed, or simply assume they are all live
+    final primaryColor = isLive ? const Color(0xFF8B5CF6) : const Color(0xFF10B981);
+    final secondaryColor = isLive ? const Color(0xFF6D28D9) : const Color(0xFF059669);
+
     return GestureDetector(
       onTap: () {
         ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
@@ -489,121 +491,163 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       },
       child: Container(
         decoration: BoxDecoration(
-          color: context.colors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
+            BoxShadow(color: const Color(0xFFE2E8F0).withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 10))
           ],
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+            // Top Accent Line
+            Positioned(
+              top: 0, left: 0, right: 0,
+              child: Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [primaryColor, secondaryColor]),
+                ),
+              ),
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Top Row: Avatar & Status Badge
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                      // Avatar with Gradient Ring
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(colors: [primaryColor, secondaryColor], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            ),
+                            child: Container(
+                              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                              child: Icon(Icons.face, color: primaryColor, size: 30),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: -2,
+                            right: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(Icons.verified, color: Colors.white, size: 10),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        "LIVE",
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
+                      // Status Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isLive ? Colors.red : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: isLive ? [BoxShadow(color: Colors.red.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2))] : null,
+                        ),
+                        child: Text(
+                          isLive ? "LIVE" : "SCHEDULED",
+                          style: TextStyle(
+                            color: isLive ? Colors.white : Colors.grey[400],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                _SoundWaveAnimation(),
-              ],
-            ),
-            
-            Text(
-              room.roomName,
-              style: TextStyle(
-                color: context.colors.textHigh,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                height: 1.2,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.person, size: 12, color: context.colors.textMedium),
-                    const SizedBox(width: 4),
-                    Text(
-                      "Hosted by User",
-                      style: TextStyle(color: context.colors.textMedium, fontSize: 11),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 60,
-                      height: 24,
-                      child: Stack(
-                        children: List.generate(
-                          room.listenerCount > 3 ? 3 : (room.listenerCount == 0 ? 1 : room.listenerCount),
-                          (i) => Positioned(
-                            left: i * 14.0,
-                            child: CircleAvatar(
-                              radius: 12,
-                              backgroundColor: context.colors.surfaceContainerLow,
-                              child: CircleAvatar(
-                                radius: 10,
-                                backgroundColor: colors[(room.roomName.length + i) % colors.length],
-                                child: Text(
-                                  String.fromCharCode(65 + ((room.roomName.length + i * 3) % 26)),
-                                  style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                  
+                  const SizedBox(height: 12),
+                  // Room Title & Host
+                  Text(
+                    room.roomName,
+                    style: const TextStyle(color: Color(0xFF191C1E), fontSize: 16, fontWeight: FontWeight.bold, height: 1.2, fontFamily: 'Lexend'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    "@Host_User",
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Outfit'),
+                  ),
+                  
+                  const Spacer(),
+                  // Listeners Stack
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 76,
+                        height: 32,
+                        child: Stack(
+                          children: List.generate(
+                            room.listenerCount > 3 ? 3 : (room.listenerCount == 0 ? 1 : room.listenerCount),
+                            (i) => Positioned(
+                              left: i * 20.0,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[200],
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    String.fromCharCode(65 + ((room.roomName.length + i * 3) % 26)),
+                                    style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    if (room.listenerCount > 3)
+                      const SizedBox(width: 8),
                       Text(
-                        "+${room.listenerCount - 3}",
-                        style: TextStyle(color: context.colors.textMedium, fontSize: 11, fontWeight: FontWeight.bold),
+                        "${room.listenerCount} LISTENING",
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.2),
                       ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  // Tags Row
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                        child: Text("ANALYSIS", style: TextStyle(color: primaryColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                        child: const Text("MATCH TACTICS", style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
