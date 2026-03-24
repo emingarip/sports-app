@@ -18,6 +18,8 @@ class VoiceRoomState {
   final Set<String> raisedHands;
   final List<ChatMessage> chatMessages;
   final List<EmojiReaction> emojiReactions;
+  final bool isPrivate;
+  final String? pinCode;
 
   const VoiceRoomState({
     this.isConnecting = false,
@@ -31,6 +33,8 @@ class VoiceRoomState {
     this.raisedHands = const {},
     this.chatMessages = const [],
     this.emojiReactions = const [],
+    this.isPrivate = false,
+    this.pinCode,
   });
 
   VoiceRoomState copyWith({
@@ -45,6 +49,8 @@ class VoiceRoomState {
     Set<String>? raisedHands,
     List<ChatMessage>? chatMessages,
     List<EmojiReaction>? emojiReactions,
+    bool? isPrivate,
+    String? pinCode,
   }) {
     return VoiceRoomState(
       isConnecting: isConnecting ?? this.isConnecting,
@@ -58,6 +64,8 @@ class VoiceRoomState {
       raisedHands: raisedHands ?? this.raisedHands,
       chatMessages: chatMessages ?? this.chatMessages,
       emojiReactions: emojiReactions ?? this.emojiReactions,
+      isPrivate: isPrivate ?? this.isPrivate,
+      pinCode: pinCode ?? this.pinCode,
     );
   }
 }
@@ -74,7 +82,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     return const VoiceRoomState();
   }
 
-  Future<void> joinRoom(String roomName, {bool forceIsHost = false}) async {
+  Future<void> joinRoom(String roomName, {bool forceIsHost = false, bool isPrivate = false, String? pinCode}) async {
     state = state.copyWith(isConnecting: true, error: null);
     
     try {
@@ -82,10 +90,13 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
       final participantName = user?.userMetadata?['username'] ?? user?.email ?? 'Anonymous';
 
       bool isHost = forceIsHost;
+      bool roomIsPrivate = isPrivate;
+      String? roomPinCode = pinCode;
+
       if (!isHost && user != null) {
         final roomData = await SupabaseService.client
             .from('audio_rooms')
-            .select('host_id')
+            .select('host_id, is_private, pin_code')
             .eq('room_name', roomName)
             .maybeSingle();
             
@@ -93,6 +104,8 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
           if (roomData['host_id'] == user.id) {
             isHost = true;
           }
+          roomIsPrivate = roomData['is_private'] ?? false;
+          roomPinCode = roomData['pin_code'];
         } else {
           // Room does not exist in our database. The user is implicitly creating it.
           await SupabaseService.client.from('audio_rooms').insert({
@@ -120,6 +133,8 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
           isMuted: !(room.localParticipant?.isMicrophoneEnabled() ?? false),
           isHost: isHost,
           canSpeak: isHost, // Hosts can speak by default
+          isPrivate: roomIsPrivate,
+          pinCode: roomPinCode,
         );
       }
     } catch (e) {
@@ -148,7 +163,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         });
       }
       
-      await joinRoom(uniqueRoomName, forceIsHost: true);
+      await joinRoom(uniqueRoomName, forceIsHost: true, isPrivate: isPrivate, pinCode: pinCode);
     } catch (e) {
       state = state.copyWith(
         isConnecting: false,

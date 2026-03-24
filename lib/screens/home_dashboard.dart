@@ -18,6 +18,10 @@ import '../providers/navigation_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
 import '../widgets/notification_bell.dart';
 import 'profile_screen.dart';
+import 'dart:async';
+import 'package:app_links/app_links.dart';
+import 'voice_room_screen.dart';
+import '../providers/voice_room_provider.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -33,6 +37,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   final Set<String> _expandedLeagues = {};
   bool _hasInitializedExpansion = false;
   late final PageController _pageController;
+  
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -46,11 +54,49 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       }
     });
 
-    // No default expansion on init; wait for live data.
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+    
+    // Check initial link if app was cold-started
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _handleDeepLink(initialUri);
+      }
+    } catch (e) {
+      debugPrint("AppLinks init error: $e");
+    }
+
+    // Listen to incoming links while app is open
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme == 'sportsapp' && uri.host == 'room') {
+      final roomName = uri.queryParameters['name'];
+      final pinCode = uri.queryParameters['pin'];
+      
+      if (roomName != null && mounted) {
+        // Auto join the room utilizing the PIN from link
+        ref.read(voiceRoomProvider.notifier).joinRoom(
+          roomName,
+          isPrivate: pinCode != null,
+          pinCode: pinCode,
+          forceIsHost: false,
+        );
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+      }
+    }
   }
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _pageController.dispose();
     super.dispose();
   }

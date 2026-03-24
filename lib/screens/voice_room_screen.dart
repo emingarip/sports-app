@@ -4,6 +4,7 @@ import 'package:livekit_client/livekit_client.dart';
 import 'package:sports_app/providers/voice_room_provider.dart';
 import 'package:sports_app/widgets/live_chat_panel.dart';
 import 'package:sports_app/widgets/floating_emoji_animation.dart';
+import 'package:share_plus/share_plus.dart';
 
 class VoiceRoomScreen extends ConsumerWidget {
   const VoiceRoomScreen({Key? key}) : super(key: key);
@@ -50,6 +51,50 @@ class VoiceRoomScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(state.currentRoomName ?? 'Voice Room'),
         actions: [
+          if (state.isHost && state.isPrivate && state.pinCode != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock_person, size: 16, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text(
+                        'PIN: ${state.pinCode}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.share, color: Colors.blueAccent),
+            onPressed: () {
+              final roomNameEscaped = Uri.encodeComponent(state.currentRoomName ?? '');
+              var shareText = 'Spor odama katıl! Oda: ${state.currentRoomName}';
+              
+              if (state.isPrivate && state.pinCode != null) {
+                shareText += '\nOda Şifresi: ${state.pinCode}';
+              }
+              
+              shareText += '\n\nKatılmak için tıkla:\nsportsapp://room?name=$roomNameEscaped';
+              
+              if (state.isPrivate && state.pinCode != null) {
+                shareText += '&pin=${state.pinCode}';
+              }
+              
+              Share.share(shareText);
+            },
+          ),
           if (state.isHost && state.raisedHands.isNotEmpty)
             IconButton(
               icon: Badge(
