@@ -487,7 +487,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
 
     return GestureDetector(
       onTap: () {
-        if (room.isPrivate) {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        final isHost = room.hostId == userId;
+
+        if (room.isPrivate && !isHost) {
           _showPinEntryDialog(room);
         } else {
           ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
