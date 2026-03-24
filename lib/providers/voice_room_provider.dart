@@ -118,7 +118,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         }
       }
 
-      await _liveKitService.connect(roomName, participantName, isHost: isHost);
+      await _liveKitService.connect(roomName, participantName, userId: user?.id, isHost: isHost);
       
       final room = _liveKitService.room;
       if (room != null) {
@@ -340,7 +340,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
       
       state = state.copyWith(isConnecting: true, error: null);
       try {
-        await _liveKitService.connect(currentRoom, participantName, isHost: false, canPublish: true);
+        await _liveKitService.connect(currentRoom, participantName, userId: user?.id, isHost: false, canPublish: true);
         final room = _liveKitService.room;
         if (room != null) {
           _listenToRoomEvents(room);

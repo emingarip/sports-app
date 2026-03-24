@@ -7,6 +7,8 @@ import 'package:sports_app/widgets/floating_emoji_animation.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:sports_app/providers/follow_provider.dart';
+import 'package:sports_app/services/supabase_service.dart';
 
 class VoiceRoomScreen extends ConsumerWidget {
   const VoiceRoomScreen({Key? key}) : super(key: key);
@@ -292,7 +294,7 @@ class _ParticipantAvatar extends StatelessWidget {
     final isSpeaking = participant.isSpeaking;
 
     return GestureDetector(
-      onTap: () => _showUserProfile(context, participant.identity),
+      onTap: () => _showUserProfile(context, participant.identity, participant.name),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -327,54 +329,76 @@ class _ParticipantAvatar extends StatelessWidget {
     );
   }
 
-  void _showUserProfile(BuildContext context, String identity) {
+  void _showUserProfile(BuildContext context, String userId, String displayName) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.blueAccent,
-                  child: Text(
-                    identity.isNotEmpty ? identity[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 32, color: Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(identity, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                // Since this is MVP, we show placeholder stats that would normally be fetched from `users` table
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        return Consumer(
+          builder: (context, ref, child) {
+            final followState = ref.watch(followProvider);
+            final followingList = followState.value ?? [];
+            final isFollowing = followingList.contains(userId);
+            
+            final followerCountAsync = ref.watch(followerCountProvider(userId));
+            final followingCountAsync = ref.watch(followingCountProvider(userId));
+
+            final followerCount = followerCountAsync.value ?? 0;
+            final followingCount = followingCountAsync.value ?? 0;
+
+            final isMe = SupabaseService.client.auth.currentUser?.id == userId;
+
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildStatCol('Followers', '120'),
-                    _buildStatCol('Following', '45'),
-                    _buildStatCol('Reputation', 'Great'),
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.blueAccent,
+                      child: Text(
+                        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                        style: const TextStyle(fontSize: 32, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(displayName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStatCol('Takipçi', followerCount.toString()),
+                        _buildStatCol('Takip', followingCount.toString()),
+                        _buildStatCol('İtibar', 'Harika'),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    if (!isMe)
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          ref.read(followProvider.notifier).toggleFollow(userId);
+                        },
+                        icon: Icon(isFollowing ? Icons.check : Icons.person_add),
+                        label: Text(isFollowing ? 'Takipten Çık' : 'Takip Et'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isFollowing ? Colors.grey[800] : Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      )
+                    else 
+                      const SizedBox(height: 50), // Spacer for self
                   ],
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Follow User'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
