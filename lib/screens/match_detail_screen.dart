@@ -12,6 +12,7 @@ import '../providers/active_rooms_provider.dart';
 import '../providers/voice_room_provider.dart';
 import '../models/audio_room.dart';
 import 'voice_room_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -696,6 +697,23 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
               onPressed: () {
                 final roomName = roomController.text.trim();
                 if (roomName.isNotEmpty) {
+                  // Check if user is already hosting a room
+                  final userId = Supabase.instance.client.auth.currentUser?.id;
+                  final activeRooms = ref.read(activeRoomsProvider).value ?? [];
+                  final isAlreadyHosting = activeRooms.any((room) => room.hostId == userId);
+
+                  if (isAlreadyHosting) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Zaten aktif bir odanız bulunuyor. Önce onu kapatmalısınız.'),
+                        backgroundColor: Colors.red,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    return;
+                  }
+
                   ref.read(voiceRoomProvider.notifier).createAndJoinRoom(widget.match.id, roomName);
                   Navigator.of(context).pop();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
