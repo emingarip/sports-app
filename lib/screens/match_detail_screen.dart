@@ -694,29 +694,55 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                 backgroundColor: context.colors.primary,
                 foregroundColor: Colors.white,
               ),
-              onPressed: () {
+              onPressed: () async {
                 final roomName = roomController.text.trim();
                 if (roomName.isNotEmpty) {
-                  // Check if user is already hosting a room
-                  final userId = Supabase.instance.client.auth.currentUser?.id;
-                  final activeRooms = ref.read(activeRoomsProvider).value ?? [];
-                  final isAlreadyHosting = activeRooms.any((room) => room.hostId == userId);
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator()),
+                  );
 
-                  if (isAlreadyHosting) {
-                    Navigator.of(context).pop();
+                  try {
+                    // Check if user is already hosting a room
+                    final userId = Supabase.instance.client.auth.currentUser?.id;
+                    if (userId != null) {
+                      final existingRooms = await Supabase.instance.client
+                          .from('audio_rooms')
+                          .select('id')
+                          .eq('host_id', userId)
+                          .eq('status', 'active');
+                      
+                      if (!context.mounted) return;
+
+                      if (existingRooms.isNotEmpty) {
+                        Navigator.of(context).pop(); // close loading
+                        Navigator.of(context).pop(); // close dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Zaten aktif bir odanız bulunuyor. Önce onu kapatmalısınız.'),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
+                    }
+
+                    ref.read(voiceRoomProvider.notifier).createAndJoinRoom(widget.match.id, roomName);
+                    
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop(); // close loading
+                    Navigator.of(context).pop(); // close dialog
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop(); // close loading
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Zaten aktif bir odanız bulunuyor. Önce onu kapatmalısınız.'),
-                        backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                      SnackBar(content: Text('Hata: $e')),
                     );
-                    return;
                   }
-
-                  ref.read(voiceRoomProvider.notifier).createAndJoinRoom(widget.match.id, roomName);
-                  Navigator.of(context).pop();
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
                 }
               },
               child: const Text('Oluştur'),
