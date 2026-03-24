@@ -356,6 +356,8 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         try {
           final payload = jsonEncode({'type': 'room_ended'});
           await room.localParticipant!.publishData(utf8.encode(payload), reliable: true);
+          // Give the DataChannel time to flush the packet before destroying the socket
+          await Future.delayed(const Duration(milliseconds: 500));
         } catch (e) {
           debugPrint('Failed to broadcast room_ended: $e');
         }
