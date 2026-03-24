@@ -18,6 +18,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
 import '../providers/voice_room_provider.dart';
 import '../widgets/notification_bell.dart';
+import '../widgets/live_rooms_horizontal_list.dart';
 import 'profile_screen.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
@@ -374,6 +375,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                               sliver: SliverToBoxAdapter(
                                   child: _buildFeaturedMatchCard(featured)),
                             ),
+                          const SliverToBoxAdapter(child: LiveRoomsHorizontalList()),
                           ..._buildLeagueSlivers(),
                           const SliverToBoxAdapter(child: SizedBox(height: 120)),
                         ],

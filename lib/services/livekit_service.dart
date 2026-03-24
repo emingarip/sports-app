@@ -14,11 +14,11 @@ class LiveKitService {
 
   Room? room;
 
-  Future<String> _fetchToken(String roomName, String participantName) async {
+  Future<String> _fetchToken(String roomName, String participantName, {bool isHost = false, bool canPublish = false}) async {
     try {
       final response = await SupabaseService.client.functions.invoke(
         'livekit-token',
-        body: {'roomName': roomName, 'participantName': participantName},
+        body: {'roomName': roomName, 'participantName': participantName, 'isHost': isHost, 'canPublish': canPublish},
       );
       
       if (response.status != 200) {
@@ -31,9 +31,9 @@ class LiveKitService {
     }
   }
 
-  Future<void> connect(String roomName, String participantName) async {
+  Future<void> connect(String roomName, String participantName, {bool isHost = false, bool canPublish = false}) async {
     try {
-      final token = await _fetchToken(roomName, participantName);
+      final token = await _fetchToken(roomName, participantName, isHost: isHost, canPublish: canPublish);
       
       var url = dotenv.env['LIVEKIT_URL'] ?? 'wss://boskalecom-2zi7gj0y.livekit.cloud';
 

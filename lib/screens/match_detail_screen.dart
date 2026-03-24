@@ -8,6 +8,8 @@ import '../services/chat_service.dart';
 import '../widgets/match_stats_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/knowledge_graph_provider.dart';
+import '../providers/active_rooms_provider.dart';
+import '../providers/voice_room_provider.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -99,7 +101,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       });
     });
 
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notifier = ref.read(knowledgeGraphProvider.notifier);
@@ -121,7 +123,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       );
     });
     _tabController.addListener(() {
-      if (_tabController.index == 2) {
+      if (_tabController.index == 3) {
         if (_chatSubscription == null) _subscribeToChat();
       } else {
         _chatSubscription?.cancel();
@@ -258,6 +260,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                       tabs: const [
                         Tab(text: "OVERVIEW"),
                         Tab(text: "STATS"),
+                        Tab(text: "ROOMS"),
                         Tab(text: "LIVE CHAT"),
                       ],
                     ),
@@ -270,15 +273,16 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
               children: [
                 _buildOverviewTab(),
                 _buildStatsTab(),
+                _buildVoiceRoomsTab(),
                 _buildChatTab(),
               ],
             ),
           ),
           
-          if (_tabController.index == 2)
+          if (_tabController.index == 3)
             Positioned.fill(child: _buildFloatingReactions()),
           
-          if (_tabController.index == 2)
+          if (_tabController.index == 3)
             Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomInputArea()),
         ],
       ),
@@ -302,6 +306,80 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
 
   Widget _buildStatsTab() {
     return MatchStatsView(match: widget.match);
+  }
+
+  Widget _buildVoiceRoomsTab() {
+    final matchRoomsAsync = ref.watch(matchRoomsProvider(widget.match.id));
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              final roomName = '${widget.match.homeTeam} vs ${widget.match.awayTeam} Discussion';
+              ref.read(voiceRoomProvider.notifier).createAndJoinRoom(widget.match.id, roomName);
+            },
+            icon: const Icon(Icons.add),
+            label: const Text("Create Room for this Match"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.colors.primaryContainer,
+              foregroundColor: context.colors.onPrimaryContainer,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+        ),
+        Expanded(
+          child: matchRoomsAsync.when(
+            data: (rooms) {
+              if (rooms.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.mic_off, size: 48, color: context.colors.surfaceContainerHigh),
+                      const SizedBox(height: 16),
+                      Text("No rooms yet", style: TextStyle(color: context.colors.textMedium)),
+                    ],
+                  ),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: rooms.length,
+                itemBuilder: (context, index) {
+                  final room = rooms[index];
+                  return Card(
+                    color: context.colors.surfaceContainerLow,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
+                    ),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor: context.colors.primaryContainer.withValues(alpha: 0.2),
+                        child: Icon(Icons.mic, color: context.colors.primary),
+                      ),
+                      title: Text(room.roomName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('${room.listenerCount} in room'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => Center(child: Text('Error: $e')),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildChatTab() {
