@@ -77,20 +77,26 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   void _handleDeepLink(Uri uri) {
+    String? roomName;
+    String? pinCode;
+
     if (uri.scheme == 'sportsapp' && uri.host == 'room') {
-      final roomName = uri.queryParameters['name'];
-      final pinCode = uri.queryParameters['pin'];
+      roomName = uri.queryParameters['name'];
+      pinCode = uri.queryParameters['pin'];
+    } else if (uri.queryParameters.containsKey('room')) {
+      roomName = uri.queryParameters['room'];
+      pinCode = uri.queryParameters['pin'];
+    }
       
-      if (roomName != null && mounted) {
-        // Auto join the room utilizing the PIN from link
-        ref.read(voiceRoomProvider.notifier).joinRoom(
-          roomName,
-          isPrivate: pinCode != null,
-          pinCode: pinCode,
-          forceIsHost: false,
-        );
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
-      }
+    if (roomName != null && mounted) {
+      // Auto join the room utilizing the PIN from link
+      ref.read(voiceRoomProvider.notifier).joinRoom(
+        roomName,
+        isPrivate: pinCode != null,
+        pinCode: pinCode,
+        forceIsHost: false,
+      );
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
     }
   }
 

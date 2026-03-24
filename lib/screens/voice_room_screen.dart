@@ -5,6 +5,8 @@ import 'package:sports_app/providers/voice_room_provider.dart';
 import 'package:sports_app/widgets/live_chat_panel.dart';
 import 'package:sports_app/widgets/floating_emoji_animation.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 class VoiceRoomScreen extends ConsumerWidget {
   const VoiceRoomScreen({Key? key}) : super(key: key);
@@ -78,7 +80,7 @@ class VoiceRoomScreen extends ConsumerWidget {
             ),
           IconButton(
             icon: const Icon(Icons.share, color: Colors.blueAccent),
-            onPressed: () {
+            onPressed: () async {
               final roomNameEscaped = Uri.encodeComponent(state.currentRoomName ?? '');
               var shareText = 'Spor odama katıl! Oda: ${state.currentRoomName}';
               
@@ -86,13 +88,45 @@ class VoiceRoomScreen extends ConsumerWidget {
                 shareText += '\nOda Şifresi: ${state.pinCode}';
               }
               
-              shareText += '\n\nKatılmak için tıkla:\nsportsapp://room?name=$roomNameEscaped';
-              
-              if (state.isPrivate && state.pinCode != null) {
-                shareText += '&pin=${state.pinCode}';
+              String link;
+              if (kIsWeb) {
+                final baseUri = Uri.base;
+                final params = {'room': state.currentRoomName!};
+                if (state.isPrivate && state.pinCode != null) {
+                  params['pin'] = state.pinCode!;
+                }
+                link = baseUri.replace(queryParameters: params).toString();
+              } else {
+                link = 'sportsapp://room?name=$roomNameEscaped';
+                if (state.isPrivate && state.pinCode != null) {
+                  link += '&pin=${state.pinCode}';
+                }
               }
+
+              shareText += '\n\nKatılmak için tıkla:\n$link';
               
-              Share.share(shareText);
+              if (kIsWeb) {
+                await Clipboard.setData(ClipboardData(text: shareText));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Davet linki panoya kopyalandı!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } else {
+                try {
+                  await Share.share(shareText);
+                } catch (e) {
+                  await Clipboard.setData(ClipboardData(text: shareText));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Davet panoya kopyalandı!')),
+                    );
+                  }
+                }
+              }
             },
           ),
           if (state.isHost && state.raisedHands.isNotEmpty)
