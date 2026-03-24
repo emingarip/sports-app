@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'match_detail_screen.dart';
 import '../models/match.dart' as model;
 import '../models/league.dart';
 import '../models/notification.dart';
@@ -17,6 +16,7 @@ import '../widgets/match_card.dart';
 import '../providers/notification_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
+import '../providers/voice_room_provider.dart';
 import '../widgets/notification_bell.dart';
 import 'profile_screen.dart';
 
@@ -384,7 +384,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   ),
                 ),
               ),
-              _buildFloatingAudioRoom(),
             ],
           ),
         ),
@@ -553,6 +552,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 delegate: MatchSearchDelegate(ref),
               );
             }),
+        IconButton(
+          icon: const Icon(Icons.mic_external_on, color: Colors.greenAccent),
+          onPressed: () => _joinVoiceRoom(context, ref),
+          tooltip: 'Sesli Odalar',
+        ),
         const NotificationBell(),
         const SizedBox(width: 8),
       ],
@@ -810,88 +814,42 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     );
   }
 
-  Widget _buildFloatingAudioRoom() {
-    return Positioned(
-      bottom: 100,
-      right: 24,
-      child: GestureDetector(
-        onTap: () {
-          final allMatches = ref.read(matchStateProvider).matches;
-          if (allMatches.isEmpty) return;
-          final activeMatch = allMatches.firstWhere(
-              (m) => m.status == model.MatchStatus.live,
-              orElse: () => allMatches.first);
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => MatchDetailScreen(match: activeMatch)));
-        },
-        child: Container(
-          padding: const EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10)),
-            ],
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                    color: Color(0xFFEAB308), shape: BoxShape.circle),
-                child:
-                    const Icon(Icons.mic, color: Color(0xFF0F172A), size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("LIVE ROOM",
-                      style: TextStyle(
-                          color: Color(0xFFFACC15),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5)),
-                  Text("Match Reaction • 2.4k",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(width: 8),
-              Row(
-                children: [
-                  _buildBar(12),
-                  const SizedBox(width: 2),
-                  _buildBar(8),
-                  const SizedBox(width: 2),
-                  _buildBar(10),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  void _joinVoiceRoom(BuildContext context, WidgetRef ref) {
+    final TextEditingController roomController = TextEditingController();
 
-  Widget _buildBar(double height) {
-    return Container(
-      width: 2,
-      height: height,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFACC15),
-        borderRadius: BorderRadius.circular(2),
-      ),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
+          title: const Text('🗣️ Sesli Oda Yarat / Katıl', style: TextStyle(color: Colors.white)),
+          content: TextField(
+            controller: roomController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Oda Adı (ör. derbi-sohbeti)',
+              hintStyle: TextStyle(color: Colors.grey),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('İptal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+              onPressed: () {
+                final roomName = roomController.text.trim();
+                if (roomName.isNotEmpty) {
+                  ref.read(voiceRoomProvider.notifier).joinRoom(roomName);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Katıl'),
+            ),
+          ],
+        );
+      },
     );
   }
 

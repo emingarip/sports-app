@@ -4,6 +4,7 @@ import '../providers/navigation_provider.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../theme/app_theme.dart';
 import '../services/push_notification_service.dart';
+import '../widgets/floating_audio_room.dart';
 
 import 'home_dashboard.dart';
 import 'ai_match_insights_screen.dart';
@@ -47,6 +48,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                   LeaderboardScreen(),
                   ProfileScreen(),
                 ],
+              ),
+              Positioned(
+                bottom: 80,
+                left: 0,
+                right: 0,
+                child: FloatingAudioRoom(),
               ),
               const CustomBottomNav(),
             ],
