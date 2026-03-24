@@ -513,7 +513,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
             ),
             
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -556,20 +556,24 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                         ],
                       ),
                       // Status Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isLive ? Colors.red : Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: isLive ? [BoxShadow(color: Colors.red.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2))] : null,
-                        ),
-                        child: Text(
-                          isLive ? "LIVE" : "SCHEDULED",
-                          style: TextStyle(
-                            color: isLive ? Colors.white : Colors.grey[400],
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isLive ? Colors.red : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: isLive ? [BoxShadow(color: Colors.red.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2))] : null,
+                          ),
+                          child: Text(
+                            isLive ? "LIVE" : "SCHEDULED",
+                            style: TextStyle(
+                              color: isLive ? Colors.white : Colors.grey[400],
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.0,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
@@ -580,14 +584,14 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                   // Room Title & Host
                   Text(
                     room.roomName,
-                    style: const TextStyle(color: Color(0xFF191C1E), fontSize: 16, fontWeight: FontWeight.bold, height: 1.2, fontFamily: 'Lexend'),
+                    style: const TextStyle(color: Color(0xFF191C1E), fontSize: 13, fontWeight: FontWeight.bold, height: 1.2, fontFamily: 'Lexend'),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   const Text(
                     "@Host_User",
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Outfit'),
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w500, fontFamily: 'Outfit'),
                   ),
                   
                   const Spacer(),
@@ -595,16 +599,16 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                   Row(
                     children: [
                       SizedBox(
-                        width: 76,
-                        height: 32,
+                        width: 60,
+                        height: 28,
                         child: Stack(
                           children: List.generate(
                             room.listenerCount > 3 ? 3 : (room.listenerCount == 0 ? 1 : room.listenerCount),
                             (i) => Positioned(
-                              left: i * 20.0,
+                              left: i * 14.0,
                               child: Container(
-                                width: 32,
-                                height: 32,
+                                width: 28,
+                                height: 28,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Colors.grey[200],
@@ -613,7 +617,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                                 child: Center(
                                   child: Text(
                                     String.fromCharCode(65 + ((room.roomName.length + i * 3) % 26)),
-                                    style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
@@ -621,28 +625,33 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "${room.listenerCount} LISTENING",
-                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.2),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          "${room.listenerCount} LISTENING",
+                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.2),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                   
                   const SizedBox(height: 12),
                   // Tags Row
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                        child: Text("ANALYSIS", style: TextStyle(color: primaryColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        child: Text("ANALYSIS", style: TextStyle(color: primaryColor, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ),
-                      const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                        child: const Text("MATCH TACTICS", style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        child: const Text("TACTICS", style: TextStyle(color: Color(0xFF64748B), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ),
                     ],
                   ),
