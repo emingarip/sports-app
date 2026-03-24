@@ -88,7 +88,19 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
             .select('host_id')
             .eq('room_name', roomName)
             .maybeSingle();
-        if (roomData != null && roomData['host_id'] == user.id) {
+            
+        if (roomData != null) {
+          if (roomData['host_id'] == user.id) {
+            isHost = true;
+          }
+        } else {
+          // Room does not exist in our database. The user is implicitly creating it.
+          await SupabaseService.client.from('audio_rooms').insert({
+            'room_name': roomName,
+            'host_id': user.id,
+            'status': 'active',
+            'listener_count': 0,
+          });
           isHost = true;
         }
       }
