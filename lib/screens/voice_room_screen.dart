@@ -10,10 +10,32 @@ class VoiceRoomScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Listen for room termination from host
+    ref.listen<VoiceRoomState>(voiceRoomProvider, (previous, next) {
+      if (previous != null && previous.isConnected && !next.isConnected && next.error == 'room_ended') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Yayıncı odayı kapattı 👋'),
+            backgroundColor: Colors.blueAccent,
+          ),
+        );
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      }
+    });
+
     final state = ref.watch(voiceRoomProvider);
     final notifier = ref.read(voiceRoomProvider.notifier);
 
     if (!state.isConnected) {
+      // Don't show generic error if we are leaving normally due to room ended
+      if (state.error == 'room_ended') {
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
+      
       return Scaffold(
         appBar: AppBar(title: const Text('Voice Room')),
         body: Center(

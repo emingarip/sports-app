@@ -189,7 +189,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     return list;
   }
 
-  void _handleDataReceived(List<int> data, RemoteParticipant? participant) {
+  void _handleDataReceived(List<int> data, RemoteParticipant? participant) async {
     try {
       final jsonStr = utf8.decode(data);
       final payload = jsonDecode(jsonStr);
@@ -229,6 +229,12 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
             // Notifier might be disposed
           }
         });
+      } else if (payload['type'] == 'room_ended') {
+        debugPrint('Host ended the room.');
+        _listener?.dispose();
+        _listener = null;
+        await _liveKitService.disconnect();
+        state = const VoiceRoomState(error: 'room_ended');
       }
     } catch (e) {
       debugPrint('Error parsing data channel message: $e');
@@ -342,6 +348,19 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
   Future<void> leaveRoom() async {
     final currentRoomName = state.currentRoomName;
     final isHost = state.isHost;
+    
+    // Broadcast termination signal to listeners before disconnecting
+    if (isHost) {
+      final room = _liveKitService.room;
+      if (room != null && room.localParticipant != null) {
+        try {
+          final payload = jsonEncode({'type': 'room_ended'});
+          await room.localParticipant!.publishData(utf8.encode(payload), reliable: true);
+        } catch (e) {
+          debugPrint('Failed to broadcast room_ended: $e');
+        }
+      }
+    }
 
     _listener?.dispose();
     _listener = null;

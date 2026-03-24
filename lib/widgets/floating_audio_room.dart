@@ -8,6 +8,18 @@ class FloatingAudioRoom extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Listen for room termination from host (even if minimized)
+    ref.listen<VoiceRoomState>(voiceRoomProvider, (previous, next) {
+      if (previous != null && previous.isConnected && !next.isConnected && next.error == 'room_ended') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Yayıncı odayı kapattı 👋'),
+            backgroundColor: Colors.blueAccent,
+          ),
+        );
+      }
+    });
+
     final state = ref.watch(voiceRoomProvider);
     final notifier = ref.read(voiceRoomProvider.notifier);
 
