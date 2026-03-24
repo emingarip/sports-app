@@ -16,9 +16,7 @@ import '../widgets/match_card.dart';
 import '../providers/notification_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
-import '../providers/voice_room_provider.dart';
 import '../widgets/notification_bell.dart';
-import '../widgets/live_rooms_horizontal_list.dart';
 import 'profile_screen.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
@@ -375,7 +373,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                               sliver: SliverToBoxAdapter(
                                   child: _buildFeaturedMatchCard(featured)),
                             ),
-                          const SliverToBoxAdapter(child: LiveRoomsHorizontalList()),
                           ..._buildLeagueSlivers(),
                           const SliverToBoxAdapter(child: SizedBox(height: 120)),
                         ],
@@ -554,11 +551,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 delegate: MatchSearchDelegate(ref),
               );
             }),
-        IconButton(
-          icon: const Icon(Icons.mic_external_on, color: Colors.greenAccent),
-          onPressed: () => _joinVoiceRoom(context, ref),
-          tooltip: 'Sesli Odalar',
-        ),
         const NotificationBell(),
         const SizedBox(width: 8),
       ],
@@ -813,45 +805,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             overflow: TextOverflow.ellipsis,
             maxLines: 1),
       ],
-    );
-  }
-
-  void _joinVoiceRoom(BuildContext context, WidgetRef ref) {
-    final TextEditingController roomController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
-          title: const Text('🗣️ Sesli Oda Yarat / Katıl', style: TextStyle(color: Colors.white)),
-          content: TextField(
-            controller: roomController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: 'Oda Adı (ör. derbi-sohbeti)',
-              hintStyle: TextStyle(color: Colors.grey),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('İptal', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-              onPressed: () {
-                final roomName = roomController.text.trim();
-                if (roomName.isNotEmpty) {
-                  ref.read(voiceRoomProvider.notifier).joinRoom(roomName);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Katıl'),
-            ),
-          ],
-        );
-      },
     );
   }
 

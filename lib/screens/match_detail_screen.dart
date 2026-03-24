@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/knowledge_graph_provider.dart';
 import '../providers/active_rooms_provider.dart';
 import '../providers/voice_room_provider.dart';
+import '../models/audio_room.dart';
+import 'voice_room_screen.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -311,74 +313,346 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   Widget _buildVoiceRoomsTab() {
     final matchRoomsAsync = ref.watch(matchRoomsProvider(widget.match.id));
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
-            onPressed: () {
-              final roomName = '${widget.match.homeTeam} vs ${widget.match.awayTeam} Discussion';
-              ref.read(voiceRoomProvider.notifier).createAndJoinRoom(widget.match.id, roomName);
-            },
-            icon: const Icon(Icons.add),
-            label: const Text("Create Room for this Match"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.colors.primaryContainer,
-              foregroundColor: context.colors.onPrimaryContainer,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _buildPremiumCreateBanner(),
           ),
         ),
-        Expanded(
-          child: matchRoomsAsync.when(
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: matchRoomsAsync.when(
             data: (rooms) {
               if (rooms.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.mic_off, size: 48, color: context.colors.surfaceContainerHigh),
-                      const SizedBox(height: 16),
-                      Text("No rooms yet", style: TextStyle(color: context.colors.textMedium)),
-                    ],
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.mic_off, size: 48, color: context.colors.surfaceContainerHigh),
+                        const SizedBox(height: 16),
+                        Text("Henüz oda açılmamış", style: TextStyle(color: context.colors.textMedium)),
+                      ],
+                    ),
                   ),
                 );
               }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: rooms.length,
-                itemBuilder: (context, index) {
-                  final room = rooms[index];
-                  return Card(
-                    color: context.colors.surfaceContainerLow,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
-                    ),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: CircleAvatar(
-                        backgroundColor: context.colors.primaryContainer.withValues(alpha: 0.2),
-                        child: Icon(Icons.mic, color: context.colors.primary),
-                      ),
-                      title: Text(room.roomName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('${room.listenerCount} in room'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
-                      },
-                    ),
-                  );
-                },
+              return SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  mainAxisExtent: 180, // Fixed card height
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final room = rooms[index];
+                    return _buildBentoRoomCard(room);
+                  },
+                  childCount: rooms.length,
+                ),
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, st) => Center(child: Text('Error: $e')),
+            loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+            error: (e, st) => SliverFillRemaining(child: Center(child: Text('Hata: $e'))),
           ),
         ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
       ],
+    );
+  }
+
+  Widget _buildPremiumCreateBanner() {
+    return GestureDetector(
+      onTap: _showCreateMatchRoomDialog,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [
+               Color(0xFF15151A),
+               Color(0xFF22222E),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            )
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -40,
+                top: -40,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8A2BE2).withValues(alpha: 0.4),
+                        blurRadius: 50,
+                        spreadRadius: 20,
+                      )
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8A2BE2), Color(0xFF4A00E0)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF8A2BE2).withValues(alpha: 0.5),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: const Icon(Icons.mic_rounded, color: Colors.white, size: 26),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Canlı Oda Başlat",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Taraftarlarla sesli etkileşime geç",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white, size: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBentoRoomCard(AudioRoom room) {
+    // Generate some deterministic colors for avatars based on room name length
+    final colors = [Colors.blue, Colors.red, Colors.green, Colors.purple, Colors.orange, Colors.teal];
+    
+    return GestureDetector(
+      onTap: () {
+        ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.colors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        "LIVE",
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _SoundWaveAnimation(),
+              ],
+            ),
+            
+            Text(
+              room.roomName,
+              style: TextStyle(
+                color: context.colors.textHigh,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.person, size: 12, color: context.colors.textMedium),
+                    const SizedBox(width: 4),
+                    Text(
+                      "Hosted by User",
+                      style: TextStyle(color: context.colors.textMedium, fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      height: 24,
+                      child: Stack(
+                        children: List.generate(
+                          room.listenerCount > 3 ? 3 : (room.listenerCount == 0 ? 1 : room.listenerCount),
+                          (i) => Positioned(
+                            left: i * 14.0,
+                            child: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: context.colors.surfaceContainerLow,
+                              child: CircleAvatar(
+                                radius: 10,
+                                backgroundColor: colors[(room.roomName.length + i) % colors.length],
+                                child: Text(
+                                  String.fromCharCode(65 + ((room.roomName.length + i * 3) % 26)),
+                                  style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (room.listenerCount > 3)
+                      Text(
+                        "+${room.listenerCount - 3}",
+                        style: TextStyle(color: context.colors.textMedium, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCreateMatchRoomDialog() {
+    final TextEditingController roomController = TextEditingController(
+        text: '${widget.match.homeTeam} vs ${widget.match.awayTeam} Sohbeti');
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: context.colors.surfaceContainerHigh,
+          title: const Text('🗣️ Canlı Oda Başlat', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: roomController,
+            decoration: InputDecoration(
+              hintText: 'Oda Adı',
+              filled: true,
+              fillColor: context.colors.surfaceContainerLow,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('İptal', style: TextStyle(color: context.colors.textMedium)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final roomName = roomController.text.trim();
+                if (roomName.isNotEmpty) {
+                  ref.read(voiceRoomProvider.notifier).createAndJoinRoom(widget.match.id, roomName);
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+                }
+              },
+              child: const Text('Oluştur'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1027,5 +1301,51 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return false;
+  }
+}
+
+class _SoundWaveAnimation extends StatefulWidget {
+  @override
+  __SoundWaveAnimationState createState() => __SoundWaveAnimationState();
+}
+
+class __SoundWaveAnimationState extends State<_SoundWaveAnimation> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: List.generate(3, (index) {
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            double value = sin((_controller.value * 2 * pi) + (index * 1.5)) * 0.5 + 0.5;
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              width: 3,
+              height: 4 + (value * 12),
+              decoration: BoxDecoration(
+                color: context.colors.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            );
+          },
+        );
+      }),
+    );
   }
 }
