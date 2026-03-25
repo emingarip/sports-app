@@ -174,15 +174,20 @@ Deno.serve(async (req) => {
       const isLiveRaw = desc.includes('half') || desc.includes('playing') || desc.includes('live') || desc.includes('pause') || desc.includes('injury');
 
       const matchDate = new Date(hlMatch.date || new Date().toISOString());
+      const now = new Date();
+      const hoursSinceKickoff = (now.getTime() - matchDate.getTime()) / (1000 * 60 * 60);
+
       let derivedStatus = 'pre_match';
 
       if (isFinished) {
         derivedStatus = 'finished';
       } else if (isLiveRaw) {
         derivedStatus = 'live';
-      } else if (!isNotStarted && matchDate <= new Date()) {
-        // Fallback: If it's past kick-off time and neither finished nor explicitly not started, we assume it's live
+      } else if (!isNotStarted && matchDate <= now && hoursSinceKickoff < 6) {
+        // Fallback: If it's within 6 hours of kick-off, assume live. Beyond that, it's stuck/postponed.
         derivedStatus = 'live';
+      } else if (hoursSinceKickoff >= 6) {
+        derivedStatus = 'finished'; // Or postponed, but finished hides it safely from live widgets
       } else {
         derivedStatus = 'pre_match';
       }
@@ -217,7 +222,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Update the sync log to track the successful fetch
+    // 5. Cleanup completely stuck matches from previous days (orphaned postponed matches)
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    await supabaseClient
+      .from('matches')
+      .update({ status: 'finished' })
+      .eq('status', 'live')
+      .lt('started_at', sixHoursAgo);
+
+    // 6. Update the sync log to track the successful fetch
     await supabaseClient
       .from('api_sync_logs')
       .upsert({ date: targetDate, last_synced_at: new Date().toISOString() })
