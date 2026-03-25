@@ -127,11 +127,6 @@ Deno.serve(async (req) => {
         try {
           // Secondary endpoint for Football explicit quota
           response = await fetchHighlightly('https://soccer.highlightly.net/football/matches', 'soccer.highlightly.net');
-          
-          if (response && response.status === 404) {
-            console.log("Fallback API 404 on /football/matches, retrying plain /matches...");
-            response = await fetchHighlightly('https://soccer.highlightly.net/matches', 'soccer.highlightly.net');
-          }
         } catch (fallbackErr) {
           console.error(`Fallback API (soccer) network/DNS error: ${fallbackErr}`);
         }
@@ -148,7 +143,24 @@ Deno.serve(async (req) => {
       console.error(`Critical overarching fallback error: ${criticalErr}`);
     }
     
-    // 3. Map highlightly payload array to our agnostic DB schema to prevent UI lock-in
+    // 3. Load dynamic mappings from DB
+    const { data: mappings, error: mappingErr } = await supabaseClient
+      .from('api_status_mappings')
+      .select('api_status_string, app_status');
+    
+    if (mappingErr) {
+      console.error("Failed to load api_status_mappings:", mappingErr);
+    }
+    
+    // Hash map for fast O(1) lookups
+    const statusMap: Record<string, string> = {};
+    if (mappings) {
+      mappings.forEach(m => {
+        statusMap[m.api_status_string.toLowerCase()] = m.app_status;
+      });
+    }
+
+    // 4. Map highlightly payload array to our agnostic DB schema to prevent UI lock-in
     const payloadMatches = data.data || []
     if (payloadMatches.length === 0) {
       return new Response(JSON.stringify({ success: true, message: "No live matches" }), {
@@ -167,28 +179,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      const desc = hlMatch.state?.description?.toLowerCase() || '';
+      const rawDesc = hlMatch.state?.description || 'Unknown';
+      const descKey = rawDesc.toLowerCase();
       
-      const isFinished = desc.includes('finished') || desc.includes('ended');
-      const isNotStarted = desc.includes('postponed') || desc.includes('canceled') || desc.includes('tbd');
-      const isLiveRaw = desc.includes('half') || desc.includes('playing') || desc.includes('live') || desc.includes('pause') || desc.includes('injury');
-
-      const matchDate = new Date(hlMatch.date || new Date().toISOString());
-      const now = new Date();
-      const hoursSinceKickoff = (now.getTime() - matchDate.getTime()) / (1000 * 60 * 60);
-
-      let derivedStatus = 'pre_match';
-
-      if (isFinished) {
-        derivedStatus = 'finished';
-      } else if (isLiveRaw) {
-        derivedStatus = 'live';
-      } else if (!isNotStarted && matchDate <= now && hoursSinceKickoff < 6) {
-        // Fallback: If it's within 6 hours of kick-off, assume live. Beyond that, it's stuck/postponed.
-        derivedStatus = 'live';
-      } else if (hoursSinceKickoff >= 6) {
-        derivedStatus = 'finished'; // Or postponed, but finished hides it safely from live widgets
-      } else {
+      let derivedStatus = statusMap[descKey];
+      
+      if (!derivedStatus) {
+        // Log to our backend so admin knows a new string appeared
+        console.warn(`[Knowledge Base] Unmapped API status encountered: '${rawDesc}'. Defaulting to pre_match.`);
         derivedStatus = 'pre_match';
       }
 
@@ -222,15 +220,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Cleanup completely stuck matches from previous days (orphaned postponed matches)
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-    await supabaseClient
-      .from('matches')
-      .update({ status: 'finished' })
-      .eq('status', 'live')
-      .lt('started_at', sixHoursAgo);
-
-    // 6. Update the sync log to track the successful fetch
+    // 5. Push unified mapped matches to database
+    // Only upsert matches to maintain data instead of overriding purely if possible.
     await supabaseClient
       .from('api_sync_logs')
       .upsert({ date: targetDate, last_synced_at: new Date().toISOString() })
