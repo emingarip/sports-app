@@ -48,9 +48,16 @@ class SupabaseMatchProvider implements MatchRepository {
 
   @override
   Stream<List<model.Match>> getMatchesStream() {
+    // Calculate a start date of 2 days ago to ensure we capture recent finished matches
+    // while preventing the stream from hitting the 1000 row PostgREST limit on historical data.
+    final pastDate = DateTime.now().subtract(const Duration(days: 2)).toUtc();
+    final startCutoff = DateTime.utc(pastDate.year, pastDate.month, pastDate.day).toIso8601String();
+
     return _client
         .from('matches')
         .stream(primaryKey: ['id'])
+        .gte('started_at', startCutoff)
+        .order('started_at', ascending: true)
         .map((events) => events.map((data) => _mapMatch(data)).toList());
   }
 
@@ -67,9 +74,10 @@ class SupabaseMatchProvider implements MatchRepository {
         queryParameters: {'date': formattedDate},
       );
     } catch (e) {
-      // In a real app we would log this properly or surface to UI,
-      // but for background syncing it's safe to silently fail or print.
-      print("[SupabaseMatchProvider] Error fetching live matches: $e");
+      // In a real app we would log this properly using a telemetry service,
+      // but for background syncing it's safe to silently fail rather than
+      // polling the debug terminal every 10 seconds on expired active JWTs.
+      // print("[SupabaseMatchProvider] Error fetching live matches: $e");
     }
   }
 
