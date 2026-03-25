@@ -78,6 +78,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
 
   final ChatService _chatService = ChatService();
   StreamSubscription<List<ChatMessage>>? _chatSubscription;
+  RealtimeChannel? _presenceChannel;
 
   @override
   void initState() {
@@ -124,7 +125,14 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         entityType: 'league',
         entityId: widget.match.leagueId,
       );
+      
+      notifier.trackEvent(
+        eventType: 'match_viewed',
+        entityType: 'match',
+        entityId: widget.match.id,
+      );
     });
+    
     _tabController.addListener(() {
       if (_tabController.index == 3) {
         if (_chatSubscription == null) _subscribeToChat();
@@ -133,6 +141,24 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         _chatSubscription = null;
       }
       setState(() {}); // to show/hide chat elements based on tab index
+    });
+    
+    _setupPresence();
+  }
+
+  void _setupPresence() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    
+    _presenceChannel = Supabase.instance.client.channel('global_match_presence');
+    
+    _presenceChannel!.subscribe((status, [error]) async {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        await _presenceChannel!.track({
+          'user_id': user.id,
+          'match_id': widget.match.id,
+        });
+      }
     });
   }
 
@@ -159,6 +185,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       c.dispose();
     }
     _chatSubscription?.cancel();
+    _presenceChannel?.unsubscribe();
     super.dispose();
   }
 
