@@ -78,9 +78,15 @@ export default function Users() {
       
       // Close modal and refresh will happen automatically via Realtime
       setEditingUser(null);
+<<<<<<< HEAD
     } catch (error: any) {
       console.error('Error updating balance:', error);
       alert('Bakiye güncellenemedi: ' + error.message);
+=======
+    } catch (error: unknown) {
+      console.error('Error updating balance:', error);
+      alert('Bakiye güncellenemedi: ' + (error instanceof Error ? error.message : String(error)));
+>>>>>>> origin/feature/live-matches-tracking
     } finally {
       setSaving(false);
     }

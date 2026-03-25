@@ -28,11 +28,20 @@ interface BetData {
   matches: { home_team: { name: string }; away_team: { name: string } };
 }
 
+<<<<<<< HEAD
 export default function Dashboard({ _session }: { _session?: any }) {
   const [stats, setStats] = useState<DashboardStats>({ totalUsers: 0, totalKCoins: 0, totalBets: 0 });
   const [recentBets, setRecentBets] = useState<BetData[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+=======
+export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStats>({ totalUsers: 0, totalKCoins: 0, totalBets: 0 });
+  const [recentBets, setRecentBets] = useState<BetData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [chartData, setChartData] = useState<{name: string, dateString: string, BahisSayisi: number}[]>([]);
+  const [liveUsersCount, setLiveUsersCount] = useState<number>(0);
+>>>>>>> origin/feature/live-matches-tracking
 
   useEffect(() => {
     fetchDashboardData();
@@ -52,8 +61,27 @@ export default function Dashboard({ _session }: { _session?: any }) {
         console.log('Realtime Bağlantı Durumu:', status);
       });
 
+<<<<<<< HEAD
     return () => {
       supabase.removeChannel(channel);
+=======
+    // Setup Presence for global online users
+    const presenceChannel = supabase.channel('online_users');
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        let count = 0;
+        for (const id in state) {
+           count += state[id].length;
+        }
+        setLiveUsersCount(count);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(presenceChannel);
+>>>>>>> origin/feature/live-matches-tracking
     };
   }, []);
 
@@ -87,8 +115,12 @@ export default function Dashboard({ _session }: { _session?: any }) {
         .select('id, created_at, amount, user_id, users(email, username), matches(home_team, away_team)')
         .order('created_at', { ascending: false })
         .limit(10);
+<<<<<<< HEAD
       
       setRecentBets((betsData as any) || []);
+=======
+      setRecentBets((betsData as unknown as BetData[]) || []);
+>>>>>>> origin/feature/live-matches-tracking
 
       // 5. Build Chart Data (Last 7 Days)
       const sevenDaysAgo = startOfDay(subDays(new Date(), 6)).toISOString();
@@ -142,8 +174,19 @@ export default function Dashboard({ _session }: { _session?: any }) {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="px-6 py-5 rounded-xl border border-border bg-card shadow-sm flex items-center justify-between">
             <div>
+<<<<<<< HEAD
                 <p className="text-sm font-medium text-muted-foreground">Toplam Kullanıcı</p>
                 <h3 className="text-3xl font-bold mt-1 text-card-foreground">{stats.totalUsers}</h3>
+=======
+                <div className="flex items-center gap-3">
+                    <p className="text-sm font-medium text-muted-foreground">Toplam Kullanıcı</p>
+                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                      Şu An: {liveUsersCount}
+                    </span>
+                </div>
+                <h3 className="text-3xl font-bold mt-2 text-card-foreground">{stats.totalUsers}</h3>
+>>>>>>> origin/feature/live-matches-tracking
             </div>
             <div className="p-3 bg-primary/10 rounded-full text-primary">
                 <Users className="w-6 h-6" />
@@ -212,8 +255,13 @@ export default function Dashboard({ _session }: { _session?: any }) {
                 ) : (
                     <div className="divide-y divide-border">
                         {recentBets.map(bet => {
+<<<<<<< HEAD
                             const homeTeam = (bet.matches?.home_team as any)?.name || 'Ev Sahibi';
                             const awayTeam = (bet.matches?.away_team as any)?.name || 'Deplasman';
+=======
+                            const homeTeam = (bet.matches?.home_team as unknown as {name: string})?.name || 'Ev Sahibi';
+                            const awayTeam = (bet.matches?.away_team as unknown as {name: string})?.name || 'Deplasman';
+>>>>>>> origin/feature/live-matches-tracking
                             const username = bet.users?.username || bet.users?.email?.split('@')[0] || 'Anonim';
                             
                             return (

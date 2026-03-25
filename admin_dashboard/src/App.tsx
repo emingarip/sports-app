@@ -39,7 +39,11 @@ function App() {
         
         {/* Protected Routes */}
         <Route element={session ? <Layout /> : <Navigate to="/login" />}>
+<<<<<<< HEAD
           <Route path="/" element={<Dashboard session={session} />} />
+=======
+          <Route path="/" element={<Dashboard />} />
+>>>>>>> origin/feature/live-matches-tracking
           <Route path="users" element={<Users />} />
           <Route path="matches" element={<Matches />} />
         </Route>

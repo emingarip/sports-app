@@ -22,6 +22,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'voice_room_screen.dart';
 import '../providers/voice_room_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -40,6 +41,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  RealtimeChannel? _onlinePresenceChannel;
 
   @override
   void initState() {
@@ -55,6 +57,22 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     });
 
     _initDeepLinks();
+    
+    // Track global online user presence
+    try {
+      _onlinePresenceChannel = Supabase.instance.client.channel('online_users');
+      _onlinePresenceChannel?.subscribe((status, [error]) async {
+        if (status == RealtimeSubscribeStatus.subscribed) {
+          final userId = Supabase.instance.client.auth.currentUser?.id ?? 'anonymous_${DateTime.now().millisecondsSinceEpoch}';
+          await _onlinePresenceChannel?.track({
+            'user_id': userId, 
+            'online_at': DateTime.now().toIso8601String()
+          });
+        }
+      });
+    } catch (_) {
+      // Ignored for widget tests environment
+    }
   }
 
   Future<void> _initDeepLinks() async {
@@ -103,6 +121,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    _onlinePresenceChannel?.unsubscribe();
     _pageController.dispose();
     super.dispose();
   }
