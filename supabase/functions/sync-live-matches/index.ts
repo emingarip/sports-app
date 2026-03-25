@@ -39,16 +39,16 @@ Deno.serve(async (req) => {
     if (syncLog && syncLog.last_synced_at) {
       const lastSynced = new Date(syncLog.last_synced_at);
       const now = new Date();
-      const diffMinutes = (now.getTime() - lastSynced.getTime()) / 1000 / 60;
+      const diffSeconds = (now.getTime() - lastSynced.getTime()) / 1000;
       
       const today = new Date().toISOString().split('T')[0];
       
       if (targetDate === today) {
-        // Live matches (today): Cache for 15 minutes to conserve API free quota
-        if (diffMinutes <= 15) shouldFetchFromAPI = false;
+        // Live matches (today): Cache for 10 seconds to leverage API Pro quota
+        if (diffSeconds <= 10) shouldFetchFromAPI = false;
       } else {
-        // Scheduled or Past matches: Cache for 24 hours (1440 mins)
-        if (diffMinutes <= 1440) shouldFetchFromAPI = false;
+        // Scheduled or Past matches: Cache for 24 hours (86400 secs)
+        if (diffSeconds <= 86400) shouldFetchFromAPI = false;
       }
     }
 
