@@ -112,11 +112,6 @@ Deno.serve(async (req) => {
       
       try {
         response = await fetchHighlightly('https://sports.highlightly.net/football/matches', 'sports.highlightly.net');
-        
-        if (response && response.status === 404) {
-          console.log("Primary API 404 on /football/matches, retrying plain /matches...");
-          response = await fetchHighlightly('https://sports.highlightly.net/matches', 'sports.highlightly.net');
-        }
       } catch (primaryErr) {
         console.error(`Primary API (sports) network/DNS error: ${primaryErr}`);
       }
