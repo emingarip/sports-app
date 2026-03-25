@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Activity, Users as UsersIcon, Mic, Trophy } from 'lucide-react';
+import { Search, Activity, Users as UsersIcon, Mic, Trophy, Clock } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -13,6 +13,7 @@ interface Match {
   away_score: number;
   minute: string;
   league_name: string;
+  started_at: string;
   match_interest_stats: {
     total_interested_users: number;
   }[];
@@ -33,6 +34,8 @@ export default function Matches() {
   const [liveViewers, setLiveViewers] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'finished'>('all');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchData();
@@ -51,7 +54,7 @@ export default function Matches() {
       const counts: Record<string, number> = {};
       
       for (const id in state) {
-        const presences = state[id] as any[];
+        const presences = state[id] as { match_id?: string }[];
         for (const p of presences) {
           if (p.match_id) {
             counts[p.match_id] = (counts[p.match_id] || 0) + 1;
@@ -75,29 +78,62 @@ export default function Matches() {
       supabase.removeChannel(channel);
       supabase.removeChannel(roomsSubscription);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]); // Refetch when selectedDate changes
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     await Promise.all([fetchMatches(), fetchAudioRooms()]);
     setLoading(false);
   };
 
-  const fetchMatches = async () => {
-    const { data, error } = await supabase
+  async function fetchMatches() {
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const { data: matchesData, error: matchesError } = await supabase
       .from('matches')
-      .select('*, match_interest_stats(total_interested_users)')
+      .select('*')
+      .gte('started_at', startOfDay.toISOString())
+      .lte('started_at', endOfDay.toISOString())
       .order('started_at', { ascending: false })
       .limit(100);
 
-    if (error) {
-      console.error('Error fetching matches:', error);
-    } else {
-      setMatches(data || []);
+    if (matchesError) {
+      console.error('Error fetching matches:', matchesError);
+      return;
     }
+
+    if (!matchesData || matchesData.length === 0) {
+      setMatches([]);
+      return;
+    }
+
+    const matchIds = matchesData.map((m: { id: string }) => m.id);
+
+    const { data: statsData, error: statsError } = await supabase
+      .from('match_interest_stats')
+      .select('match_id, total_interested_users')
+      .in('match_id', matchIds);
+
+    if (statsError) {
+      console.error('Error fetching match stats:', statsError);
+    }
+
+    const matchesWithStats = matchesData.map((match: Match) => {
+      const stats = statsData?.filter((s: { match_id: string, total_interested_users: number }) => s.match_id === match.id) || [];
+      return {
+        ...match,
+        match_interest_stats: stats.map((s: { total_interested_users: number }) => ({ total_interested_users: s.total_interested_users })),
+      } as Match;
+    });
+
+    setMatches(matchesWithStats);
   };
 
-  const fetchAudioRooms = async () => {
+  async function fetchAudioRooms() {
     const { data, error } = await supabase
       .from('audio_rooms')
       .select('*');
@@ -109,12 +145,36 @@ export default function Matches() {
     }
   };
 
-  const filteredMatches = matches.filter(
-    (m) =>
-      m.home_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.away_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.league_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMatches = matches
+    .filter((m) => {
+      // 1. Text Search Filter
+      const matchesSearch =
+        m.home_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.away_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.league_name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // 2. Status Filter
+      const matchesStatus =
+        statusFilter === 'all' ? true : statusFilter === 'live' ? m.status === 'live' : m.status !== 'live';
+
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // 1. Live status priority
+      const aIsLive = a.status === 'live' ? 1 : 0;
+      const bIsLive = b.status === 'live' ? 1 : 0;
+      if (aIsLive !== bIsLive) return bIsLive - aIsLive;
+
+      // 2. Live viewers priority
+      const aLiveViews = liveViewers[a.id] || 0;
+      const bLiveViews = liveViewers[b.id] || 0;
+      if (aLiveViews !== bLiveViews) return bLiveViews - aLiveViews;
+
+      // 3. Historical views priority
+      const aTotal = a.match_interest_stats?.[0]?.total_interested_users || 0;
+      const bTotal = b.match_interest_stats?.[0]?.total_interested_users || 0;
+      return bTotal - aTotal;
+    });
 
   return (
     <div className="space-y-6">
@@ -131,8 +191,8 @@ export default function Matches() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="flex gap-4">
+      {/* Filters (Search, Date & Status) */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <input
@@ -142,6 +202,38 @@ export default function Matches() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
+        </div>
+        
+        <div className="flex items-center gap-4 flex-wrap">
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => {
+              if (e.target.value) setSelectedDate(e.target.value);
+            }}
+            className="px-4 py-1.5 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          
+          <div className="flex bg-secondary/30 border border-border rounded-md p-1">
+            <button 
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-sm transition-colors ${statusFilter === 'all' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Tümü
+            </button>
+            <button 
+              onClick={() => setStatusFilter('live')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-sm transition-colors ${statusFilter === 'live' ? 'bg-red-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Canlı
+            </button>
+            <button 
+              onClick={() => setStatusFilter('finished')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-sm transition-colors ${statusFilter === 'finished' ? 'bg-card border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Bitenler
+            </button>
+          </div>
         </div>
       </div>
 
@@ -162,14 +254,23 @@ export default function Matches() {
                 
                 {/* League & Status */}
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {match.league_name}
-                  </span>
-                  {match.status === 'live' ? (
-                    <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs font-bold rounded flex items-center gap-1 animate-pulse">
-                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                      {match.minute}'
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate max-w-[150px]" title={match.league_name}>
+                      {match.league_name}
                     </span>
+                    <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {match.started_at ? new Date(match.started_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : 'Saat Yok'}
+                    </span>
+                  </div>
+                  {match.status === 'live' ? (
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-xs font-bold rounded flex items-center gap-1.5 animate-pulse">
+                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                        CANLI
+                      </span>
+                      <span className="text-xs font-medium text-red-500/80">{match.minute}' dk geçti</span>
+                    </div>
                   ) : (
                     <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs font-semibold rounded">
                       {match.status.toUpperCase()}

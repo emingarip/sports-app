@@ -14,10 +14,13 @@ When you are asked to push code, merge branches, or finalize a feature, you MUST
    Always run `flutter test` locally to ensure no widget tests or unit tests are broken by your UI or architecture changes.
    If any test fails, STOP and fix the test or the code. Do not push failing code.
 
-3. **Verify Build:**
+3. **Verify Build (Flutter):**
    If the changes are significant, consider running `flutter build web` or `flutter build apk` to ensure the compilation succeeds.
 
-4. **Commit and Push:**
+4. **Verify Build (React Admin Dashboard):**
+   If changes were made inside the `admin_dashboard/` directory, you MUST navigate to it and run `npm run lint` and `npm run build` to verify the React project compiles successfully without any TypeScript or Vite errors.
+
+5. **Commit and Push:**
    Once all the above steps pass successfully:
    ```bash
    git add .
@@ -30,5 +33,6 @@ When you are asked to push code, merge branches, or finalize a feature, you MUST
 
 6. **Monitor CI/CD (GitHub Actions):**
    If you push to a branch where GitHub Actions workflows exist (like `master` or feature branches), you MUST actively monitor the workflow using `gh run list` and `gh run watch <run-id>` or `gh run view`. Wait for the workflow to complete successfully BEFORE responding to the user. If the workflow fails (like a test error on CI), fix the issue and push again, and monitor it until green.
+   *Note:* The pipeline may trigger separate jobs for Flutter (`lib/**`) and React (`admin_dashboard/**`). Monitor both if applicable.
 
 Make sure and double check this checklist every time you are about to push or merge!

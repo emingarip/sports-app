@@ -78,9 +78,9 @@ export default function Users() {
       
       // Close modal and refresh will happen automatically via Realtime
       setEditingUser(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating balance:', error);
-      alert('Bakiye güncellenemedi: ' + error.message);
+      alert('Bakiye güncellenemedi: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setSaving(false);
     }

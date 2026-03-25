@@ -80,7 +80,7 @@ class MatchNotifier extends Notifier<MatchState> {
 
     // Setup periodic polling to keep live matches updated
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       // Only poll from edge function if looking at today's matches
       final now = DateTime.now();
       if (state.selectedDate.year == now.year &&

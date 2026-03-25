@@ -1,0 +1,85 @@
+﻿
+> admin_dashboard@0.0.0 lint
+> eslint .
+
+
+D:\Projects\SportsApp\admin_dashboard\src\pages\Dashboard.tsx
+   31:37  error  '_session' is defined but never used      @typescript-eslint/no-unused-vars
+   31:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   35:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  236:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  237:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\SportsApp\admin_dashboard\src\pages\Matches.tsx
+   41:5   error    Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+D:\Projects\SportsApp\admin_dashboard\src\pages\Matches.tsx:41:5
+  39 |
+  40 |   useEffect(() => {
+> 41 |     fetchData();
+     |     ^^^^^^^^^ `fetchData` accessed before it is declared
+  42 |
+  43 |     // Subscribe to global match presence
+  44 |     const channel = supabase.channel('global_match_presence', {
+
+D:\Projects\SportsApp\admin_dashboard\src\pages\Matches.tsx:83:3
+  81 |   }, [selectedDate]); // Refetch when selectedDate changes
+  82 |
+> 83 |   const fetchData = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 84 |     setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 85 |     await Promise.all([fetchMatches(), fetchAudioRooms()]);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 86 |     setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 87 |   };
+     | ^^^^^ `fetchData` is declared here
+  88 |
+  89 |   const fetchMatches = async () => {
+  90 |     const startOfDay = new Date(selectedDate);                                                             react-hooks/immutability
+   57:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+   73:9   error    Error: Cannot access variable before it is declared
+
+`fetchAudioRooms` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+D:\Projects\SportsApp\admin_dashboard\src\pages\Matches.tsx:73:9
+  71 |       .channel('public:audio_rooms')
+  72 |       .on('postgres_changes', { event: '*', schema: 'public', table: 'audio_rooms' }, () => {
+> 73 |         fetchAudioRooms();
+     |         ^^^^^^^^^^^^^^^ `fetchAudioRooms` accessed before it is declared
+  74 |       })
+  75 |       .subscribe();
+  76 |
+
+D:\Projects\SportsApp\admin_dashboard\src\pages\Matches.tsx:135:3
+  133 |   };
+  134 |
+> 135 |   const fetchAudioRooms = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 136 |     const { data, error } = await supabase
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 137 |       .from('audio_rooms')
+      ΓÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 144 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 145 |   };
+      | ^^^^^ `fetchAudioRooms` is declared here
+  146 |
+  147 |   const filteredMatches = matches
+  148 |     .filter((m) => {  react-hooks/immutability
+   81:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+  113:42  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  124:54  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  125:43  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  128:45  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+
+D:\Projects\SportsApp\admin_dashboard\src\pages\Users.tsx
+  81:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 15 problems (14 errors, 1 warning)
+

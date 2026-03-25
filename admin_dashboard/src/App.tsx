@@ -39,7 +39,7 @@ function App() {
         
         {/* Protected Routes */}
         <Route element={session ? <Layout /> : <Navigate to="/login" />}>
-          <Route path="/" element={<Dashboard session={session} />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="users" element={<Users />} />
           <Route path="matches" element={<Matches />} />
         </Route>
