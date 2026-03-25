@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { roomName, participantName } = await req.json();
+    const { roomName, participantName, userId, isHost, canPublish } = await req.json();
 
     if (!roomName || !participantName) {
       return new Response(
@@ -32,11 +32,19 @@ serve(async (req) => {
     }
 
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: participantName,
+      identity: userId || participantName,
       name: participantName,
     });
     
-    at.addGrant({ roomJoin: true, room: roomName });
+    const publishGranted = isHost === true || canPublish === true;
+
+    at.addGrant({ 
+      roomJoin: true, 
+      room: roomName,
+      canPublish: publishGranted,
+      canSubscribe: true,
+      canPublishData: true,
+    });
 
     const token = await at.toJwt();
 

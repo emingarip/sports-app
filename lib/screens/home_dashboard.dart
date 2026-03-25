@@ -16,9 +16,12 @@ import '../widgets/match_card.dart';
 import '../providers/notification_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
-import '../providers/voice_room_provider.dart';
 import '../widgets/notification_bell.dart';
 import 'profile_screen.dart';
+import 'dart:async';
+import 'package:app_links/app_links.dart';
+import 'voice_room_screen.dart';
+import '../providers/voice_room_provider.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -34,6 +37,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   final Set<String> _expandedLeagues = {};
   bool _hasInitializedExpansion = false;
   late final PageController _pageController;
+  
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -47,11 +54,55 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       }
     });
 
-    // No default expansion on init; wait for live data.
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+    
+    // Check initial link if app was cold-started
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _handleDeepLink(initialUri);
+      }
+    } catch (e) {
+      debugPrint("AppLinks init error: $e");
+    }
+
+    // Listen to incoming links while app is open
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    String? roomName;
+    String? pinCode;
+
+    if (uri.scheme == 'sportsapp' && uri.host == 'room') {
+      roomName = uri.queryParameters['name'];
+      pinCode = uri.queryParameters['pin'];
+    } else if (uri.queryParameters.containsKey('room')) {
+      roomName = uri.queryParameters['room'];
+      pinCode = uri.queryParameters['pin'];
+    }
+      
+    if (roomName != null && mounted) {
+      // Auto join the room utilizing the PIN from link
+      ref.read(voiceRoomProvider.notifier).joinRoom(
+        roomName,
+        isPrivate: pinCode != null,
+        pinCode: pinCode,
+        forceIsHost: false,
+      );
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+    }
   }
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -552,11 +603,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 delegate: MatchSearchDelegate(ref),
               );
             }),
-        IconButton(
-          icon: const Icon(Icons.mic_external_on, color: Colors.greenAccent),
-          onPressed: () => _joinVoiceRoom(context, ref),
-          tooltip: 'Sesli Odalar',
-        ),
         const NotificationBell(),
         const SizedBox(width: 8),
       ],
@@ -811,45 +857,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             overflow: TextOverflow.ellipsis,
             maxLines: 1),
       ],
-    );
-  }
-
-  void _joinVoiceRoom(BuildContext context, WidgetRef ref) {
-    final TextEditingController roomController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
-          title: const Text('🗣️ Sesli Oda Yarat / Katıl', style: TextStyle(color: Colors.white)),
-          content: TextField(
-            controller: roomController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: 'Oda Adı (ör. derbi-sohbeti)',
-              hintStyle: TextStyle(color: Colors.grey),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('İptal', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-              onPressed: () {
-                final roomName = roomController.text.trim();
-                if (roomName.isNotEmpty) {
-                  ref.read(voiceRoomProvider.notifier).joinRoom(roomName);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Katıl'),
-            ),
-          ],
-        );
-      },
     );
   }
 
