@@ -20,7 +20,7 @@ class VoiceRoomScreen extends ConsumerWidget {
       if (previous != null && previous.isConnected && !next.isConnected && next.error == 'room_ended') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Yayıncı odayı kapattı 👋'),
+            content: Text('Oda kapatıldı 👋'),
             backgroundColor: Colors.blueAccent,
           ),
         );

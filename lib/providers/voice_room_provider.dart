@@ -186,7 +186,11 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         _handleDataReceived(e.data, e.participant);
       })
       ..on<RoomDisconnectedEvent>((e) {
-        leaveRoom();
+        debugPrint('Room forcibly disconnected by server.');
+        _listener?.dispose();
+        _listener = null;
+        // Do not call leaveRoom() here since it clears the error state
+        state = const VoiceRoomState(error: 'room_ended');
       });
   }
 
