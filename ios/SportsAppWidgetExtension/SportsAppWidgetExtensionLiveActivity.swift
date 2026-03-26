@@ -22,58 +22,82 @@ struct SportsAppWidgetExtensionAttributes: ActivityAttributes {
 struct SportsAppWidgetExtensionLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: SportsAppWidgetExtensionAttributes.self) { context in
-            // Lock screen/banner UI goes here
+            // Lock screen/banner UI
             VStack {
                 HStack {
-                    Text(context.attributes.homeTeamName)
-                        .font(.headline)
+                    VStack(alignment: .leading) {
+                        Text(context.attributes.homeTeamName)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
                     Spacer()
                     Text("\(context.state.homeScore) - \(context.state.awayScore)")
-                        .font(.title)
-                        .bold()
+                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .foregroundColor(Color(red: 0.3, green: 0.9, blue: 0.5)) // Neon Green
                     Spacer()
-                    Text(context.attributes.awayTeamName)
-                        .font(.headline)
+                    VStack(alignment: .trailing) {
+                        Text(context.attributes.awayTeamName)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
                 }
-                .padding(.horizontal)
                 
-                Text("\(context.state.minute) • \(context.state.status)")
-                    .font(.caption)
-                    .foregroundColor(.gray)
+                HStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                    Text("\(context.state.minute) • \(context.state.status.uppercased())")
+                        .font(.system(size: 14, weight: .medium, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, 4)
             }
-            .padding()
-            .activityBackgroundTint(Color.black.opacity(0.8))
+            .padding(20)
+            .activityBackgroundTint(Color(red: 0.05, green: 0.05, blue: 0.05))
             .activitySystemActionForegroundColor(Color.white)
 
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded UI goes here.  Compose the expanded UI through
-                // various regions, like leading/trailing/center/bottom
                 DynamicIslandExpandedRegion(.leading) {
-                    Text("\(context.attributes.homeTeamName) \(context.state.homeScore)")
-                        .bold()
+                    Text("\(context.attributes.homeTeamName)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("\(context.state.awayScore) \(context.attributes.awayTeamName)")
-                        .bold()
+                    Text("\(context.attributes.awayTeamName)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    Text("\(context.state.homeScore) - \(context.state.awayScore)")
+                        .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .foregroundColor(Color(red: 0.3, green: 0.9, blue: 0.5))
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text("\(context.state.minute) • \(context.state.status)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                    HStack {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 6, height: 6)
+                        Text("\(context.state.minute) • \(context.state.status.uppercased())")
+                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .foregroundColor(.gray)
+                    }
                 }
             } compactLeading: {
-                Text("\(context.attributes.homeTeamName) \(context.state.homeScore)")
-                    .foregroundColor(Color.green)
+                Text("\(context.state.homeScore)")
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color(red: 0.3, green: 0.9, blue: 0.5))
             } compactTrailing: {
-                Text("\(context.state.awayScore) \(context.attributes.awayTeamName)")
-                    .foregroundColor(Color.green)
+                Text("\(context.state.awayScore)")
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color(red: 0.3, green: 0.9, blue: 0.5))
             } minimal: {
-                Image(systemName: "sportscourt")
-                    .foregroundColor(Color.green)
+                Text("\(context.state.homeScore)-\(context.state.awayScore)")
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color(red: 0.3, green: 0.9, blue: 0.5))
             }
             .widgetURL(URL(string: "sportsapp://match/\(context.attributes.matchId)"))
-            .keylineTint(Color.green)
+            .keylineTint(Color(red: 0.3, green: 0.9, blue: 0.5))
         }
     }
 }
