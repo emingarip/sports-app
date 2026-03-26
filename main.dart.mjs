@@ -440,8 +440,13 @@ class CompiledApp {
       _1378: (x0,x1) => x0.getItem(x1),
       _1379: (x0,x1) => x0.removeItem(x1),
       _1380: (x0,x1,x2) => x0.setItem(x1,x2),
+      _1383: x0 => ({audio: x0}),
       _1384: (x0,x1) => x0.getUserMedia(x1),
       _1385: x0 => x0.stop(),
+      _1386: x0 => ({video: x0}),
+      _1387: (module,f) => finalizeWrapper(f, function(x0) { return module.exports._1387(f,arguments.length,x0) }),
+      _1388: (module,f) => finalizeWrapper(f, function(x0) { return module.exports._1388(f,arguments.length,x0) }),
+      _1389: (x0,x1,x2) => x0.getCurrentPosition(x1,x2),
       _1392: x0 => x0.deviceMemory,
       _1394: (x0,x1,x2,x3,x4,x5,x6,x7) => ({apiKey: x0,authDomain: x1,databaseURL: x2,projectId: x3,storageBucket: x4,messagingSenderId: x5,measurementId: x6,appId: x7}),
       _1395: (x0,x1) => globalThis.firebase_core.initializeApp(x0,x1),
@@ -649,6 +654,18 @@ class CompiledApp {
       },
       _1645: (jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
         const setValue = dartInstance.exports.$wasmI8ArraySet;
+        for (let i = 0; i < length; i++) {
+          setValue(wasmArray, wasmArrayOffset + i, jsArray[jsArrayOffset + i]);
+        }
+      },
+      _1646: (jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
+        const getValue = dartInstance.exports.$wasmI16ArrayGet;
+        for (let i = 0; i < length; i++) {
+          jsArray[jsArrayOffset + i] = getValue(wasmArray, wasmArrayOffset + i);
+        }
+      },
+      _1647: (jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
+        const setValue = dartInstance.exports.$wasmI16ArraySet;
         for (let i = 0; i < length; i++) {
           setValue(wasmArray, wasmArrayOffset + i, jsArray[jsArrayOffset + i]);
         }
@@ -962,6 +979,7 @@ class CompiledApp {
       _8860: x0 => x0.headers,
       _8861: x0 => x0.body,
       _9644: x0 => x0.id,
+      _9645: x0 => x0.active,
       _9651: x0 => x0.kind,
       _9652: x0 => x0.id,
       _9653: x0 => x0.label,
