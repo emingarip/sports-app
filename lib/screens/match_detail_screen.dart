@@ -14,6 +14,7 @@ import '../services/widget_service.dart';
 import '../models/audio_room.dart';
 import 'voice_room_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/tts_service.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -80,6 +81,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   final ChatService _chatService = ChatService();
   StreamSubscription<List<ChatMessage>>? _chatSubscription;
   RealtimeChannel? _presenceChannel;
+
+  bool _isDrivingModeActive = false;
+  Timer? _drivingModeTimer;
 
   @override
   void initState() {
@@ -221,8 +225,49 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     }
     _chatSubscription?.cancel();
     _presenceChannel?.unsubscribe();
+    _drivingModeTimer?.cancel();
+    TtsService().stop();
     WidgetService().endLiveActivity();
     super.dispose();
+  }
+
+  void _toggleDrivingMode() async {
+    setState(() {
+      _isDrivingModeActive = !_isDrivingModeActive;
+    });
+
+    if (_isDrivingModeActive) {
+      await TtsService().initTts();
+      _playDrivingModeUpdate();
+      
+      // Her 60 saniyede bir skoru okur
+      _drivingModeTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+        _playDrivingModeUpdate();
+      });
+    } else {
+      _drivingModeTimer?.cancel();
+      await TtsService().stop();
+    }
+  }
+
+  void _playDrivingModeUpdate() {
+    if (!mounted) return;
+    final home = widget.match.homeTeam;
+    final away = widget.match.awayTeam;
+    final homeScore = widget.match.homeScore ?? '0';
+    final awayScore = widget.match.awayScore ?? '0';
+    
+    String timeText = "";
+    if (widget.match.status == model.MatchStatus.live) {
+      timeText = "Dakika ${widget.match.liveMinute}.";
+    } else if (widget.match.status == model.MatchStatus.finished) {
+      timeText = "Maç sona erdi.";
+    } else {
+      timeText = "Maç henüz başlamadı.";
+    }
+
+    final text = "Skor tablosu: $home $homeScore, $away $awayScore. $timeText";
+    TtsService().speak(text);
   }
 
   void _sendMessage() async {
@@ -356,19 +401,101 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   }
 
   Widget _buildOverviewTab() {
-    return Center(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.sports_esports, size: 48, color: context.colors.surfaceContainerHigh),
-          const SizedBox(height: 16),
-          Text("Match Timeline", style: TextStyle(fontFamily: 'Lexend', fontSize: 18, color: context.colors.textHigh, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text("Events will appear here.", style: TextStyle(color: context.colors.textMedium)),
+          // Sürüş Modu Banner
+          GestureDetector(
+            onTap: _toggleDrivingMode,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  colors: _isDrivingModeActive
+                      ? [const Color(0xFFEF4444), const Color(0xFFB91C1C)] // Kırmızı (Aktif)
+                      : [const Color(0xFF1E293B), const Color(0xFF0F172A)], // Koyu Lacivert (Pasif)
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: _isDrivingModeActive
+                    ? [BoxShadow(color: Colors.red.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8))]
+                    : [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isDrivingModeActive ? Icons.directions_car : Icons.directions_car_outlined,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _isDrivingModeActive ? "Sürüş Modu Aktif" : "Sürüş Modunu Aç",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _isDrivingModeActive 
+                              ? "Maçın skoru her 60 saniyede bir sesli tam otomatik okunacak." 
+                              : "Direksiyon başındayken maçın skorunu yapay zeka seslendirir.",
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _isDrivingModeActive ? Icons.graphic_eq : Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.sports_esports, size: 48, color: context.colors.surfaceContainerHigh),
+                const SizedBox(height: 16),
+                Text("Match Timeline", style: TextStyle(fontFamily: 'Lexend', fontSize: 18, color: context.colors.textHigh, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text("Events will appear here.", style: TextStyle(color: context.colors.textMedium)),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+
 
   Widget _buildStatsTab() {
     return MatchStatsView(match: widget.match);

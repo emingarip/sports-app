@@ -30,6 +30,10 @@ class WidgetService {
     await HomeWidget.saveWidgetData<int>('widget_home_score', homeScore);
     await HomeWidget.saveWidgetData<int>('widget_away_score', awayScore);
     
+    // WatchOS Complication Keys (AppGroup exported)
+    await HomeWidget.saveWidgetData<int>('watch_home_score', homeScore);
+    await HomeWidget.saveWidgetData<int>('watch_away_score', awayScore);
+
     await HomeWidget.updateWidget(
       name: 'SportsAppWidgetProvider', // Android
       iOSName: 'SportsAppWidgetExtension', // iOS
