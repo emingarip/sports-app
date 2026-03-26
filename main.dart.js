@@ -126116,7 +126116,7 @@ l=n.a
 s=7
 return A.d(l.Es("tr-TR"),$async$qL)
 case 7:s=8
-return A.d(l.Ez(0.5),$async$qL)
+return A.d(l.Ez(1.2),$async$qL)
 case 8:s=9
 return A.d(l.EA(1),$async$qL)
 case 9:s=10
