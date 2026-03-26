@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/knowledge_graph_provider.dart';
 import '../providers/active_rooms_provider.dart';
 import '../providers/voice_room_provider.dart';
+import '../services/widget_service.dart';
 import '../models/audio_room.dart';
 import 'voice_room_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -131,6 +132,8 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         entityType: 'match',
         entityId: widget.match.id,
       );
+
+      _initWidgets();
     });
     
     _tabController.addListener(() {
@@ -140,10 +143,42 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         _chatSubscription?.cancel();
         _chatSubscription = null;
       }
-      setState(() {}); // to show/hide chat elements based on tab index
+      setState(() {}); 
     });
     
     _setupPresence();
+  }
+
+  Future<void> _initWidgets() async {
+    try {
+      await WidgetService().initialize();
+      
+      final homeScoreInt = int.tryParse(widget.match.homeScore ?? '0') ?? 0;
+      final awayScoreInt = int.tryParse(widget.match.awayScore ?? '0') ?? 0;
+
+      // Update persistent Home Screen Widget
+      await WidgetService().updateHomeScreenWidget(
+        homeTeam: widget.match.homeTeam,
+        awayTeam: widget.match.awayTeam,
+        homeScore: homeScoreInt,
+        awayScore: awayScoreInt,
+      );
+
+      // Start iOS Live Activity if match is Live
+      if (widget.match.status == model.MatchStatus.live) {
+        await WidgetService().startOrUpdateLiveActivity(
+          matchId: widget.match.id,
+          homeTeam: widget.match.homeTeam,
+          awayTeam: widget.match.awayTeam,
+          homeScore: homeScoreInt,
+          awayScore: awayScoreInt,
+          minute: "${widget.match.liveMinute ?? 0}'",
+          status: widget.match.status.name,
+        );
+      }
+    } catch (e) {
+      debugPrint("Widget Initialization Error: \$e");
+    }
   }
 
   void _setupPresence() {
@@ -186,6 +221,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     }
     _chatSubscription?.cancel();
     _presenceChannel?.unsubscribe();
+    WidgetService().endLiveActivity();
     super.dispose();
   }
 

@@ -16,7 +16,9 @@ dependencies:
   flutter_dotenv: ^6.0.0
   flutter_riverpod: ^3.3.1
   google_fonts: ^6.1.0
+  home_widget: ^0.9.0
   intl: ^0.20.2
+  live_activities: ^2.4.7
   livekit_client: ^2.6.5
   permission_handler: ^12.0.1
   riverpod_annotation: ^4.0.2
