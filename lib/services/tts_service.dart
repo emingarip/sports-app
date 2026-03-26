@@ -28,7 +28,7 @@ class TtsService {
       }
 
       await _flutterTts.setLanguage("tr-TR");
-      await _flutterTts.setSpeechRate(0.5); // Normal speed
+      await _flutterTts.setSpeechRate(kIsWeb ? 1.2 : 0.65); // Web'de 1.0 normal hızdır (1.2 biraz hızlı), Mobilde ise 0.5 normal hızdır (0.65 biraz hızlı)
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
 
