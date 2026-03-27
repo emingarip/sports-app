@@ -31,6 +31,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [topScores, setTopScores] = useState<Array<{id: string, username: string, score: number}>>([]);
   const [myHighScore, setMyHighScore] = useState(0);
+  const [gameKey, setGameKey] = useState(0);
 
   // Ball physics state
   const ball = useRef({
@@ -108,7 +109,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [screenWidth]);
+  }, [screenWidth, gameKey]);
 
 
   // Game Timer setup
@@ -262,6 +263,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     setScore(0);
     setIsGameOver(false);
     setCountdown(3);
+    setGameKey(k => k + 1);
     ball.current = {
       x: screenWidth / 2,
       y: 100,
