@@ -513,6 +513,11 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
               bottom: (_tabController.index == 3) ? 90 : 32,
               child: _buildMiniGameBanner(),
             ),
+
+          if (_activeReactions.isNotEmpty)
+            Positioned.fill(
+              child: _buildFloatingReactions(),
+            ),
         ],
       ),
     );
