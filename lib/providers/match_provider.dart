@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/match.dart' as model;
 import '../data/providers/supabase_match_provider.dart';
@@ -44,17 +45,21 @@ class MatchState {
 
 }
 
-class MatchNotifier extends Notifier<MatchState> {
+class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   StreamSubscription<List<model.Match>>? _subscription;
   Timer? _pollingTimer;
 
   @override
   MatchState build() {
+    // Register the observer to handle AppLifecycleState changes
+    WidgetsBinding.instance.addObserver(this);
+
     // Keep subscription alive across rebuilds by avoiding immediate initialization if possible,
     // but here we are mounting a global stream.
     _initStream();
     
     ref.onDispose(() {
+      WidgetsBinding.instance.removeObserver(this);
       _subscription?.cancel();
       _pollingTimer?.cancel();
     });
@@ -78,7 +83,10 @@ class MatchNotifier extends Notifier<MatchState> {
     // bypasses the `setDate` network fetch correctly to avoid duplicate calls.
     repo.fetchMatchesForDate(DateTime.now());
 
-    // Setup periodic polling to keep live matches updated
+    _startPolling();
+  }
+
+  void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       // Only poll from edge function if looking at today's matches
@@ -86,9 +94,27 @@ class MatchNotifier extends Notifier<MatchState> {
       if (state.selectedDate.year == now.year &&
           state.selectedDate.month == now.month &&
           state.selectedDate.day == now.day) {
-        repo.fetchMatchesForDate(now);
+        ref.read(matchRepositoryProvider).fetchMatchesForDate(now);
       }
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState appState) {
+    if (appState == AppLifecycleState.resumed) {
+      // App is back in foreground, fetch latest immediately and resume polling
+      final now = DateTime.now();
+      if (state.selectedDate.year == now.year &&
+          state.selectedDate.month == now.month &&
+          state.selectedDate.day == now.day) {
+        ref.read(matchRepositoryProvider).fetchMatchesForDate(now);
+      }
+      _startPolling();
+    } else if (appState == AppLifecycleState.paused || appState == AppLifecycleState.hidden) {
+      // App is in background/hidden, save battery by cancelling the periodic poll
+      debugPrint("🔋 App in background: Pausing match polling timer to save battery.");
+      _pollingTimer?.cancel();
+    }
   }
 
   void setFilter(StatusFilter filter) {
