@@ -53,44 +53,64 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Log the user's score in the mini_game_logs
-    const { error: logError } = await supabaseAdmin
+    // Check if the user already played this game
+    const { data: existingLog, error: checkError } = await supabaseAdmin
       .from('mini_game_logs')
-      .insert({
-        game_id: gameId,
-        room_id: roomId,
-        user_id: user.id,
-        score: score,
-        reward: 10
-      })
+      .select('id, score')
+      .eq('game_id', gameId)
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-    if (logError) {
-      // If user played multiple times? Depends on unique constraints. 
-      // Assuming unique(mini_game_id, user_id), we might catch an error if they play twice.
-      console.log("Log error:", logError)
-      // Allow it to fail gracefully if they already claimed
-      if (logError.code === '23505') { // Unique violation
-        return new Response(JSON.stringify({ error: 'Reward already claimed for this game.' }), {
+    if (checkError) throw checkError;
+
+    if (existingLog) {
+      // User has already played.
+      if (score > existingLog.score) {
+        const { error: updateError } = await supabaseAdmin
+          .from('mini_game_logs')
+          .update({ score: score })
+          .eq('id', existingLog.id);
+          
+        if (updateError) throw updateError;
+        
+        return new Response(JSON.stringify({ message: 'New high score saved!', rewardAmount: 0 }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
+          status: 200,
+        })
+      } else {
+        return new Response(JSON.stringify({ message: 'Score submitted. Did not beat high score.', rewardAmount: 0 }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
         })
       }
-      throw logError
+    } else {
+      // First time playing! Give them the 10 K-Coin participation reward.
+      const { error: logError } = await supabaseAdmin
+        .from('mini_game_logs')
+        .insert({
+          game_id: gameId,
+          room_id: roomId,
+          user_id: user.id,
+          score: score,
+          reward: 10
+        })
+
+      if (logError) throw logError
+
+      // Update User Balance by +10 K-Coin using the newly created transaction RPC
+      const { error: rpcError } = await supabaseAdmin.rpc('process_user_balance_transaction', {
+        user_id_param: user.id,
+        amount_param: 10,
+        operation: 'add'
+      })
+
+      if (rpcError) throw rpcError
+
+      return new Response(JSON.stringify({ message: 'Success', rewardAmount: 10 }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
     }
-
-    // Update User Balance by +10 K-Coin using the newly created transaction RPC
-    const { error: rpcError } = await supabaseAdmin.rpc('process_user_balance_transaction', {
-      user_id_param: user.id,
-      amount_param: 10,
-      operation: 'add'
-    })
-
-    if (rpcError) throw rpcError
-
-    return new Response(JSON.stringify({ message: 'Success', rewardAmount: 10 }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
   } catch (error) {
     console.error("Function error:", error.message)
     return new Response(JSON.stringify({ error: error.message }), {

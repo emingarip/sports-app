@@ -520,52 +520,15 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         );
 
         if (result != null && result is Map && result['type'] == 'GAME_OVER') {
-          try {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (ctx) => const Center(
-                child: CircularProgressIndicator(color: Colors.greenAccent),
-              ),
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Etkinlikten çıkıldı. En Yüksek Skorun: ${result['score']} 🏆"),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 5),
+              )
             );
-
-            final response = await Supabase.instance.client.functions.invoke(
-              'process-mini-game',
-              body: {
-                'gameId': result['gameId'] ?? currentMiniGameId,
-                'roomId': result['roomId'],
-                'score': result['score'],
-              },
-            );
-
-            if (context.mounted) Navigator.pop(context); // Dismiss dialog
-
-            if (response.status == 200) {
-              final reward = response.data['rewardAmount'] ?? 10;
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Oyun bitti! Skorun: ${result['score']} 🏆\nTebrikler! Katılım ödülü $reward K-Coin kazandınız!\nYarışma sonunda sonuçlar açıklanacak."),
-                    backgroundColor: Colors.green,
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 5),
-                  )
-                );
-              }
-            } else {
-              throw Exception("Failed to process reward: \${response.status}");
-            }
-          } catch (e) {
-            if (context.mounted) Navigator.pop(context); // Dismiss dialog
-            debugPrint("Reward process error: \$e");
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Ödül hesaplanırken bir hata oluştu."),
-                  backgroundColor: Colors.red,
-                )
-              );
-            }
           }
         }
       },
