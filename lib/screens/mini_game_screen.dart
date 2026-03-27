@@ -18,6 +18,7 @@ class MiniGameScreen extends StatefulWidget {
 class _MiniGameScreenState extends State<MiniGameScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
+  bool _hasPopped = false;
 
   @override
   void initState() {
@@ -47,7 +48,8 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         onMessageReceived: (JavaScriptMessage message) {
           try {
             final data = jsonDecode(message.message);
-            if (data['type'] == 'GAME_OVER') {
+            if (data['type'] == 'GAME_OVER' && !_hasPopped && mounted) {
+              _hasPopped = true;
               // Game finished, pop with data to show reward info
               Navigator.pop(context, data);
             }
@@ -71,7 +73,8 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       listenToWebMessages((String msg) {
         try {
           final data = jsonDecode(msg);
-          if (data['type'] == 'GAME_OVER' && mounted) {
+          if (data['type'] == 'GAME_OVER' && mounted && !_hasPopped) {
+            _hasPopped = true;
             Navigator.pop(context, data);
           }
         } catch (e) {
