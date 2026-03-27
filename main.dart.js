@@ -126181,7 +126181,7 @@ q===$&&A.a()
 p=q.gbO().c
 if(p!=null){q=p.c
 o=m.a
-n="http://localhost:5175/?token="+q+"&roomId="+o.c+"&gameId="+o.d}else n="http://localhost:5175/"
+n="https://sports-app-psi.vercel.app/?token="+q+"&roomId="+o.c+"&gameId="+o.d}else n="https://sports-app-psi.vercel.app/"
 q=A.dV(n,0,null)
 if(q.gfv().length===0)A.X(A.bo("Missing scheme in uri: "+q.j(0),null))
 s.a.Kv(new A.azH(q,B.w9,B.kh,null))},
