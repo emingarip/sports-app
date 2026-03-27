@@ -249,7 +249,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     }
   };
 
-  const handleGameOver = async (fromTimeout = false) => {
+  const handleGameOver = async (_fromTimeout = false) => {
     setIsGameOver(true);
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     

@@ -1,0 +1,38 @@
+name: Sports Games Web CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'feature/**'
+      - 'bugfix/**'
+    paths:
+      - 'sports_games_web/**'
+  pull_request:
+    paths:
+      - 'sports_games_web/**'
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: sports_games_web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type Check & Build
+        run: npm run build
