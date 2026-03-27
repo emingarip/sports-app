@@ -67,6 +67,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   final ScrollController _scrollController = ScrollController();
   final Random _random = Random();
   final FocusNode _focusNode = FocusNode();
+  final String _sessionId = DateTime.now().millisecondsSinceEpoch.toString();
 
   final List<String> _quickReactions = ["🔥", "😱", "😡", "👏", "⚽", "🙌"];
 
@@ -189,7 +190,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       }
     })
     .onBroadcast(event: 'reaction', callback: (payload) {
-      print('--- BROADCAST RECEIVED (reaction): \$payload');
+      print('--- BROADCAST RECEIVED (reaction): \${payload.toString()}');
       if (!mounted) return;
       
       final Map<String, dynamic> innerPayload = payload.containsKey('payload') 
@@ -197,10 +198,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
           : payload;
           
       final emoji = innerPayload['emoji'] as String?;
-      final sender = innerPayload['username'] as String?;
+      final senderSession = innerPayload['sessionId'] as String?;
       
-      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-      if (emoji != null && sender != currentUserId) {
+      if (emoji != null && senderSession != _sessionId) {
         _showFloatingReaction(emoji);
       }
     })
@@ -428,7 +428,11 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     try {
       _gameChannel?.sendBroadcastMessage(
         event: 'reaction',
-        payload: {'emoji': emoji, 'username': userId},
+        payload: {
+          'emoji': emoji, 
+          'username': userId,
+          'sessionId': _sessionId,
+        },
       );
     } catch (e) {
       debugPrint("Failed to broadcast reaction: \$e");
