@@ -1,60 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../providers/prediction_provider.dart';
+import '../providers/wallet_provider.dart';
 
-class PredictionMarketScreen extends StatefulWidget {
+class PredictionMarketScreen extends ConsumerStatefulWidget {
   const PredictionMarketScreen({super.key});
 
   @override
-  State<PredictionMarketScreen> createState() => _PredictionMarketScreenState();
+  ConsumerState<PredictionMarketScreen> createState() => _PredictionMarketScreenState();
 }
 
-class _PredictionMarketScreenState extends State<PredictionMarketScreen> with SingleTickerProviderStateMixin {
+class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _virtualCurrency = 1250;
-
-  final List<Map<String, dynamic>> _activeMarkets = [
-    {
-      'id': '1',
-      'match': 'LIVERPOOL vs R. MADRID',
-      'status': 'LIVE 74\'',
-      'score': '2 - 1',
-      'predictions': [
-        {'id': 'p1', 'title': 'Real Madrid to Win or Draw', 'odds': 2.10},
-        {'id': 'p2', 'title': 'Next Goal Liverpool', 'odds': 1.85},
-        {'id': 'p3', 'title': 'Total Goals Over 3.5', 'odds': 1.65},
-      ]
-    },
-    {
-      'id': '2',
-      'match': 'MAN CITY vs ARSENAL',
-      'status': 'PRE-MATCH',
-      'score': '0 - 0',
-      'predictions': [
-        {'id': 'p4', 'title': 'Match Winner: Arsenal', 'odds': 3.40},
-        {'id': 'p5', 'title': 'Both Teams to Score', 'odds': 1.70},
-      ]
-    }
-  ];
-
-  final List<Map<String, dynamic>> _myBets = [
-    {
-      'id': 'b1',
-      'match': 'LIVERPOOL vs R. MADRID',
-      'prediction': 'Next Goal Liverpool',
-      'staked': 100,
-      'potentialPayout': 185,
-      'status': 'pending', 
-    },
-    {
-      'id': 'b2',
-      'match': 'BAYERN vs DORTMUND',
-      'prediction': 'Match Winner: Bayern',
-      'staked': 500,
-      'potentialPayout': 800,
-      'status': 'won',
-    }
-  ];
 
   @override
   void initState() {
@@ -76,28 +35,40 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
       builder: (context) => BetSlipBottomSheet(
         prediction: prediction,
         matchName: matchName,
-        currentBalance: _virtualCurrency,
-        onPlaceBet: (amount) {
-          setState(() {
-            _virtualCurrency -= amount;
-            _myBets.insert(0, {
-              'id': DateTime.now().toString(),
-              'match': matchName,
-              'prediction': prediction['title'],
-              'staked': amount,
-              'potentialPayout': (amount * prediction['odds']).toInt(),
-              'status': 'pending',
+        currentBalance: ref.read(walletBalanceProvider),
+        onPlaceBet: (amount) async {
+          try {
+            await ref.read(predictionServiceProvider).placeBet(
+              prediction['id'],
+              amount,
+              (amount * prediction['odds']).toInt(),
+            );
+            
+            // Refresh bets
+            ref.invalidate(myBetsProvider);
+            
+            if (!mounted) return;
+            setState(() {
+              _tabController.animateTo(1); // switch to my bets
             });
-            _tabController.animateTo(1); // switch to my bets
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Prediction locked in! Good luck! 🎯'),
-              backgroundColor: context.colors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Prediction locked in! Good luck! 🎯'),
+                backgroundColor: context.colors.success,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to place bet: ${e.toString()}'),
+                backgroundColor: context.colors.error,
+              ),
+            );
+          }
         },
       ),
     );
@@ -105,6 +76,8 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
 
   @override
   Widget build(BuildContext context) {
+    final virtualCurrency = ref.watch(walletBalanceProvider);
+
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
@@ -139,7 +112,7 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
                 Icon(Icons.monetization_on, color: context.colors.accent, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  '$_virtualCurrency',
+                  '$virtualCurrency',
                   style: TextStyle(
                     color: context.colors.textHigh,
                     fontWeight: FontWeight.w700,
@@ -174,261 +147,318 @@ class _PredictionMarketScreenState extends State<PredictionMarketScreen> with Si
   }
 
   Widget _buildLiveMarkets() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _activeMarkets.length,
-      itemBuilder: (context, index) {
-        final market = _activeMarkets[index];
-        final isLive = market['status'].toString().contains('LIVE');
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 24),
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              )
-            ],
-            border: Border.all(color: context.colors.outline.withOpacity(0.4)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Match Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: context.colors.surfaceVariant.withOpacity(0.5),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          market['match'],
-                          style: TextStyle(
-                            color: context.colors.textHigh,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            if (isLive)
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: context.colors.error,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            if (isLive) const SizedBox(width: 6),
-                            Text(
-                              market['status'],
-                              style: TextStyle(
-                                color: isLive ? context.colors.error : context.colors.textMedium,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: context.colors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: context.colors.outline.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        market['score'],
-                        style: TextStyle(
-                          color: context.colors.textHigh,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+    final activeMarketsAsync = ref.watch(activeMarketsProvider);
+    
+    return activeMarketsAsync.when(
+      loading: () => Center(child: CircularProgressIndicator(color: context.colors.accent)),
+      error: (err, stack) => Center(child: Text('Error: $err', style: TextStyle(color: context.colors.error))),
+      data: (predictions) {
+        if (predictions.isEmpty) {
+          return Center(
+            child: Text('No active markets right now.', style: TextStyle(color: context.colors.textMedium)),
+          );
+        }
+
+        // Group predictions by match
+        Map<String, Map<String, dynamic>> groupedMatches = {};
+        for (var pred in predictions) {
+          final matchId = pred['match_id'];
+          final match = pred['matches'];
+          if (match == null) continue;
+
+          if (!groupedMatches.containsKey(matchId)) {
+            groupedMatches[matchId] = {
+              'id': matchId,
+              'match': '${match['home_team']} vs ${match['away_team']}',
+              'status': match['status'] == 'live' ? 'LIVE ${match['minute'] ?? ''}' : match['status'].toString().toUpperCase(),
+              'score': '${match['home_score']} - ${match['away_score']}',
+              'predictions': <Map<String, dynamic>>[],
+            };
+          }
+          
+          groupedMatches[matchId]!['predictions'].add({
+            'id': pred['id'],
+            'title': pred['prediction_type'],
+            'odds': (pred['odds'] as num).toDouble(),
+          });
+        }
+
+        final marketsList = groupedMatches.values.toList();
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: marketsList.length,
+          itemBuilder: (context, index) {
+            final market = marketsList[index];
+            final isLive = market['status'].toString().contains('LIVE');
+            
+            return Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+                border: Border.all(color: context.colors.outline.withOpacity(0.4)),
               ),
-              
-              // Predictions List
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: (market['predictions'] as List).map((pred) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: InkWell(
-                        onTap: () => _showBetSlip(pred, market['match']),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: context.colors.outline.withOpacity(0.3)),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Match Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.colors.surfaceVariant.withOpacity(0.5),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  pred['title'],
-                                  style: TextStyle(
-                                    color: context.colors.textHigh,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
+                              Text(
+                                market['match'],
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: context.colors.textHigh,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: context.colors.accent.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  pred['odds'].toStringAsFixed(2),
-                                  style: TextStyle(
-                                    color: context.colors.accent,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14,
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  if (isLive)
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: context.colors.error,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  if (isLive) const SizedBox(width: 6),
+                                  Text(
+                                    market['status'],
+                                    style: TextStyle(
+                                      color: isLive ? context.colors.error : context.colors.textMedium,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                    ),
                                   ),
-                                ),
+                                ],
                               )
                             ],
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              )
-            ],
-          ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: context.colors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: context.colors.outline.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            market['score'],
+                            style: TextStyle(
+                              color: context.colors.textHigh,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Predictions List
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: (market['predictions'] as List).map((pred) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () => _showBetSlip(pred, market['match']),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: context.colors.outline.withOpacity(0.3)),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      pred['title'],
+                                      style: TextStyle(
+                                        color: context.colors.textHigh,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: context.colors.accent.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      pred['odds'].toStringAsFixed(2),
+                                      style: TextStyle(
+                                        color: context.colors.accent,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                ],
+              ),
+            );
+          },
         );
-      },
+      }
     );
   }
 
   Widget _buildMyBets() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _myBets.length,
-      itemBuilder: (context, index) {
-        final bet = _myBets[index];
-        final isPending = bet['status'] == 'pending';
-        final isWon = bet['status'] == 'won';
-        
-        Color statusColor = context.colors.textMedium;
-        IconData statusIcon = Icons.access_time;
-        if (isWon) {
-          statusColor = context.colors.success;
-          statusIcon = Icons.check_circle;
-        } else if (bet['status'] == 'lost') {
-          statusColor = context.colors.error;
-          statusIcon = Icons.cancel;
+    final myBetsAsync = ref.watch(myBetsProvider);
+
+    return myBetsAsync.when(
+      loading: () => Center(child: CircularProgressIndicator(color: context.colors.accent)),
+      error: (err, stack) => Center(child: Text('Error: $err', style: TextStyle(color: context.colors.error))),
+      data: (bets) {
+        if (bets.isEmpty) {
+          return Center(
+            child: Text('You have not placed any bets yet.', style: TextStyle(color: context.colors.textMedium)),
+          );
         }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
+        return ListView.builder(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.colors.outline.withOpacity(0.2)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    bet['match'],
-                    style: TextStyle(color: context.colors.textMedium, fontSize: 11, fontWeight: FontWeight.w700),
-                  ),
-                  Row(
-                    children: [
-                      Icon(statusIcon, color: statusColor, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        bet['status'].toUpperCase(),
-                        style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w800),
-                      ),
-                    ],
+          itemCount: bets.length,
+          itemBuilder: (context, index) {
+            final bet = bets[index];
+            final isPending = bet['status'] == 'pending';
+            final isWon = bet['status'] == 'won';
+            
+            Color statusColor = context.colors.textMedium;
+            IconData statusIcon = Icons.access_time;
+            if (isWon) {
+              statusColor = context.colors.success;
+              statusIcon = Icons.check_circle;
+            } else if (bet['status'] == 'lost') {
+              statusColor = context.colors.error;
+              statusIcon = Icons.cancel;
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: context.colors.outline.withOpacity(0.2)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   )
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                bet['prediction'],
-                style: TextStyle(color: context.colors.textHigh, fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('STAKE', style: TextStyle(color: context.colors.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
+                      Text(
+                        bet['match'],
+                        style: TextStyle(color: context.colors.textMedium, fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
                       Row(
                         children: [
-                          Icon(Icons.monetization_on, color: context.colors.textHigh, size: 14),
-                          const SizedBox(width: 4),
-                          Text('${bet['staked']}', style: TextStyle(color: context.colors.textHigh, fontSize: 14, fontWeight: FontWeight.w800)),
-                        ],
-                      )
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('TO RETURN', style: TextStyle(color: context.colors.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(Icons.monetization_on, color: isWon ? context.colors.success : (isPending ? context.colors.accent : context.colors.textMedium), size: 14),
+                          Icon(statusIcon, color: statusColor, size: 14),
                           const SizedBox(width: 4),
                           Text(
-                            '${bet['potentialPayout']}', 
-                            style: TextStyle(
-                              color: isWon ? context.colors.success : (isPending ? context.colors.accent : context.colors.textMedium), 
-                              fontSize: 14, 
-                              fontWeight: FontWeight.w800
-                            )
+                            bet['status'].toUpperCase(),
+                            style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w800),
                           ),
                         ],
                       )
                     ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    bet['prediction'],
+                    style: TextStyle(color: context.colors.textHigh, fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('STAKE', style: TextStyle(color: context.colors.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.monetization_on, color: context.colors.textHigh, size: 14),
+                              const SizedBox(width: 4),
+                              Text('${bet['staked']}', style: TextStyle(color: context.colors.textHigh, fontSize: 14, fontWeight: FontWeight.w800)),
+                            ],
+                          )
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('TO RETURN', style: TextStyle(color: context.colors.textMedium, fontSize: 10, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.monetization_on, color: isWon ? context.colors.success : (isPending ? context.colors.accent : context.colors.textMedium), size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${bet['potentialPayout']}', 
+                                style: TextStyle(
+                                  color: isWon ? context.colors.success : (isPending ? context.colors.accent : context.colors.textMedium), 
+                                  fontSize: 14, 
+                                  fontWeight: FontWeight.w800
+                                )
+                              ),
+                            ],
+                          )
+                        ],
+                      )
+                    ],
                   )
                 ],
-              )
-            ],
-          ),
+              ),
+            );
+          },
         );
-      },
+      }
     );
   }
 }
@@ -679,3 +709,4 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
     );
   }
 }
+
