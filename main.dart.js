@@ -36055,6 +36055,7 @@ this.a=c},
 adz:function adz(){var _=this
 _.d=$
 _.e=!0
+_.f=!1
 _.c=_.a=null},
 b1F:function b1F(a){this.a=a},
 b1E:function b1E(a){this.a=a},
@@ -126170,7 +126171,11 @@ $S:0}
 A.b1H.prototype={
 $1(a){var s,r,q
 try{s=B.a9.tC(0,a,null)
-if(J.f(J.ag(s,"type"),"GAME_OVER")&&this.a.c!=null){r=this.a.c
+if(J.f(J.ag(s,"type"),"GAME_OVER")){r=this.a
+r=r.c!=null&&!r.f}else r=!1
+if(r){r=this.a
+r.f=!0
+r=r.c
 r.toString
 A.bE(r,!1).hx(s)}}catch(q){A.cN().$1("Failed to parse web message: $e")}},
 $S:24}
