@@ -7,8 +7,9 @@ import '../utils/web_bridge.dart';
 
 class MiniGameScreen extends StatefulWidget {
   final String roomId;
+  final String gameId;
   
-  const MiniGameScreen({super.key, required this.roomId});
+  const MiniGameScreen({super.key, required this.roomId, required this.gameId});
 
   @override
   State<MiniGameScreen> createState() => _MiniGameScreenState();
@@ -80,14 +81,14 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     }
 
     // Determine localhost URL based on platform
-    String gameUrl = 'http://localhost:5199/';
+    String gameUrl = 'http://localhost:5175/';
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-       gameUrl = 'http://10.0.2.2:5199/';
+       gameUrl = 'http://10.0.2.2:5175/';
     }
     
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
-      gameUrl = '$gameUrl?token=${session.accessToken}&roomId=${widget.roomId}';
+      gameUrl = '$gameUrl?token=${session.accessToken}&roomId=${widget.roomId}&gameId=${widget.gameId}';
     }
 
     // Use cleartext HTTP for local dev

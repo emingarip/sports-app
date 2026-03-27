@@ -36,7 +36,7 @@ class KnowledgeGraphState {
 class KnowledgeGraphNotifier extends Notifier<KnowledgeGraphState> {
   @override
   KnowledgeGraphState build() {
-    _init();
+    Future.microtask(_init);
     return const KnowledgeGraphState();
   }
 

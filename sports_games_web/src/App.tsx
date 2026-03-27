@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
-import TestGame from './games/TestGame';
+import KeepyUppy from './games/KeepyUppy';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string>('');
+  const [gameId, setGameId] = useState<string>('');
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
     const refreshFromUrl = urlParams.get('refresh');
     const roomIdFromUrl = urlParams.get('roomId');
+    const gameIdFromUrl = urlParams.get('gameId');
 
-    const authenticate = async (token: string, refresh: string, room: string) => {
+    const authenticate = async (token: string, refresh: string, room: string, game: string) => {
       try {
         // Supabase v2 throws AuthSessionMissingError if refresh_token is precisely empty string ''
         // If it's passed as the same as access_token, it creates an ephemeral session that is valid
@@ -27,6 +29,7 @@ function App() {
           setIsAuthenticated(true);
           setSessionToken(token);
           setRoomId(room);
+          setGameId(game);
         } else {
            console.error("Auth error:", error);
         }
@@ -36,13 +39,14 @@ function App() {
     };
 
     if (tokenFromUrl && roomIdFromUrl) {
-      authenticate(tokenFromUrl, refreshFromUrl || '', roomIdFromUrl);
+      authenticate(tokenFromUrl, refreshFromUrl || '', roomIdFromUrl, gameIdFromUrl || '');
     } else {
       // DEVELOPMENT OVERRIDE: 
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         if (urlParams.get('dev') === 'true') {
           setIsAuthenticated(true);
           setRoomId('test_room_123');
+          setGameId('test_game_123');
         }
       }
     }
@@ -62,7 +66,7 @@ function App() {
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans overflow-hidden">
        {/* Future Factory Pattern can go here: render game based on URL params */}
-      <TestGame roomId={roomId || 'default_room'} />
+      <KeepyUppy roomId={roomId || 'default_room'} gameId={gameId || 'default_game'} />
     </div>
   );
 }

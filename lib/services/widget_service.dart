@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:live_activities/live_activities.dart';
 import 'package:live_activities/models/live_activity_state.dart';
@@ -11,6 +12,8 @@ class WidgetService {
   String? _currentActivityId;
 
   Future<void> initialize() async {
+    if (kIsWeb) return;
+    
     // Initialize Home Widget
     await HomeWidget.setAppGroupId('group.com.emingarip.sportsapp');
 
@@ -25,6 +28,8 @@ class WidgetService {
     required int homeScore,
     required int awayScore,
   }) async {
+    if (kIsWeb) return;
+
     await HomeWidget.saveWidgetData<String>('widget_home_team', homeTeam);
     await HomeWidget.saveWidgetData<String>('widget_away_team', awayTeam);
     await HomeWidget.saveWidgetData<int>('widget_home_score', homeScore);
@@ -50,6 +55,8 @@ class WidgetService {
     required String minute,
     required String status,
   }) async {
+    if (kIsWeb) return;
+
     final activityExists = await _liveActivitiesPlugin.areActivitiesEnabled();
     if (!activityExists) return; // Feature not supported or disabled
 
@@ -79,6 +86,8 @@ class WidgetService {
 
   /// Ends the current Live Activity when the user leaves or match ends
   Future<void> endLiveActivity() async {
+    if (kIsWeb) return;
+
     if (_currentActivityId != null) {
       await _liveActivitiesPlugin.endActivity(_currentActivityId!);
       _currentActivityId = null;

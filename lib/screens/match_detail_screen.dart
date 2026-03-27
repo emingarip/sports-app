@@ -82,9 +82,12 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   final ChatService _chatService = ChatService();
   StreamSubscription<List<ChatMessage>>? _chatSubscription;
   RealtimeChannel? _presenceChannel;
+  RealtimeChannel? _gameChannel;
 
   bool _isDrivingModeActive = false;
   Timer? _drivingModeTimer;
+
+  String? _activeMiniGameId;
 
   @override
   void initState() {
@@ -112,6 +115,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     });
 
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (!mounted) return;
+      setState(() {});
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notifier = ref.read(knowledgeGraphProvider.notifier);
@@ -152,6 +159,84 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     });
     
     _setupPresence();
+    _subscribeToGameEvents();
+  }
+
+  void _subscribeToGameEvents() {
+    print('--- SETTING UP GAME EVENTS SUBSCRIPTION FOR match_${widget.match.id}');
+    _gameChannel = Supabase.instance.client.channel('match_${widget.match.id}');
+    _gameChannel!.onBroadcast(event: 'mini_game', callback: (payload) {
+      print('--- BROADCAST RECEIVED: $payload');
+      if (!mounted) return;
+      
+      final innerPayload = payload['payload'] as Map<String, dynamic>? ?? {};
+      final action = innerPayload['action'] as String?;
+      
+      if (action == 'START_MINI_GAME') {
+        setState(() {
+          _activeMiniGameId = innerPayload['gameId'] as String?;
+        });
+      } else if (action == 'GAME_WINNERS') {
+        setState(() {
+          _activeMiniGameId = null;
+        });
+        
+        final winners = innerPayload['winners'] as List<dynamic>? ?? [];
+        _showWinnersDialog(winners);
+      }
+    })
+    .onBroadcast(event: 'reaction', callback: (payload) {
+      if (!mounted) return;
+      
+      final innerPayload = payload['payload'] as Map<String, dynamic>? ?? {};
+      final emoji = innerPayload['emoji'] as String?;
+      final sender = innerPayload['username'] as String?;
+      
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (emoji != null && sender != currentUserId) {
+        _showFloatingReaction(emoji);
+      }
+    })
+    .subscribe((status, [error]) {
+      print('--- GAME EVENTS SUBSCRIPTION STATUS: $status, ERROR: $error');
+    });
+  }
+
+  void _showWinnersDialog(List<dynamic> winners) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "🏆 Yarışma Sonucu", 
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: winners.map((w) {
+            final rank = w['rank'];
+            final score = w['score'];
+            final reward = w['reward'];
+            // In a real app we'd fetch usernames, but we will assume 'Top Sektirme' or anonymous if not provided
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: rank == 1 ? Colors.amber : rank == 2 ? Colors.grey[300] : Colors.orange[300],
+                child: Text("#$rank", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+              ),
+              title: Text("Skor: $score", style: const TextStyle(color: Colors.white)),
+              subtitle: Text("+$reward K-Coin", style: const TextStyle(color: Colors.greenAccent)),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Kapat", style: TextStyle(color: Colors.greenAccent)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _initWidgets() async {
@@ -226,6 +311,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     }
     _chatSubscription?.cancel();
     _presenceChannel?.unsubscribe();
+    _gameChannel?.unsubscribe();
     _drivingModeTimer?.cancel();
     TtsService().stop();
     WidgetService().endLiveActivity();
@@ -300,7 +386,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     }
   }
 
-  void _sendReaction(String emoji) {
+  void _showFloatingReaction(String emoji) {
+    debugPrint('--- _showFloatingReaction triggered for emoji: $emoji');
+    if (!mounted) return;
     final id = DateTime.now().millisecondsSinceEpoch.toString() + _random.nextInt(1000).toString();
     final startX = 24.0 + _random.nextDouble() * (MediaQuery.of(context).size.width - 48);
     // tighter drift for more controlled upward flow
@@ -324,6 +412,19 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         });
       }
     });
+  }
+
+  void _sendReaction(String emoji) {
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? 'anonymous';
+    
+    // Broadcast immediately
+    _gameChannel?.sendBroadcastMessage(
+      event: 'reaction',
+      payload: {'emoji': emoji, 'username': userId},
+    );
+    
+    // Show locally
+    _showFloatingReaction(emoji);
   }
 
   void _scrollToBottom() {
@@ -392,11 +493,123 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
           ),
           
           if (_tabController.index == 3)
-            Positioned.fill(child: _buildFloatingReactions()),
-          
-          if (_tabController.index == 3)
             Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomInputArea()),
+            
+          if (_activeMiniGameId != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: (_tabController.index == 3) ? 90 : 32,
+              child: _buildMiniGameBanner(),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMiniGameBanner() {
+    debugPrint('--- _buildMiniGameBanner executing with gameId: $_activeMiniGameId');
+    return GestureDetector(
+      onTap: () async {
+        final currentMiniGameId = _activeMiniGameId;
+        if (currentMiniGameId == null) return;
+        
+        final result = await Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (_) => MiniGameScreen(roomId: widget.match.id, gameId: currentMiniGameId))
+        );
+
+        if (result != null && result is Map && result['type'] == 'GAME_OVER') {
+          try {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => const Center(
+                child: CircularProgressIndicator(color: Colors.greenAccent),
+              ),
+            );
+
+            final response = await Supabase.instance.client.functions.invoke(
+              'process-mini-game',
+              body: {
+                'gameId': result['gameId'] ?? currentMiniGameId,
+                'roomId': result['roomId'],
+                'score': result['score'],
+              },
+            );
+
+            if (context.mounted) Navigator.pop(context); // Dismiss dialog
+
+            if (response.status == 200) {
+              final reward = response.data['rewardAmount'] ?? 10;
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Oyun bitti! Skorun: ${result['score']} 🏆\nTebrikler! Katılım ödülü $reward K-Coin kazandınız!\nYarışma sonunda sonuçlar açıklanacak."),
+                    backgroundColor: Colors.green,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 5),
+                  )
+                );
+              }
+            } else {
+              throw Exception("Failed to process reward: \${response.status}");
+            }
+          } catch (e) {
+            if (context.mounted) Navigator.pop(context); // Dismiss dialog
+            debugPrint("Reward process error: \$e");
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Ödül hesaplanırken bir hata oluştu."),
+                  backgroundColor: Colors.red,
+                )
+              );
+            }
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE11D48), Color(0xFF9333EA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE11D48).withValues(alpha: 0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Colors.white24,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.videogame_asset, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Canlı Etkinlik Başladı!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text("Hemen katıl ve K-Coin kazan", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
+          ],
+        ),
       ),
     );
   }
@@ -1077,113 +1290,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
             return _buildMessage(msg, isNextSameUser, isPrevSameUser);
           },
         ),
-
-        // Mini Game Banner for Live Matches
-        if (isLive)
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: GestureDetector(
-              onTap: () async {
-                final result = await Navigator.push(
-                  context, 
-                  MaterialPageRoute(builder: (_) => MiniGameScreen(roomId: widget.match.id))
-                );
-
-                if (result != null && result is Map && result['type'] == 'GAME_OVER') {
-                  try {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (ctx) => const Center(
-                        child: CircularProgressIndicator(color: Colors.greenAccent),
-                      ),
-                    );
-
-                    final response = await Supabase.instance.client.functions.invoke(
-                      'process-mini-game',
-                      body: {
-                        'gameId': result['gameId'],
-                        'roomId': result['roomId'],
-                        'score': result['score'],
-                      },
-                    );
-
-                    if (context.mounted) Navigator.pop(context); // Dismiss dialog
-
-                    if (response.status == 200) {
-                      final reward = response.data['rewardAmount'] ?? 0;
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Oyun bitti! Skorun: ${result['score']} 🏆\nTebrikler! $reward K-Coin kazandınız!"),
-                            backgroundColor: Colors.green,
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 5),
-                          )
-                        );
-                      }
-                    } else {
-                      throw Exception("Failed to process reward: \${response.status}");
-                    }
-                  } catch (e) {
-                    if (context.mounted) Navigator.pop(context); // Dismiss dialog
-                    debugPrint("Reward process error: \$e");
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Ödül hesaplanırken bir hata oluştu."),
-                          backgroundColor: Colors.red,
-                        )
-                      );
-                    }
-                  }
-                } // Added missing closing brace
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE11D48), Color(0xFF9333EA)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFE11D48).withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.white24,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.videogame_asset, color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Canlı Etkinlik Başladı!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                          Text("Hemen katıl ve K-Coin kazan", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Colors.white, size: 24),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        Positioned.fill(child: _buildFloatingReactions()),
       ],
     );
   }
@@ -1490,7 +1597,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
               return Transform.translate(
                 offset: Offset(leftOffset, -bottomOffset),
                 child: Opacity(
-                  opacity: opacity,
+                  opacity: opacity.clamp(0.0, 1.0),
                   child: Transform.scale(
                     scale: scale,
                     child: Text(reaction.emoji, style: const TextStyle(fontSize: 36, shadows: [Shadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))])),
@@ -1641,24 +1748,26 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                         child: child,
                       );
                     },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(color: context.colors.primaryContainer.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-                          child: Text("MATCH PULSE", style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: context.colors.primary.withValues(alpha: 0.8))),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-                          decoration: BoxDecoration(
-                            color: context.colors.background.withValues(alpha: 0.95),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 12)),
-                              const BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(color: context.colors.primaryContainer.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                            child: Text("MATCH PULSE", style: TextStyle(fontFamily: 'Lexend', fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: context.colors.primary.withValues(alpha: 0.8))),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                            decoration: BoxDecoration(
+                              color: context.colors.background.withValues(alpha: 0.95),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 12)),
+                                const BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
                             ],
                           ),
                           child: Row(
@@ -1709,6 +1818,7 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                     ),
                   ),
                 ),
+              ),
               
               // 2. Collapsed Sticky Bar layer
               if (collapsedOpacity > 0)

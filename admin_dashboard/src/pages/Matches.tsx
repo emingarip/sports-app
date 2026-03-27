@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Activity, Users as UsersIcon, Mic, Trophy, Clock } from 'lucide-react';
+import { Search, Activity, Users as UsersIcon, Mic, Trophy, Clock, Play, StopCircle } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -36,6 +36,8 @@ export default function Matches() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'finished'>('all');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [activeMiniGames, setActiveMiniGames] = useState<Record<string, string>>({}); // match_id -> gameId
+  const [isProcessing, setIsProcessing] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchData();
@@ -94,18 +96,33 @@ export default function Matches() {
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const { data: matchesData, error: matchesError } = await supabase
-      .from('matches')
-      .select('*')
-      .gte('started_at', startOfDay.toISOString())
-      .lte('started_at', endOfDay.toISOString())
-      .order('started_at', { ascending: false })
-      .limit(100);
+    const [liveMatchesRes, dayMatchesRes] = await Promise.all([
+      supabase
+        .from('matches')
+        .select('*')
+        .eq('status', 'live')
+        .order('started_at', { ascending: false })
+        .limit(100),
+      supabase
+        .from('matches')
+        .select('*')
+        .gte('started_at', startOfDay.toISOString())
+        .lte('started_at', endOfDay.toISOString())
+        .order('started_at', { ascending: false })
+        .limit(100)
+    ]);
 
-    if (matchesError) {
-      console.error('Error fetching matches:', matchesError);
+    if (liveMatchesRes.error) console.error('Error fetching live matches:', liveMatchesRes.error);
+    if (dayMatchesRes.error) {
+      console.error('Error fetching day matches:', dayMatchesRes.error);
       return;
     }
+
+    // Merge and deduplicate
+    const allMatches = [...(liveMatchesRes.data || []), ...(dayMatchesRes.data || [])];
+    const uniqueMatchesMap = new Map();
+    allMatches.forEach(m => uniqueMatchesMap.set(m.id, m));
+    const matchesData = Array.from(uniqueMatchesMap.values());
 
     if (!matchesData || matchesData.length === 0) {
       setMatches([]);
@@ -147,6 +164,76 @@ export default function Matches() {
     }
   };
 
+  const startMiniGame = async (matchId: string) => {
+    setIsProcessing(prev => ({ ...prev, [matchId]: true }));
+    try {
+      // 1. Generate a unique game ID
+      const gameId = `keepy_uppy_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // 2. Broadcast START_MINI_GAME to the specific match room
+      await new Promise<void>((resolve, reject) => {
+        const channel = supabase.channel(`match_${matchId}`);
+        channel.subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.send({
+              type: 'broadcast',
+              event: 'mini_game',
+              payload: {
+                action: 'START_MINI_GAME',
+                gameId: gameId,
+              }
+            });
+            // Delay removing the channel to ensure message is flushed to the network
+            setTimeout(() => {
+              supabase.removeChannel(channel);
+            }, 1000);
+            resolve();
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            supabase.removeChannel(channel);
+            reject(new Error("Failed to subscribe to channel"));
+          }
+        });
+      });
+      
+      // 3. Update local state
+      setActiveMiniGames(prev => ({ ...prev, [matchId]: gameId }));
+      alert(`Top Sektirme oyunu başlatıldı! Oda: ${matchId}`);
+    } catch (err) {
+      console.error("Failed to start mini game:", err);
+      alert("Oyun başlatılırken hata oluştu.");
+    } finally {
+      setIsProcessing(prev => ({ ...prev, [matchId]: false }));
+    }
+  };
+
+  const endMiniGame = async (matchId: string) => {
+    const gameId = activeMiniGames[matchId];
+    if (!gameId) return;
+
+    setIsProcessing(prev => ({ ...prev, [matchId]: true }));
+    try {
+      // Call the Edge Function to finalize and distribute rewards
+      const { data, error } = await supabase.functions.invoke('finalize-mini-game', {
+        body: { gameId: gameId, roomId: matchId }
+      });
+
+      if (error) throw error;
+      
+      setActiveMiniGames(prev => {
+        const next = { ...prev };
+        delete next[matchId];
+        return next;
+      });
+      
+      alert(`Oyun başarıyla bitirildi ve ödüller dağıtıldı! Kazananlar:\n` + (data?.winners?.map((w: any) => `#${w.rank} ${w.username} - Skor: ${w.score}`).join('\n') || 'Yok'));
+    } catch (err: any) {
+      console.error("Failed to finalize mini game:", err);
+      alert(`Oyun bitirilirken hata oluştu: ${err.message || 'Bilinmeyen hata'}`);
+    } finally {
+      setIsProcessing(prev => ({ ...prev, [matchId]: false }));
+    }
+  };
 
   const filteredMatches = matches
     .filter((m) => {
@@ -304,6 +391,31 @@ export default function Matches() {
                     <span className="text-sm font-semibold text-center leading-tight">{match.away_team}</span>
                   </div>
                 </div>
+
+                {/* Admin Quick Actions */}
+                {match.status === 'live' && (
+                  <div className="flex gap-2 mb-4">
+                    {!activeMiniGames[match.id] ? (
+                       <button 
+                         onClick={() => startMiniGame(match.id)}
+                         disabled={isProcessing[match.id]}
+                         className="flex-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 border border-indigo-500/20 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+                       >
+                         <Play className="w-4 h-4" />
+                         {isProcessing[match.id] ? 'Başlatılıyor...' : 'Top Sektirme Başlat'}
+                       </button>
+                    ) : (
+                       <button 
+                         onClick={() => endMiniGame(match.id)}
+                         disabled={isProcessing[match.id]}
+                         className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+                       >
+                         <StopCircle className="w-4 h-4" />
+                         {isProcessing[match.id] ? 'Bitiriliyor...' : 'Yarışmayı Bitir (Ödül Dağıt)'}
+                       </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Viewership Stats */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
