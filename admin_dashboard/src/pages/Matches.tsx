@@ -97,10 +97,9 @@ export default function Matches() {
     const { data: matchesData, error: matchesError } = await supabase
       .from('matches')
       .select('*')
-      .gte('started_at', startOfDay.toISOString())
-      .lte('started_at', endOfDay.toISOString())
+      .or(`status.eq.live,and(started_at.gte.${startOfDay.toISOString()},started_at.lte.${endOfDay.toISOString()})`)
       .order('started_at', { ascending: false })
-      .limit(100);
+      .limit(1000);
 
     if (matchesError) {
       console.error('Error fetching matches:', matchesError);
