@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.1",
+    "autoprefixer": "^10.4.27",
+    "lucide-react": "^1.7.0",
+    "postcss": "^8.5.8",
+    "react-router-dom": "^7.13.2",
+    "tailwindcss": "^4.2.2"
+  }
+}

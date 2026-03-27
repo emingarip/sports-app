@@ -13,6 +13,7 @@ import '../providers/voice_room_provider.dart';
 import '../services/widget_service.dart';
 import '../models/audio_room.dart';
 import 'voice_room_screen.dart';
+import 'mini_game_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/tts_service.dart';
 
@@ -1060,17 +1061,130 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   }
 
   Widget _buildChatTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 140, top: 16),
-      itemCount: _messages.length,
-      itemBuilder: (context, index) {
-        final msg = _messages[index];
-        final isNextSameUser = (index + 1 < _messages.length) && _messages[index + 1].type == msg.type && _messages[index + 1].username == msg.username;
-        final isPrevSameUser = (index > 0) && _messages[index - 1].type == msg.type && _messages[index - 1].username == msg.username;
-        
-        if (msg.type == MessageType.systemEvent) return _buildSystemEvent(msg);
-        return _buildMessage(msg, isNextSameUser, isPrevSameUser);
-      },
+    final bool isLive = widget.match.status.name == 'live';
+
+    return Stack(
+      children: [
+        ListView.builder(
+          padding: EdgeInsets.only(bottom: 140, top: isLive ? 80 : 16),
+          itemCount: _messages.length,
+          itemBuilder: (context, index) {
+            final msg = _messages[index];
+            final isNextSameUser = (index + 1 < _messages.length) && _messages[index + 1].type == msg.type && _messages[index + 1].username == msg.username;
+            final isPrevSameUser = (index > 0) && _messages[index - 1].type == msg.type && _messages[index - 1].username == msg.username;
+            
+            if (msg.type == MessageType.systemEvent) return _buildSystemEvent(msg);
+            return _buildMessage(msg, isNextSameUser, isPrevSameUser);
+          },
+        ),
+
+        // Mini Game Banner for Live Matches
+        if (isLive)
+          Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: GestureDetector(
+              onTap: () async {
+                final result = await Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (_) => MiniGameScreen(roomId: widget.match.id))
+                );
+
+                if (result != null && result is Map && result['type'] == 'GAME_OVER') {
+                  try {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => const Center(
+                        child: CircularProgressIndicator(color: Colors.greenAccent),
+                      ),
+                    );
+
+                    final response = await Supabase.instance.client.functions.invoke(
+                      'process-mini-game',
+                      body: {
+                        'gameId': result['gameId'],
+                        'roomId': result['roomId'],
+                        'score': result['score'],
+                      },
+                    );
+
+                    if (context.mounted) Navigator.pop(context); // Dismiss dialog
+
+                    if (response.status == 200) {
+                      final reward = response.data['rewardAmount'] ?? 0;
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Oyun bitti! Skorun: ${result['score']} 🏆\nTebrikler! $reward K-Coin kazandınız!"),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 5),
+                          )
+                        );
+                      }
+                    } else {
+                      throw Exception("Failed to process reward: \${response.status}");
+                    }
+                  } catch (e) {
+                    if (context.mounted) Navigator.pop(context); // Dismiss dialog
+                    debugPrint("Reward process error: \$e");
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Ödül hesaplanırken bir hata oluştu."),
+                          backgroundColor: Colors.red,
+                        )
+                      );
+                    }
+                  }
+                } // Added missing closing brace
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE11D48), Color(0xFF9333EA)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFE11D48).withValues(alpha: 0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white24,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.videogame_asset, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Canlı Etkinlik Başladı!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text("Hemen katıl ve K-Coin kazan", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: Colors.white, size: 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
