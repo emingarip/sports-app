@@ -27,8 +27,9 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(3);
   
-  const [overallTimeLeft, setOverallTimeLeft] = useState(120); // 2 minutes
+  const [overallTimeLeft, setOverallTimeLeft] = useState(120);
   const [isTimeUp, setIsTimeUp] = useState(false);
+  const lastSavedScoreRef = useRef(0);
   const [topScores, setTopScores] = useState<Array<{id: string, username: string, score: number}>>([]);
   const [myHighScore, setMyHighScore] = useState(0);
   const [gameKey, setGameKey] = useState(0);
@@ -112,23 +113,64 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
   }, [screenWidth, gameKey]);
 
 
-  // Game Timer setup
+  // Global Timer Setup based on gameId extraction
   useEffect(() => {
-    if (countdown === 0 && overallTimeLeft > 0 && !isTimeUp) {
-      const timer = setInterval(() => {
-        setOverallTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setIsTimeUp(true);
-            handleGameOver(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
+    if (!gameId) return;
+    const parts = gameId.split('_');
+    // Expected format: keepy_uppy_{START_TIMESTAMP}_{DURATION}_{RANDOM}
+    let duration = 120;
+    let startTime = Date.now();
+    
+    if (parts.length >= 4) {
+      const parsedTime = parseInt(parts[2], 10);
+      const parsedDuration = parseInt(parts[3], 10);
+      if (!isNaN(parsedTime)) startTime = parsedTime;
+      if (!isNaN(parsedDuration)) duration = parsedDuration;
     }
-  }, [countdown, overallTimeLeft, isTimeUp]);
+        
+    const calculateTimeLeft = () => {
+      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      return Math.max(0, duration - elapsedSeconds);
+    };
+
+    // Initial check
+    const initialTimeLeft = calculateTimeLeft();
+    setOverallTimeLeft(initialTimeLeft);
+    if (initialTimeLeft <= 0) setIsTimeUp(true);
+    
+    // Set up global interval
+    const globalTimer = setInterval(() => {
+      const timeLeft = calculateTimeLeft();
+      setOverallTimeLeft(timeLeft);
+      if (timeLeft <= 0) {
+         clearInterval(globalTimer);
+         setIsTimeUp(true);
+      }
+    }, 1000);
+    
+    return () => clearInterval(globalTimer);
+  }, [gameId]);
+
+  useEffect(() => {
+    if (isTimeUp && !isGameOver) {
+      handleGameOver(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTimeUp]);
+
+  // Throttled auto-save for realtime leaderboard updates during gameplay
+  useEffect(() => {
+    if (isGameOver || isTimeUp || countdown > 0) return;
+    
+    const throttleTimer = setInterval(() => {
+      if (scoreRef.current > lastSavedScoreRef.current) {
+        lastSavedScoreRef.current = scoreRef.current;
+        autoSaveScore(scoreRef.current);
+      }
+    }, 3000);
+    
+    return () => clearInterval(throttleTimer);
+  }, [isGameOver, isTimeUp, countdown]);
 
 
   useEffect(() => {
@@ -261,6 +303,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
 
   const playAgain = () => {
     setScore(0);
+    lastSavedScoreRef.current = 0;
     setIsGameOver(false);
     setCountdown(3);
     setGameKey(k => k + 1);
@@ -282,14 +325,17 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     try {
       const payload = JSON.stringify({
         type: 'GAME_OVER',
-        score: myHighScore, // Give flutter the knowledge of highest score achieved
+        score: Math.max(score, myHighScore), // Give flutter the knowledge of highest score achieved
         roomId: roomId,
         gameId: gameId,
       });
+      // Try both bridge and parent postMessage to ensure Flutter catches it on Web
       if (window.MiniGameBridge) {
         window.MiniGameBridge.postMessage(payload);
-      } else {
-        window.parent.postMessage(payload, '*');
+      }
+      window.parent.postMessage(payload, '*');
+      if (window.top && window.top !== window) {
+        window.top.postMessage(payload, '*');
       }
     } catch (err) {
       console.error("Failed to exit:", err);

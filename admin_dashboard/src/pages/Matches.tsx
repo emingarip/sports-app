@@ -151,8 +151,8 @@ export default function Matches() {
   const startMiniGame = async (matchId: string) => {
     setIsProcessing(prev => ({ ...prev, [matchId]: true }));
     try {
-      // 1. Generate a unique game ID
-      const gameId = `keepy_uppy_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      // 1. Generate a unique game ID (format: keepy_uppy_TIMESTAMP_DURATION_RANDOM)
+      const gameId = `keepy_uppy_${Date.now()}_120_${Math.floor(Math.random() * 1000)}`;
       
       // 2. Broadcast START_MINI_GAME to the specific match room
       await new Promise<void>((resolve, reject) => {
