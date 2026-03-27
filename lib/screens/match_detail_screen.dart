@@ -166,10 +166,13 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     print('--- SETTING UP GAME EVENTS SUBSCRIPTION FOR match_${widget.match.id}');
     _gameChannel = Supabase.instance.client.channel('match_${widget.match.id}');
     _gameChannel!.onBroadcast(event: 'mini_game', callback: (payload) {
-      print('--- BROADCAST RECEIVED: $payload');
+      print('--- BROADCAST RECEIVED (mini_game): \$payload');
       if (!mounted) return;
       
-      final innerPayload = payload['payload'] as Map<String, dynamic>? ?? {};
+      final Map<String, dynamic> innerPayload = payload.containsKey('payload') 
+          ? (payload['payload'] as Map<String, dynamic>? ?? {}) 
+          : payload;
+          
       final action = innerPayload['action'] as String?;
       
       if (action == 'START_MINI_GAME') {
@@ -186,9 +189,13 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       }
     })
     .onBroadcast(event: 'reaction', callback: (payload) {
+      print('--- BROADCAST RECEIVED (reaction): \$payload');
       if (!mounted) return;
       
-      final innerPayload = payload['payload'] as Map<String, dynamic>? ?? {};
+      final Map<String, dynamic> innerPayload = payload.containsKey('payload') 
+          ? (payload['payload'] as Map<String, dynamic>? ?? {}) 
+          : payload;
+          
       final emoji = innerPayload['emoji'] as String?;
       final sender = innerPayload['username'] as String?;
       
