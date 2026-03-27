@@ -96,33 +96,17 @@ export default function Matches() {
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const [liveMatchesRes, dayMatchesRes] = await Promise.all([
-      supabase
-        .from('matches')
-        .select('*')
-        .eq('status', 'live')
-        .order('started_at', { ascending: false })
-        .limit(100),
-      supabase
-        .from('matches')
-        .select('*')
-        .gte('started_at', startOfDay.toISOString())
-        .lte('started_at', endOfDay.toISOString())
-        .order('started_at', { ascending: false })
-        .limit(100)
-    ]);
+    const { data: matchesData, error: matchesError } = await supabase
+      .from('matches')
+      .select('*')
+      .or(`status.eq.live,and(started_at.gte.${startOfDay.toISOString()},started_at.lte.${endOfDay.toISOString()})`)
+      .order('started_at', { ascending: false })
+      .limit(1000);
 
-    if (liveMatchesRes.error) console.error('Error fetching live matches:', liveMatchesRes.error);
-    if (dayMatchesRes.error) {
-      console.error('Error fetching day matches:', dayMatchesRes.error);
+    if (matchesError) {
+      console.error('Error fetching matches:', matchesError);
       return;
     }
-
-    // Merge and deduplicate
-    const allMatches = [...(liveMatchesRes.data || []), ...(dayMatchesRes.data || [])];
-    const uniqueMatchesMap = new Map();
-    allMatches.forEach(m => uniqueMatchesMap.set(m.id, m));
-    const matchesData = Array.from(uniqueMatchesMap.values());
 
     if (!matchesData || matchesData.length === 0) {
       setMatches([]);
