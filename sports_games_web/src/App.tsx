@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import KeepyUppy from './games/KeepyUppy';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string>('');
   const [gameId, setGameId] = useState<string>('');
 
@@ -27,7 +26,6 @@ function App() {
         
         if (!error && data.session) {
           setIsAuthenticated(true);
-          setSessionToken(token);
           setRoomId(room);
           setGameId(game);
         } else {

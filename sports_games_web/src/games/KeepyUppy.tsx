@@ -16,7 +16,7 @@ interface KeepyUppyProps {
 
 export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
   
   const [score, setScore] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
