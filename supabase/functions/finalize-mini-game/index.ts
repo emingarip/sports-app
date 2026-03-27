@@ -72,7 +72,7 @@ serve(async (req) => {
           .eq('id', topLog.id);
 
         // Update User Balance by the rank reward using the RPC
-        const { error: rpcError } = await supabaseAdmin.rpc('admin_update_user_balance', {
+        const { error: rpcError } = await supabaseAdmin.rpc('process_user_balance_transaction', {
           user_id_param: topLog.user_id,
           amount_param: reward,
           operation: 'add'

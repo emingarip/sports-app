@@ -78,8 +78,8 @@ serve(async (req) => {
       throw logError
     }
 
-    // Update User Balance by +10 K-Coin using the RPC created earlier
-    const { error: rpcError } = await supabaseAdmin.rpc('admin_update_user_balance', {
+    // Update User Balance by +10 K-Coin using the newly created transaction RPC
+    const { error: rpcError } = await supabaseAdmin.rpc('process_user_balance_transaction', {
       user_id_param: user.id,
       amount_param: 10,
       operation: 'add'
