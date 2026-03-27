@@ -80,8 +80,8 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       });
     }
 
-    // Determine localhost URL based on platform
-    String gameUrl = 'http://localhost:5175/';
+    // Determine URL based on platform or use the Vercel production URL
+    String gameUrl = 'https://sports-app-psi.vercel.app/';
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
        gameUrl = 'http://10.0.2.2:5175/';
     }
