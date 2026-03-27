@@ -418,10 +418,14 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     final userId = Supabase.instance.client.auth.currentUser?.id ?? 'anonymous';
     
     // Broadcast immediately
-    _gameChannel?.sendBroadcastMessage(
-      event: 'reaction',
-      payload: {'emoji': emoji, 'username': userId},
-    );
+    try {
+      _gameChannel?.sendBroadcastMessage(
+        event: 'reaction',
+        payload: {'emoji': emoji, 'username': userId},
+      );
+    } catch (e) {
+      debugPrint("Failed to broadcast reaction: \$e");
+    }
     
     // Show locally
     _showFloatingReaction(emoji);
