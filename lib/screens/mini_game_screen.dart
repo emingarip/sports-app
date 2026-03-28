@@ -8,8 +8,9 @@ import '../utils/web_bridge.dart';
 class MiniGameScreen extends StatefulWidget {
   final String roomId;
   final String gameId;
+  final String? gameType;
   
-  const MiniGameScreen({super.key, required this.roomId, required this.gameId});
+  const MiniGameScreen({super.key, required this.roomId, required this.gameId, this.gameType});
 
   @override
   State<MiniGameScreen> createState() => _MiniGameScreenState();
@@ -92,6 +93,9 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       gameUrl = '$gameUrl?token=${session.accessToken}&roomId=${widget.roomId}&gameId=${widget.gameId}';
+      if (widget.gameType != null) {
+        gameUrl += '&gameType=${widget.gameType}';
+      }
     }
 
     // Use cleartext HTTP for local dev

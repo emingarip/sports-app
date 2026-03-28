@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import KeepyUppy from './games/KeepyUppy';
+import PenaltyShootout from './games/PenaltyShootout';
+import GoalkeeperReflex from './games/GoalkeeperReflex';
+import FlappyBall from './games/FlappyBall';
+import HeaderHero from './games/HeaderHero';
+import GoalCelebrationRhythm from './games/GoalCelebrationRhythm';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [roomId, setRoomId] = useState<string>('');
   const [gameId, setGameId] = useState<string>('');
+  const [gameType, setGameType] = useState<string>('play_keepy_uppy');
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -13,12 +19,12 @@ function App() {
     const refreshFromUrl = urlParams.get('refresh');
     const roomIdFromUrl = urlParams.get('roomId');
     const gameIdFromUrl = urlParams.get('gameId');
+    const gameTypeFromUrl = urlParams.get('gameType');
+    
+    if (gameTypeFromUrl) setGameType(gameTypeFromUrl);
 
     const authenticate = async (token: string, refresh: string, room: string, game: string) => {
       try {
-        // Supabase v2 throws AuthSessionMissingError if refresh_token is precisely empty string ''
-        // If it's passed as the same as access_token, it creates an ephemeral session that is valid
-        // until the access token expires.
         const { data, error } = await supabase.auth.setSession({
            access_token: token,
            refresh_token: refresh || token, 
@@ -61,10 +67,27 @@ function App() {
     );
   }
 
+  const renderGame = () => {
+    switch (gameType) {
+      case 'penalty_shootout':
+        return <PenaltyShootout roomId={roomId} gameId={gameId} />;
+      case 'goalkeeper_reflex':
+        return <GoalkeeperReflex roomId={roomId} gameId={gameId} />;
+      case 'flappy_ball':
+        return <FlappyBall roomId={roomId} gameId={gameId} />;
+      case 'header_hero':
+        return <HeaderHero roomId={roomId} gameId={gameId} />;
+      case 'goal_celebration_rhythm':
+        return <GoalCelebrationRhythm roomId={roomId} gameId={gameId} />;
+      case 'play_keepy_uppy':
+      default:
+        return <KeepyUppy roomId={roomId} gameId={gameId} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans overflow-hidden">
-       {/* Future Factory Pattern can go here: render game based on URL params */}
-      <KeepyUppy roomId={roomId || 'default_room'} gameId={gameId || 'default_game'} />
+       {renderGame()}
     </div>
   );
 }

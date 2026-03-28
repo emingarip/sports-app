@@ -89,6 +89,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   Timer? _drivingModeTimer;
 
   String? _activeMiniGameId;
+  String? _activeMiniGameType;
 
   @override
   void initState() {
@@ -179,10 +180,12 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       if (action == 'START_MINI_GAME') {
         setState(() {
           _activeMiniGameId = innerPayload['gameId'] as String?;
+          _activeMiniGameType = innerPayload['gameType'] as String?;
         });
       } else if (action == 'GAME_WINNERS') {
         setState(() {
           _activeMiniGameId = null;
+          _activeMiniGameType = null;
         });
         
         final winners = innerPayload['winners'] as List<dynamic>? ?? [];
@@ -536,7 +539,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         
         final result = await Navigator.push(
           context, 
-          MaterialPageRoute(builder: (_) => MiniGameScreen(roomId: widget.match.id, gameId: currentMiniGameId))
+          MaterialPageRoute(builder: (_) => MiniGameScreen(roomId: widget.match.id, gameId: currentMiniGameId, gameType: _activeMiniGameType))
         );
 
         if (result != null && result is Map && result['type'] == 'GAME_OVER') {
