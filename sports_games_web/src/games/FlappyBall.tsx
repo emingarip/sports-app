@@ -16,7 +16,7 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
   useEffect(() => { scoreRef.current = score; }, [score]);
   
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [overallTimeLeft, setOverallTimeLeft] = useState(120);
   const [isTimeUp, setIsTimeUp] = useState(false);
@@ -203,7 +203,7 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     window.parent.postMessage(payload, '*');
   };
 
-  const handleTap = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleTap = (_e: React.TouchEvent | React.MouseEvent) => {
     if (countdown > 0 || isGameOver || isTimeUp) return;
     ball.current.dy = ball.current.bounce;
   };

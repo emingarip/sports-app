@@ -23,7 +23,7 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
   useEffect(() => { scoreRef.current = score; }, [score]);
   
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(3);
   
   const [overallTimeLeft, setOverallTimeLeft] = useState(120);
@@ -31,7 +31,7 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
   const lastSavedScoreRef = useRef(0);
   const [topScores, setTopScores] = useState<Array<{id: string, username: string, score: number}>>([]);
   const [myHighScore, setMyHighScore] = useState(0);
-  const [gameKey, setGameKey] = useState(0);
+
 
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
   const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 500;
@@ -122,7 +122,7 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [gameKey]);
+  }, []);
 
   useEffect(() => {
     if (!gameId) return;
@@ -309,21 +309,6 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
     await autoSaveScore(scoreRef.current);
   };
 
-  const playAgain = () => {
-    setScore(0);
-    lastSavedScoreRef.current = 0;
-    setIsGameOver(false);
-    setCountdown(3);
-    setGameKey(k => k + 1);
-    keeper.current.speed = 3;
-    ball.current = {
-      ...ball.current,
-      isShooting: false,
-      x: screenWidth / 2,
-      y: screenHeight - 100,
-      progress: 0,
-    };
-  };
 
   const exitGame = () => {
     setIsSubmitting(true);
