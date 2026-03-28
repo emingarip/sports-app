@@ -379,8 +379,8 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
         <div className="w-full h-1/2 bg-[repeating-linear-gradient(0deg,transparent,transparent_20px,rgba(255,255,255,0.1)_20px,rgba(255,255,255,0.1)_40px)]"></div>
       </div>
 
-      <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px] mt-16">
+      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2 pointer-events-none">
+        <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px] order-last">
           <h3 className="text-white/80 text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">Canlı Liderlik</h3>
           {topScores.length === 0 ? (
             <p className="text-white/50 text-xs">Henüz skor yok</p>
