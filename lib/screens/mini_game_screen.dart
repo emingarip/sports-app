@@ -106,17 +106,11 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black, // Dark background for games
-      appBar: AppBar(
-        title: const Text('Canlı Maç Etkinliği', style: TextStyle(color: Colors.white, fontSize: 16)),
-        backgroundColor: Colors.black.withOpacity(0.5),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           SafeArea(
              top: false,
+             bottom: false,
              child: WebViewWidget(controller: _controller),
           ),
           if (_isLoading)
@@ -130,6 +124,23 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                  ],
                )
              ),
+          // Floating Back/Close Button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            left: 16,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 24),
+              ),
+            ),
+          ),
         ],
       ),
     );
