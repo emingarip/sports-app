@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'supabase_service.dart';
 
 final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
@@ -102,12 +104,15 @@ class PushNotificationService {
   }
 
   Future<String> _getDeviceId() async {
-    // For a minimal MVP, we return a platform-specific identifier so Web and Ext/Mobile don't overwrite each other.
-    if (kIsWeb) {
-      return "primary-device-web";
-    } else {
-      return "primary-device-mobile-${defaultTargetPlatform.name.toLowerCase()}";
+    final prefs = await SharedPreferences.getInstance();
+    String? deviceId = prefs.getString('push_fcm_device_id');
+    
+    if (deviceId == null) {
+      deviceId = const Uuid().v4();
+      await prefs.setString('push_fcm_device_id', deviceId);
     }
+    
+    return "${defaultTargetPlatform.name.toLowerCase()}-$deviceId";
   }
 
   void _setupMessageHandlers() {
