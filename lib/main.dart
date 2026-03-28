@@ -27,11 +27,51 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAndRefreshSession();
+    }
+  }
+
+  Future<void> _checkAndRefreshSession() async {
+    try {
+      final session = SupabaseService.client.auth.currentSession;
+      if (session != null && session.expiresAt != null) {
+        final expiresAt = DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
+        // Refresh token if it expires in less than 5 minutes
+        if (DateTime.now().add(const Duration(minutes: 5)).isAfter(expiresAt)) {
+          debugPrint('App resumed: Supabase session is close to expiry. Refreshing token globally...');
+          await SupabaseService.client.auth.refreshSession();
+        }
+      }
+    } catch (e) {
+      debugPrint('App resumed: Failed to refresh session globally: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeNotifierProvider);
     
     return MaterialApp(
