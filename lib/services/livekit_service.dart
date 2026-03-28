@@ -16,6 +16,16 @@ class LiveKitService {
 
   Future<String> _fetchToken(String roomName, String participantName, {String? userId, bool isHost = false, bool canPublish = false}) async {
     try {
+      final session = SupabaseService.client.auth.currentSession;
+      if (session != null && session.expiresAt != null) {
+        final expiresAt = DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
+        // Refresh token if it expires in less than 5 minutes
+        if (DateTime.now().add(const Duration(minutes: 5)).isAfter(expiresAt)) {
+          debugPrint('Supabase session is close to expiry or expired. Refreshing token...');
+          await SupabaseService.client.auth.refreshSession();
+        }
+      }
+
       final response = await SupabaseService.client.functions.invoke(
         'livekit-token',
         body: {'roomName': roomName, 'participantName': participantName, 'userId': userId, 'isHost': isHost, 'canPublish': canPublish},
