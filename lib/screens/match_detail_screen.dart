@@ -188,6 +188,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
           _activeMiniGameType = null;
         });
         
+        // Eğer kullanıcı şu an MiniGameScreen'deyse, onu kapatıp MatchDetailScreen'e geri dönmesini sağla
+        Navigator.popUntil(context, (route) => route.settings.name != 'MiniGameScreen');
+        
         final winners = innerPayload['winners'] as List<dynamic>? ?? [];
         _showWinnersDialog(winners);
       }
@@ -539,7 +542,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         
         final result = await Navigator.push(
           context, 
-          MaterialPageRoute(builder: (_) => MiniGameScreen(roomId: widget.match.id, gameId: currentMiniGameId, gameType: _activeMiniGameType))
+          MaterialPageRoute(
+            settings: const RouteSettings(name: 'MiniGameScreen'),
+            builder: (_) => MiniGameScreen(roomId: widget.match.id, gameId: currentMiniGameId, gameType: _activeMiniGameType)
+          )
         );
 
         if (result != null && result is Map && result['type'] == 'GAME_OVER') {
