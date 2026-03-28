@@ -1,0 +1,3 @@
+ALTER TABLE public.audio_rooms
+ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS pin_code TEXT;
