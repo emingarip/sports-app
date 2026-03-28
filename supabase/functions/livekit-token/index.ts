@@ -45,6 +45,7 @@ serve(async (req) => {
 
     // If a valid user exists, check ownership
     if (user) {
+      console.log(`[AUTH SUCCESS] User identified: ${user.id}`);
       // We only verify ownership for audio rooms. 
       // If the room name matches the unique audio_room name format, we check the DB.
       const { data: roomData, error: roomError } = await supabaseAdmin
@@ -53,16 +54,28 @@ serve(async (req) => {
         .eq("room_name", roomName)
         .maybeSingle();
 
+      if (roomError) {
+        console.error(`[DB ERROR] Failed to fetch room: ${roomError.message}`);
+      }
+
+      console.log(`[DB SUCCESS] Room data fetched for ${roomName}:`, roomData);
+
       if (roomData) {
         if (roomData.host_id === user.id) {
           isHost = true;
           canPublish = true; // Host obviously can publish
+          console.log(`[PERMISSIONS] User is HOST and CAN PUBLISH.`);
         } else {
           // Here we could implement "approved_speakers" logic if added to the DB.
           // For now, only the host can publish initially securely.
           canPublish = false; 
+          console.log(`[PERMISSIONS] User is NOT host. Host is ${roomData.host_id}, user is ${user.id}`);
         }
+      } else {
+        console.log(`[PERMISSIONS] Room data not found in database for room: ${roomName}`);
       }
+    } else {
+       console.log(`[AUTH FAILED] User is null. authError parameter is:`, authError);
     }
 
     const apiKey = Deno.env.get("LIVEKIT_API_KEY");
@@ -75,9 +88,19 @@ serve(async (req) => {
       );
     }
 
+    // Ensure identity is globally unique even for anonymous users to prevent collision kicks
+    let finalIdentity = userId || user?.id;
+    if (!finalIdentity) {
+      if (participantName && participantName !== "Anonymous") {
+        finalIdentity = participantName + "_" + crypto.randomUUID().substring(0, 8);
+      } else {
+        finalIdentity = "anon_" + crypto.randomUUID();
+      }
+    }
+
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: userId || participantName || user.id,
-      name: participantName,
+      identity: finalIdentity,
+      name: participantName || "Anonymous",
     });
     
     // Always grant publish exclusively based on Database state
