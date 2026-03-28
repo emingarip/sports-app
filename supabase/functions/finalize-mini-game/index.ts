@@ -34,6 +34,27 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Verify token and Admin Role
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      throw new Error("Unauthorized");
+    }
+
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (userError || !userData || userData.is_admin !== true) {
+      return new Response(JSON.stringify({ error: "Forbidden: Admin access required" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
     // Check if game is already finalized to prevent double-rewards
     const { data: existingLog, error: checkError } = await supabaseAdmin
       .from('mini_game_logs')
@@ -57,7 +78,7 @@ serve(async (req) => {
 
     if (topError) throw topError;
 
-    const winners = [];
+    const winners: any[] = [];
 
     // Distribute rewards
     for (let i = 0; i < topScores.length; i++) {
