@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'supabase_service.dart';
 
 final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
@@ -12,6 +14,9 @@ class PushNotificationService {
 
   Future<void> requestPermission() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_requested_notification_permission', true);
+
       NotificationSettings settings = await _fcm.requestPermission(
         alert: true,
         badge: true,
@@ -38,11 +43,19 @@ class PushNotificationService {
 
   Future<bool> isPermissionNotDetermined() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasRequested = prefs.getBool('has_requested_notification_permission') ?? false;
+
       NotificationSettings settings = await _fcm.getNotificationSettings();
       // Web and iOS return notDetermined initially.
-      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) return true;
+      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+        return !hasRequested;
+      }
+      
       // Android 13+ returns denied initially.
-      if (defaultTargetPlatform == TargetPlatform.android && settings.authorizationStatus == AuthorizationStatus.denied) return true;
+      if (defaultTargetPlatform == TargetPlatform.android && settings.authorizationStatus == AuthorizationStatus.denied) {
+        return !hasRequested;
+      }
       
       return false;
     } catch (e) {
@@ -102,12 +115,15 @@ class PushNotificationService {
   }
 
   Future<String> _getDeviceId() async {
-    // For a minimal MVP, we return a platform-specific identifier so Web and Ext/Mobile don't overwrite each other.
-    if (kIsWeb) {
-      return "primary-device-web";
-    } else {
-      return "primary-device-mobile-${defaultTargetPlatform.name.toLowerCase()}";
+    final prefs = await SharedPreferences.getInstance();
+    String? deviceId = prefs.getString('push_fcm_device_id');
+    
+    if (deviceId == null) {
+      deviceId = const Uuid().v4();
+      await prefs.setString('push_fcm_device_id', deviceId);
     }
+    
+    return "${defaultTargetPlatform.name.toLowerCase()}-$deviceId";
   }
 
   void _setupMessageHandlers() {

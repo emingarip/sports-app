@@ -124,18 +124,25 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
       if (room != null) {
         _listenToRoomEvents(room);
         
+        final currentParticipants = _getParticipants(room);
+
         // Initial state
         state = state.copyWith(
           isConnecting: false,
           isConnected: true,
           currentRoomName: roomName,
-          participants: _getParticipants(room),
+          participants: currentParticipants,
           isMuted: !(room.localParticipant?.isMicrophoneEnabled() ?? false),
           isHost: isHost,
           canSpeak: isHost, // Hosts can speak by default
           isPrivate: roomIsPrivate,
           pinCode: roomPinCode,
         );
+
+        // Sync initial DB count right after connecting, if host
+        if (isHost) {
+          _syncListenerCount(roomName, currentParticipants.length);
+        }
       }
     } catch (e) {
       state = state.copyWith(
@@ -143,6 +150,17 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         error: e.toString(),
       );
     }
+  }
+
+  void _syncListenerCount(String roomName, int count) {
+    SupabaseService.client
+        .from('audio_rooms')
+        .update({'listener_count': count})
+        .eq('room_name', roomName)
+        // Fire and forget
+        .catchError((e) {
+      debugPrint('Failed to sync listener count: $e');
+    });
   }
 
   Future<void> createAndJoinRoom(String matchId, String baseRoomName, {bool isPrivate = false, String? pinCode}) async {
@@ -197,7 +215,12 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
   void _updateParticipants() {
     final room = _liveKitService.room;
     if (room != null) {
-      state = state.copyWith(participants: _getParticipants(room));
+      final participants = _getParticipants(room);
+      state = state.copyWith(participants: participants);
+
+      if (state.isHost && state.currentRoomName != null) {
+        _syncListenerCount(state.currentRoomName!, participants.length);
+      }
     }
   }
 
