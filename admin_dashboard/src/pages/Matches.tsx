@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Activity, Users as UsersIcon, Mic, Trophy, Clock, Play, StopCircle } from 'lucide-react';
+import { Search, Activity, Users as UsersIcon, Mic, Trophy, Clock, Play, StopCircle, Trash2 } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -87,6 +87,36 @@ export default function Matches() {
     setLoading(true);
     await Promise.all([fetchMatches(), fetchAudioRooms()]);
     setLoading(false);
+  };
+
+  const handleDeleteRoom = async (roomName: string) => {
+    if (!window.confirm(`"${roomName}" odasını zorla kapatmak istediğinize emin misiniz? Odadaki herkesin bağlantısı anında kesilecektir.`)) {
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Oturum bulunamadı, lütfen tekrar giriş yapın.");
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-audio-room`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ room_name: roomName }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Oda silinirken bir sunucu hatası oluştu.');
+      }
+
+      // Success - Realtime will automatically remove it from the UI!
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message);
+    }
   };
 
 
@@ -428,14 +458,24 @@ export default function Matches() {
                       Aktif Sesli Odalar ({matchAudioRooms.length})
                     </h4>
                     {matchAudioRooms.map(room => (
-                      <div key={room.id} className="flex justify-between items-center bg-background rounded-md p-2 border border-border">
+                      <div key={room.id} className="flex justify-between items-center bg-background rounded-md p-2 border border-border group transition-all hover:border-red-500/30">
                         <div className="flex items-center gap-2 truncate">
-                          {room.is_private ? <div className="w-2 h-2 rounded-full bg-yellow-500" /> : <div className="w-2 h-2 rounded-full bg-green-500" />}
-                          <span className="text-sm font-medium truncate">{room.room_name}</span>
+                          {room.is_private ? <div className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" /> : <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />}
+                          <span className="text-sm font-medium truncate" title={room.room_name}>{room.room_name}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-muted-foreground shrink-0 ml-2">
-                          <UsersIcon className="w-3 h-3" />
-                          <span className="text-xs">{room.listener_count}</span>
+                        <div className="flex items-center gap-3 shrink-0 ml-2">
+                          <div className="flex items-center gap-1 text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
+                            <UsersIcon className="w-3 h-3" />
+                            <span className="text-xs font-semibold">{room.listener_count}</span>
+                          </div>
+                          
+                          <button 
+                            onClick={() => handleDeleteRoom(room.room_name)}
+                            title="Odayı kapat ve herkesi at"
+                            className="bg-red-500/10 text-red-500 hover:text-white hover:bg-red-500 p-2 rounded transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     ))}
