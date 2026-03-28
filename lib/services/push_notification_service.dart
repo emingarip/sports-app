@@ -14,6 +14,9 @@ class PushNotificationService {
 
   Future<void> requestPermission() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_requested_notification_permission', true);
+
       NotificationSettings settings = await _fcm.requestPermission(
         alert: true,
         badge: true,
@@ -40,11 +43,19 @@ class PushNotificationService {
 
   Future<bool> isPermissionNotDetermined() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasRequested = prefs.getBool('has_requested_notification_permission') ?? false;
+
       NotificationSettings settings = await _fcm.getNotificationSettings();
       // Web and iOS return notDetermined initially.
-      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) return true;
+      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+        return !hasRequested;
+      }
+      
       // Android 13+ returns denied initially.
-      if (defaultTargetPlatform == TargetPlatform.android && settings.authorizationStatus == AuthorizationStatus.denied) return true;
+      if (defaultTargetPlatform == TargetPlatform.android && settings.authorizationStatus == AuthorizationStatus.denied) {
+        return !hasRequested;
+      }
       
       return false;
     } catch (e) {
