@@ -53,65 +53,33 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Check if the user already played this game
-    const { data: existingLog, error: checkError } = await supabaseAdmin
-      .from('mini_game_logs')
-      .select('id, score')
-      .eq('game_id', gameId)
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // Call the newly created atomic RPC
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc('atomic_process_mini_game', {
+      p_game_id: gameId,
+      p_room_id: roomId,
+      p_user_id: user.id,
+      p_score: score,
+      p_reward: 10
+    });
 
-    if (checkError) throw checkError;
+    if (rpcError) throw rpcError;
 
-    if (existingLog) {
-      // User has already played.
-      if (score > existingLog.score) {
-        const { error: updateError } = await supabaseAdmin
-          .from('mini_game_logs')
-          .update({ score: score })
-          .eq('id', existingLog.id);
-          
-        if (updateError) throw updateError;
-        
-        return new Response(JSON.stringify({ message: 'New high score saved!', rewardAmount: 0 }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        })
-      } else {
-        return new Response(JSON.stringify({ message: 'Score submitted. Did not beat high score.', rewardAmount: 0 }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        })
-      }
-    } else {
-      // First time playing! Give them the 10 K-Coin participation reward.
-      const { error: logError } = await supabaseAdmin
-        .from('mini_game_logs')
-        .insert({
-          game_id: gameId,
-          room_id: roomId,
-          user_id: user.id,
-          score: score,
-          reward: 10
-        })
+    let message = 'Success';
+    let rewardAmount = 0;
 
-      if (logError) throw logError
-
-      // Update User Balance by +10 K-Coin using the newly created transaction RPC
-      const { error: rpcError } = await supabaseAdmin.rpc('process_user_balance_transaction', {
-        user_id_param: user.id,
-        amount_param: 10,
-        operation: 'add'
-      })
-
-      if (rpcError) throw rpcError
-
-      return new Response(JSON.stringify({ message: 'Success', rewardAmount: 10 }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
+    if (result.status === 'new_high_score') {
+      message = 'New high score saved!';
+    } else if (result.status === 'score_submitted') {
+      message = 'Score submitted. Did not beat high score.';
+    } else if (result.status === 'success') {
+      rewardAmount = result.rewardAmount;
     }
-  } catch (error) {
+
+    return new Response(JSON.stringify({ message, rewardAmount }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
+  } catch (error: any) {
     console.error("Function error:", error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

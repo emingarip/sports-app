@@ -55,63 +55,12 @@ serve(async (req) => {
       });
     }
 
-    // Check if game is already finalized to prevent double-rewards
-    const { data: existingLog, error: checkError } = await supabaseAdmin
-      .from('mini_game_logs')
-      .select('rank_reward')
-      .eq('game_id', gameId)
-      .not('rank_reward', 'is', null)
-      .limit(1)
+    // Execute atomic completion to ensure rank logging and DB balances perfectly sync
+    const { data: winners, error: finalizeError } = await supabaseAdmin.rpc('atomic_finalize_mini_game', {
+      p_game_id: gameId
+    });
 
-    if (checkError) throw checkError;
-    if (existingLog && existingLog.length > 0) {
-      throw new Error("Game is already finalized.");
-    }
-
-    // Fetch the top 3 scores for this gameId
-    const { data: topScores, error: topError } = await supabaseAdmin
-      .from('mini_game_logs')
-      .select('id, user_id, score, users(username)')
-      .eq('game_id', gameId)
-      .order('score', { ascending: false })
-      .limit(3)
-
-    if (topError) throw topError;
-
-    const winners: any[] = [];
-
-    // Distribute rewards
-    for (let i = 0; i < topScores.length; i++) {
-      const topLog = topScores[i];
-      const reward = REWARDS[i] || 0; // 100, 70, 50
-
-      if (reward > 0) {
-        // Log the assigned rank reward to prevent double execution
-        await supabaseAdmin
-          .from('mini_game_logs')
-          .update({ rank_reward: reward, rank: i + 1 })
-          .eq('id', topLog.id);
-
-        // Update User Balance by the rank reward using the RPC
-        const { error: rpcError } = await supabaseAdmin.rpc('process_user_balance_transaction', {
-          user_id_param: topLog.user_id,
-          amount_param: reward,
-          operation: 'add'
-        });
-
-        if (rpcError) {
-          console.error("Failed to add reward to user:", rpcError);
-        }
-
-        winners.push({
-          userId: topLog.user_id,
-          username: topLog.users?.username || 'Top Sektirme',
-          score: topLog.score,
-          reward: reward,
-          rank: i + 1
-        });
-      }
-    }
+    if (finalizeError) throw finalizeError;
 
     // Broadcast the winners to the Realtime room so Flutter/React UI displays the leaderboard
     const channelName = `match_${roomId}`;
