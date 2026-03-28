@@ -229,7 +229,7 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
   return (
     <div className="w-full h-full relative overflow-hidden bg-gradient-to-b from-orange-400 to-red-500 select-none touch-none font-sans" onMouseDown={handleTap} onTouchStart={handleTap}>
       <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px]">
+        <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px] mt-16">
           <h3 className="text-white/80 text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">Canlı Liderlik</h3>
           {topScores.length === 0 ? <p className="text-white/50 text-xs">Henüz skor yok</p> : (
              <div className="space-y-1">
