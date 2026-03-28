@@ -38,6 +38,16 @@ export default function Matches() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [activeMiniGames, setActiveMiniGames] = useState<Record<string, string>>({}); // match_id -> gameId
   const [isProcessing, setIsProcessing] = useState<Record<string, boolean>>({});
+  const [selectedGameTypes, setSelectedGameTypes] = useState<Record<string, string>>({});
+
+  const gameOptions = [
+    { id: 'play_keepy_uppy', label: 'Top Sektirme' },
+    { id: 'penalty_shootout', label: 'Penaltı Atışı' },
+    { id: 'goalkeeper_reflex', label: 'Kaleci Refleksi' },
+    { id: 'flappy_ball', label: 'Uçan Top' },
+    { id: 'header_hero', label: 'Kafa Topu' },
+    { id: 'goal_celebration_rhythm', label: 'Gol Sevinci Ritmi' }
+  ];
 
   useEffect(() => {
     fetchData();
@@ -181,8 +191,9 @@ export default function Matches() {
   const startMiniGame = async (matchId: string) => {
     setIsProcessing(prev => ({ ...prev, [matchId]: true }));
     try {
-      // 1. Generate a unique game ID (format: keepy_uppy_TIMESTAMP_DURATION_RANDOM)
-      const gameId = `keepy_uppy_${Date.now()}_120_${Math.floor(Math.random() * 1000)}`;
+      const gameType = selectedGameTypes[matchId] || 'play_keepy_uppy';
+      // 1. Generate a unique game ID (format: gameType_TIMESTAMP_DURATION_RANDOM)
+      const gameId = `${gameType}_${Date.now()}_120_${Math.floor(Math.random() * 1000)}`;
       
       // 2. Broadcast START_MINI_GAME to the specific match room
       await new Promise<void>((resolve, reject) => {
@@ -195,6 +206,7 @@ export default function Matches() {
               payload: {
                 action: 'START_MINI_GAME',
                 gameId: gameId,
+                gameType: gameType,
               }
             });
             // Delay removing the channel to ensure message is flushed to the network
@@ -212,7 +224,8 @@ export default function Matches() {
       
       // 3. Update local state
       setActiveMiniGames(prev => ({ ...prev, [matchId]: gameId }));
-      alert(`Top Sektirme oyunu başlatıldı! Oda: ${matchId}`);
+      const gameName = gameOptions.find(g => g.id === gameType)?.label || gameType;
+      alert(`${gameName} oyunu başlatıldı! Oda: ${matchId}`);
     } catch (err) {
       console.error("Failed to start mini game:", err);
       alert("Oyun başlatılırken hata oluştu.");
@@ -408,21 +421,30 @@ export default function Matches() {
 
                 {/* Admin Quick Actions */}
                 {match.status === 'live' && (
-                  <div className="flex gap-2 mb-4">
+                  <div className="flex flex-col gap-2 mb-4">
                     {!activeMiniGames[match.id] ? (
-                       <button 
-                         onClick={() => startMiniGame(match.id)}
-                         disabled={isProcessing[match.id]}
-                         className="flex-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 border border-indigo-500/20 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
-                       >
-                         <Play className="w-4 h-4" />
-                         {isProcessing[match.id] ? 'Başlatılıyor...' : 'Top Sektirme Başlat'}
-                       </button>
+                       <div className="flex gap-2">
+                         <select
+                           value={selectedGameTypes[match.id] || 'play_keepy_uppy'}
+                           onChange={(e) => setSelectedGameTypes(p => ({ ...p, [match.id]: e.target.value }))}
+                           className="flex-1 bg-card border border-border rounded px-2 py-2 text-sm text-foreground focus:outline-none"
+                         >
+                           {gameOptions.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+                         </select>
+                         <button 
+                           onClick={() => startMiniGame(match.id)}
+                           disabled={isProcessing[match.id]}
+                           className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 border border-indigo-500/20 px-4 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+                           title="Oyunu Başlat"
+                         >
+                           <Play className="w-4 h-4" />
+                         </button>
+                       </div>
                     ) : (
                        <button 
                          onClick={() => endMiniGame(match.id)}
                          disabled={isProcessing[match.id]}
-                         className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+                         className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
                        >
                          <StopCircle className="w-4 h-4" />
                          {isProcessing[match.id] ? 'Bitiriliyor...' : 'Yarışmayı Bitir (Ödül Dağıt)'}
