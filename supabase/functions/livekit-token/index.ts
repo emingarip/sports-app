@@ -35,37 +35,33 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Verify user JWT
+    // Verify user JWT (Optional for Listeners, Mandatory for Hosts)
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // Determine secure permissions from DB
     let isHost = false;
     let canPublish = false;
 
-    // We only verify ownership for audio rooms. 
-    // If the room name matches the unique audio_room name format, we check the DB.
-    const { data: roomData, error: roomError } = await supabaseAdmin
-      .from("audio_rooms")
-      .select("host_id, is_private")
-      .eq("room_name", roomName)
-      .maybeSingle();
+    // If a valid user exists, check ownership
+    if (user) {
+      // We only verify ownership for audio rooms. 
+      // If the room name matches the unique audio_room name format, we check the DB.
+      const { data: roomData, error: roomError } = await supabaseAdmin
+        .from("audio_rooms")
+        .select("host_id, is_private")
+        .eq("room_name", roomName)
+        .maybeSingle();
 
-    if (roomData) {
-      if (roomData.host_id === user.id) {
-        isHost = true;
-        canPublish = true; // Host obviously can publish
-      } else {
-        // Here we could implement "approved_speakers" logic if added to the DB.
-        // For now, only the host can publish initially securely.
-        canPublish = false; 
+      if (roomData) {
+        if (roomData.host_id === user.id) {
+          isHost = true;
+          canPublish = true; // Host obviously can publish
+        } else {
+          // Here we could implement "approved_speakers" logic if added to the DB.
+          // For now, only the host can publish initially securely.
+          canPublish = false; 
+        }
       }
     }
 
