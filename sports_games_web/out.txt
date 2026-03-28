@@ -1,0 +1,4 @@
+src/games/GoalCelebrationRhythm.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/games/GoalkeeperReflex.tsx(177,9): error TS6133: 'playAgain' is declared but its value is never read.
+src/games/HeaderHero.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/games/HeaderHero.tsx(42,9): error TS6133: 'lastSpawn' is declared but its value is never read.

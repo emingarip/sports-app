@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Users from './pages/Users';
 import Matches from './pages/Matches';
+import Bots from './pages/Bots';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,6 +43,7 @@ function App() {
           <Route path="/" element={<Dashboard _session={session} />} />
           <Route path="users" element={<Users />} />
           <Route path="matches" element={<Matches />} />
+          <Route path="bots" element={<Bots />} />
         </Route>
       </Routes>
     </Router>
