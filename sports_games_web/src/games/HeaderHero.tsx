@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 declare global {
@@ -16,7 +16,7 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
   useEffect(() => { scoreRef.current = score; }, [score]);
   
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [overallTimeLeft, setOverallTimeLeft] = useState(120);
   const [isTimeUp, setIsTimeUp] = useState(false);
@@ -39,7 +39,6 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
   });
 
   const objects = useRef<Array<{ id: number; type: 'ball' | 'boot'; x: number; y: number; dx: number; dy: number; gravity: number; active: boolean }>>([]);
-  const lastSpawn = useRef(0);
   const spawnRate = useRef(2000); // 2 seconds
 
   useEffect(() => {
@@ -135,7 +134,7 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
             y: screenHeight - 250,
             dx: isLeft ? (2 + Math.random()*2) : -(2 + Math.random()*2),
             dy: - (5 + Math.random()*3),
-            gravity: 0.2,
+            gravity: 0.15,
             active: true,
          });
          spawnRate.current = Math.max(800, spawnRate.current - 10);

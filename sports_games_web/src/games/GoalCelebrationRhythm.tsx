@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 declare global {
@@ -16,7 +16,7 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
   useEffect(() => { scoreRef.current = score; }, [score]);
   
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [overallTimeLeft, setOverallTimeLeft] = useState(120);
   const [isTimeUp, setIsTimeUp] = useState(false);

@@ -16,14 +16,14 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
   useEffect(() => { scoreRef.current = score; }, [score]);
   
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [overallTimeLeft, setOverallTimeLeft] = useState(120);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const lastSavedScoreRef = useRef(0);
   const [topScores, setTopScores] = useState<any[]>([]);
   const [myHighScore, setMyHighScore] = useState(0);
-  const [gameKey, setGameKey] = useState(0);
+
 
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
   const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 500;
@@ -57,7 +57,7 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
       if (count <= 0) { clearInterval(interval); setCountdown(0); } else { setCountdown(count); }
     }, 1000);
     return () => clearInterval(interval);
-  }, [gameKey]);
+  }, []);
 
   useEffect(() => {
     if (!gameId) return;
@@ -172,11 +172,6 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
     setIsGameOver(true);
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     await autoSaveScore(scoreRef.current);
-  };
-
-  const playAgain = () => {
-    setScore(0); lastSavedScoreRef.current = 0; setIsGameOver(false); setCountdown(3); setGameKey(k => k + 1);
-    balls.current = []; lastSpawn.current = 0; spawnRate.current = 1500;
   };
 
   const exitGame = () => {
