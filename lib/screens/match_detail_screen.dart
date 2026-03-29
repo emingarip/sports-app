@@ -18,6 +18,7 @@ import 'mini_game_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/tts_service.dart';
 import 'private_chat_screen.dart';
+import '../widgets/frame_avatar.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -31,6 +32,7 @@ class ChatMessage {
   final IconData? systemEventIcon;
   final String? userId;
   final String? avatarUrl;
+  final String? activeFrame;
   final bool isBot;
 
   ChatMessage({
@@ -43,6 +45,7 @@ class ChatMessage {
     this.systemEventIcon,
     this.userId,
     this.avatarUrl,
+    this.activeFrame,
     this.isBot = false,
   });
 }
@@ -1522,18 +1525,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                     }
                   }
                 },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: context.colors.surfaceContainerHigh,
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                  ),
-                  child: msg.avatarUrl != null
-                      ? ClipOval(child: Image.network(msg.avatarUrl!, fit: BoxFit.cover))
-                      : Icon(Icons.person, color: context.colors.textMedium, size: 20),
+                child: FrameAvatar(
+                  avatarUrl: msg.avatarUrl,
+                  activeFrame: msg.activeFrame,
+                  radius: 18,
                 ),
               )
             else
@@ -1607,16 +1602,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
           if (isMe) ...[
             const SizedBox(width: 12),
             if (!isPrevSameUser)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: context.colors.primaryContainer,
-                  border: Border.all(color: context.colors.primaryContainer, width: 2),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                ),
-                child: Icon(Icons.person, color: context.colors.onPrimaryContainer, size: 20),
+              FrameAvatar(
+                avatarUrl: msg.avatarUrl ?? Supabase.instance.client.auth.currentUser?.userMetadata?['avatar_url'],
+                activeFrame: msg.activeFrame,
+                radius: 18,
               )
             else
               const SizedBox(width: 36),

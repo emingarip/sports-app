@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../widgets/frame_avatar.dart';
 
 class PrivateChatScreen extends StatefulWidget {
   final String roomId;
   final String otherUserId;
   final String otherUsername;
   final String? otherAvatarUrl;
+  final String? otherActiveFrame;
   final bool isBot;
 
   const PrivateChatScreen({
@@ -16,6 +18,7 @@ class PrivateChatScreen extends StatefulWidget {
     required this.otherUserId,
     required this.otherUsername,
     this.otherAvatarUrl,
+    this.otherActiveFrame,
     this.isBot = false,
   });
 
@@ -197,15 +200,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
           children: [
             Stack(
               children: [
-                CircleAvatar(
+                FrameAvatar(
+                  avatarUrl: widget.otherAvatarUrl,
+                  activeFrame: widget.otherActiveFrame,
                   radius: 18,
-                  backgroundColor: context.colors.surfaceContainer,
-                  backgroundImage: widget.otherAvatarUrl != null
-                      ? NetworkImage(widget.otherAvatarUrl!)
-                      : null,
-                  child: widget.otherAvatarUrl == null
-                      ? Text(widget.otherUsername.substring(0, 1).toUpperCase(), style: TextStyle(color: context.colors.textHigh, fontWeight: FontWeight.bold))
-                      : null,
                 ),
                 if (widget.isBot)
                   Positioned(

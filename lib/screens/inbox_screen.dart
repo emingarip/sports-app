@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../widgets/frame_avatar.dart';
 import 'private_chat_screen.dart';
 
 class InboxScreen extends StatefulWidget {
@@ -45,7 +46,7 @@ class _InboxScreenState extends State<InboxScreen> {
       // 2. Get the *other* participants in these rooms along with their user details
       final otherParticipants = await _supabase
           .from('chat_participants')
-          .select('room_id, user_id, users(username, avatar_url, is_bot)')
+          .select('room_id, user_id, users(username, avatar_url, is_bot, active_frame)')
           .inFilter('room_id', roomIds)
           .neq('user_id', userId);
 
@@ -68,6 +69,7 @@ class _InboxScreenState extends State<InboxScreen> {
           'other_user_id': op['user_id'],
           'username': userData['username'] ?? 'Bilinmeyen Kullanıcı',
           'avatar_url': userData['avatar_url'],
+          'active_frame': userData['active_frame'],
           'is_bot': userData['is_bot'] ?? false,
           'latest_message': latestMessageRes?['content'] ?? 'Sohbeti başlatın',
           'last_time': latestMessageRes?['created_at'],
@@ -153,6 +155,7 @@ class _InboxScreenState extends State<InboxScreen> {
               otherUserId: room['other_user_id'],
               otherUsername: room['username'],
               otherAvatarUrl: room['avatar_url'],
+              otherActiveFrame: room['active_frame'],
               isBot: room['is_bot'],
             ),
           ),
@@ -168,15 +171,10 @@ class _InboxScreenState extends State<InboxScreen> {
           children: [
             Stack(
               children: [
-                CircleAvatar(
+                FrameAvatar(
+                  avatarUrl: room['avatar_url'],
+                  activeFrame: room['active_frame'],
                   radius: 28,
-                  backgroundColor: context.colors.surfaceContainer,
-                  backgroundImage: room['avatar_url'] != null 
-                    ? NetworkImage(room['avatar_url']) 
-                    : null,
-                  child: room['avatar_url'] == null 
-                    ? Text(room['username'].substring(0, 1).toUpperCase(), style: TextStyle(color: context.colors.textHigh, fontWeight: FontWeight.bold))
-                    : null,
                 ),
                 if (room['is_bot'] == true)
                   Positioned(

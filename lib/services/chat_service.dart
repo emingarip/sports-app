@@ -21,7 +21,7 @@ class ChatService {
           Map<String, dynamic> userMap = {};
           
           if (userIds.isNotEmpty) {
-            final usersRes = await _client.from('users').select('id, username, avatar_url, is_bot').inFilter('id', userIds);
+            final usersRes = await _client.from('users').select('id, username, avatar_url, is_bot, active_frame').inFilter('id', userIds);
             for (var u in usersRes) {
               userMap[u['id']] = u;
             }
@@ -45,6 +45,7 @@ class ChatService {
               time: timeStr,
               userId: uId,
               avatarUrl: uData['avatar_url'],
+              activeFrame: uData['active_frame'],
               isBot: uData['is_bot'] == true,
             );
           }).toList();
