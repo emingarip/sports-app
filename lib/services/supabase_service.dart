@@ -128,6 +128,19 @@ class SupabaseService {
     }
   }
 
+  Future<bool> equipUserFrame(String userId, String? frameCode) async {
+    try {
+      await client.rpc('equip_user_frame', params: {
+        'p_user_id': userId,
+        'p_frame_code': frameCode,
+      });
+      return true;
+    } catch (e) {
+      debugPrint('Error equipping user frame: $e');
+      return false;
+    }
+  }
+
   Future<bool> isUsernameAvailable(String username) async {
     try {
       if (username.trim().isEmpty) return false;

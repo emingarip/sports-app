@@ -8,6 +8,7 @@ class LeaderboardUser {
   final String? avatarUrl;
   final int kCoinBalance;
   final int reputationScore;
+  final String? activeFrame;
 
   LeaderboardUser({
     required this.id,
@@ -15,6 +16,7 @@ class LeaderboardUser {
     this.avatarUrl,
     required this.kCoinBalance,
     required this.reputationScore,
+    this.activeFrame,
   });
 
   factory LeaderboardUser.fromJson(Map<String, dynamic> json) {
@@ -24,6 +26,7 @@ class LeaderboardUser {
       avatarUrl: json['avatar_url'] as String?,
       kCoinBalance: json['k_coin_balance'] as int? ?? 0,
       reputationScore: json['reputation_score'] as int? ?? 0,
+      activeFrame: json['active_frame'] as String?,
     );
   }
 }
@@ -39,7 +42,7 @@ class LeaderboardNotifier extends AsyncNotifier<List<LeaderboardUser>> {
   Future<List<LeaderboardUser>> _fetchLeaderboard() async {
     final response = await _client
         .from('users')
-        .select('id, username, avatar_url, k_coin_balance, reputation_score')
+        .select('id, username, avatar_url, k_coin_balance, reputation_score, active_frame')
         .order('k_coin_balance', ascending: false)
         .limit(50);
 

@@ -14,6 +14,8 @@ import '../providers/badge_provider.dart';
 import 'store_front_screen.dart';
 import 'badges_screen.dart';
 import 'purchase_history_screen.dart';
+import 'avatar_frames_screen.dart';
+import '../widgets/frame_avatar.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -145,24 +147,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
         child: Column(
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: context.colors.surfaceContainer,
-                border: Border.all(color: context.colors.primaryContainer, width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: context.colors.primaryContainer.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  )
-                ],
-              ),
-              child: _profile!.avatarUrl != null 
-                ? ClipOval(child: Image.network(_profile!.avatarUrl!, fit: BoxFit.cover))
-                : Icon(Icons.person, size: 48, color: context.colors.textMedium),
+            FrameAvatar(
+              avatarUrl: _profile!.avatarUrl,
+              activeFrame: _profile!.activeFrame,
+              radius: 50,
             ),
             const SizedBox(height: 16),
             Text(
@@ -227,6 +215,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
               icon: const Icon(Icons.receipt_long, size: 16),
               label: const Text('Purchase History'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.textHigh,
+                side: BorderSide(color: context.colors.surfaceContainerHigh),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AvatarFramesScreen()),
+                );
+              },
+              icon: const Icon(Icons.face_retouching_natural, size: 16),
+              label: const Text('My Avatar Frames'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.textHigh,
                 side: BorderSide(color: context.colors.surfaceContainerHigh),

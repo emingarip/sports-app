@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/leaderboard_provider.dart';
+import '../widgets/frame_avatar.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -125,16 +126,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         if (isFirst)
           Icon(Icons.workspace_premium, color: color, size: 36),
         const SizedBox(height: 8),
-        CircleAvatar(
+        FrameAvatar(
+          avatarUrl: user.avatarUrl,
+          activeFrame: user.activeFrame,
           radius: isFirst ? 36 : 28,
-          backgroundColor: color.withOpacity(0.2),
-          backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
-          child: user.avatarUrl == null
-              ? Text(
-                  user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-                  style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: isFirst ? 24 : 18),
-                )
-              : null,
         ),
         const SizedBox(height: 12),
         Container(
@@ -224,16 +219,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               ),
             ),
           ),
-          CircleAvatar(
+          FrameAvatar(
+            avatarUrl: user.avatarUrl,
+            activeFrame: user.activeFrame,
             radius: 20,
-            backgroundColor: context.colors.surfaceVariant,
-            backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
-            child: user.avatarUrl == null
-                ? Text(
-                    user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-                    style: TextStyle(color: context.colors.textMedium, fontWeight: FontWeight.bold),
-                  )
-                : null,
           ),
           const SizedBox(width: 16),
           Expanded(
