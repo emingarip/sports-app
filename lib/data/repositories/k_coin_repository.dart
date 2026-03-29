@@ -86,6 +86,7 @@ class KCoinRepository {
           'type': tType,
           'amount': amount,
           'title': title,
+          'reference_id': row['reference_id'],
           'is_positive': amount > 0,
           'created_at': row['created_at'],
         });

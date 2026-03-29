@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import '../providers/store_provider.dart';
+import '../models/store_product.dart';
 
 class PurchaseHistoryScreen extends ConsumerStatefulWidget {
   const PurchaseHistoryScreen({super.key});
@@ -25,6 +27,28 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
     try {
       final repo = ref.read(kCoinRepositoryProvider);
       final data = await repo.getPurchasingHistory();
+      
+      // Attempt to load store products to swap out raw reference IDs with friendly titles
+      List<StoreProduct> storeProducts = [];
+      try {
+        storeProducts = await ref.read(storeProductsProvider.future);
+      } catch (_) {}
+
+      if (storeProducts.isNotEmpty) {
+        for (var item in data) {
+          final type = item['type'] ?? '';
+          if (type == 'purchase' || type == 'store_purchase') {
+            final refId = item['reference_id'];
+            if (refId != null) {
+              try {
+                final product = storeProducts.firstWhere((p) => p.productCode == refId);
+                item['title'] = 'Mağaza: ${product.title}';
+              } catch (_) {}
+            }
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
           _history = data;
