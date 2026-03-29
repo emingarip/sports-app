@@ -1,0 +1,17 @@
+[
+  "id",
+  "home_team",
+  "away_team",
+  "home_logo_url",
+  "away_logo_url",
+  "status",
+  "home_score",
+  "away_score",
+  "minute",
+  "started_at",
+  "created_at",
+  "league_id",
+  "provider_id",
+  "league_name",
+  "league_logo_url"
+]

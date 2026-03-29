@@ -1,6 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { LayoutDashboard, Users, Trophy, LogOut, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, Trophy, LogOut, Activity, Bot, Megaphone, ShoppingBag } from 'lucide-react';
 
 export default function Layout() {
   const handleLogout = async () => {
@@ -49,6 +49,39 @@ export default function Layout() {
           >
              <Activity className="w-5 h-5" />
              <span>Canlı Maçlar</span>
+          </NavLink>
+          <NavLink
+            to="/bots"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+              }`
+            }
+          >
+             <Bot className="w-5 h-5" />
+             <span>Simülasyon Botları</span>
+          </NavLink>
+          <NavLink
+            to="/announcements"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+              }`
+            }
+          >
+             <Megaphone className="w-5 h-5" />
+             <span>Duyurular</span>
+          </NavLink>
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+              }`
+            }
+          >
+             <ShoppingBag className="w-5 h-5" />
+             <span>Mağaza Ürünleri</span>
           </NavLink>
         </nav>
 

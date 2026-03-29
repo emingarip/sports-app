@@ -80,6 +80,20 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final bgColor = isDark ? AppTheme.darkColors.background : AppTheme.lightColors.background;
+
+        return Container(
+          color: bgColor,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: ClipRect(child: child!),
+            ),
+          ),
+        );
+      },
       home: const SplashScreen(),
     );
   }

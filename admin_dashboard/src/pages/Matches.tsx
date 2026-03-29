@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Search, Activity, Users as UsersIcon, Mic, Trophy, Clock, Play, StopCircle, Trash2 } from 'lucide-react';
+import { Search, Activity, Users as UsersIcon, Mic, Trophy, Clock, Play, StopCircle, Trash2, Bot } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -29,6 +30,7 @@ interface AudioRoom {
 }
 
 export default function Matches() {
+  const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [audioRooms, setAudioRooms] = useState<AudioRoom[]>([]);
   const [liveViewers, setLiveViewers] = useState<Record<string, number>>({});
@@ -224,6 +226,14 @@ export default function Matches() {
       
       // 3. Update local state
       setActiveMiniGames(prev => ({ ...prev, [matchId]: gameId }));
+      
+      // 4. Sync with Database so backend bots can see it
+      await supabase.from('active_mini_games').insert({
+        match_id: matchId,
+        game_id: gameId,
+        game_type: gameType
+      });
+
       const gameName = gameOptions.find(g => g.id === gameType)?.label || gameType;
       alert(`${gameName} oyunu başlatıldı! Oda: ${matchId}`);
     } catch (err) {
@@ -239,6 +249,12 @@ export default function Matches() {
     if (!gameId) return;
 
     setIsProcessing(prev => ({ ...prev, [matchId]: true }));
+    
+    // YENI: Botların skoru anında durdurması için HATA BEKLEMEDEN DB'den anında sil!
+    try {
+      await supabase.from('active_mini_games').delete().eq('game_id', gameId);
+    } catch(e) { console.error("Game delete skipped:", e) }
+
     try {
       // Call the Edge Function to finalize and distribute rewards
       const { data, error } = await supabase.functions.invoke('finalize-mini-game', {
@@ -246,7 +262,7 @@ export default function Matches() {
       });
 
       if (error) throw error;
-      
+
       setActiveMiniGames(prev => {
         const next = { ...prev };
         delete next[matchId];
@@ -503,6 +519,24 @@ export default function Matches() {
                     ))}
                   </div>
                 )}
+
+                {/* Bot Generation Actions */}
+                <div className="flex gap-2 mt-4 pt-4 border-t border-border">
+                   <button 
+                     onClick={() => navigate('/bots', { state: { preSelectedTeam: match.home_team } })}
+                     className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors truncate"
+                     title={`${match.home_team} için Bot Üret`}
+                   >
+                     <Bot className="w-4 h-4 shrink-0" /> <span className="truncate">{match.home_team} Botu</span>
+                   </button>
+                   <button 
+                     onClick={() => navigate('/bots', { state: { preSelectedTeam: match.away_team } })}
+                     className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded flex items-center justify-center gap-2 text-sm font-medium transition-colors truncate"
+                     title={`${match.away_team} için Bot Üret`}
+                   >
+                     <Bot className="w-4 h-4 shrink-0" /> <span className="truncate">{match.away_team} Botu</span>
+                   </button>
+                </div>
               </div>
             );
           })}

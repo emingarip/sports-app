@@ -1,0 +1,499 @@
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { Bot, Plus, Search, Edit2, Trash2, Check, X, Users, MessageSquare } from 'lucide-react';
+
+interface BotPersona {
+  id: string;
+  user_id: string;
+  team: string;
+  persona_prompt: string;
+  activity_level: string;
+  created_at: string;
+  users?: {
+    username: string;
+    avatar_url: string;
+  };
+}
+
+interface BotSuggestion {
+  id: string;
+  bot_id: string;
+  target_user_id: string;
+  reason: string;
+  status: string;
+  created_at: string;
+  bot?: { username: string; avatar_url: string };
+  target?: { username: string; avatar_url: string };
+}
+
+export default function Bots() {
+  const location = useLocation();
+  const [bots, setBots] = useState<BotPersona[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState<'bots' | 'interactions'>('bots');
+  const [suggestions, setSuggestions] = useState<BotSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [teams, setTeams] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Create Modal State
+  const [swarmCount, setSwarmCount] = useState(10);
+  const [team, setTeam] = useState('');
+  const [personaPrompt, setPersonaPrompt] = useState('Sen ateşli bir taraftarsın. Takımına laf söyletmezsin.');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Edit State
+  const [selectedBot, setSelectedBot] = useState<BotPersona | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'bots') fetchBots();
+    if (activeTab === 'interactions') fetchSuggestions();
+  }, [activeTab]);
+
+  // Handle incoming routing state
+  useEffect(() => {
+    if (location.state?.preSelectedTeam) {
+      setTeam(location.state.preSelectedTeam);
+      setShowCreateModal(true);
+      setActiveTab('bots');
+      // optional: clear state so refresh doesn't keep opening modal
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    async function fetchTeams() {
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select('home_team, away_team')
+          .order('started_at', { ascending: false })
+          .limit(200);
+          
+        if (data && !error) {
+          const teamSet = new Set<string>();
+          data.forEach(m => {
+            if (m.home_team) teamSet.add(m.home_team);
+            if (m.away_team) teamSet.add(m.away_team);
+          });
+          const uniqueTeams = Array.from(teamSet).sort();
+          setTeams(uniqueTeams);
+          if (uniqueTeams.length > 0 && !team && !location.state?.preSelectedTeam) {
+            setTeam(uniqueTeams[0]);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching teams:', e);
+      }
+    }
+    fetchTeams();
+  }, []);
+
+  async function fetchSuggestions() {
+    try {
+      setLoadingSuggestions(true);
+      const { data, error } = await supabase
+        .from('bot_follow_suggestions')
+        .select(`
+          *,
+          bot:users!bot_id(username, avatar_url),
+          target:users!target_user_id(username, avatar_url)
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSuggestions(data as any[]);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }
+
+  async function handleSuggestionAction(id: string, newStatus: 'approved' | 'rejected') {
+    try {
+      const { error } = await supabase
+        .from('bot_follow_suggestions')
+        .update({ status: newStatus })
+        .eq('id', id);
+      if (error) throw error;
+      setSuggestions(s => s.filter(x => x.id !== id));
+    } catch (err: any) {
+      alert(`Hata: ${err.message}`);
+    }
+  }
+
+  async function fetchBots() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('bot_personas')
+        .select(`
+          *,
+          users (
+            username,
+            avatar_url
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBots(data as BotPersona[]);
+    } catch (error) {
+      console.error('Error fetching bots:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGenerateSwarm(e: React.FormEvent) {
+    e.preventDefault();
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-bot-swarm', {
+        body: { count: swarmCount, team, persona_prompt: personaPrompt }
+      });
+
+      if (error) throw error;
+      
+      alert(`${data.created_count} bot başarıyla oluşturuldu!`);
+      setShowCreateModal(false);
+      fetchBots();
+    } catch (error: any) {
+      alert(`Hata: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function handleUpdatePersona(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedBot) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('bot_personas')
+        .update({ persona_prompt: selectedBot.persona_prompt })
+        .eq('id', selectedBot.id);
+
+      if (error) throw error;
+      
+      setShowEditModal(false);
+      setBots(bots.map(b => b.id === selectedBot.id ? selectedBot : b));
+    } catch (error: any) {
+      alert(`Güncelleme hatası: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteBot(_botId: string, _userId: string) {
+    if (!confirm('Bu bot simülasyon motorundan ve sistemden (Auth dahil) kalıcı olarak silinecek, onaylıyor musunuz?')) return;
+    try {
+      // Call the secure RPC to delete the auth.users record (which cascades to users and bot_personas)
+      const { error } = await supabase.rpc('delete_bot_user', {
+        target_user_id: _userId
+      });
+      if (error) throw error;
+      setBots(bots.filter(b => b.id !== _botId));
+    } catch (error: any) {
+      alert(`Bot silme işlemi başarısız: ${error.message}`);
+    }
+  }
+
+  const filteredBots = bots.filter(b => 
+    b.team.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (b.users?.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    b.persona_prompt.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 text-foreground">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Simülasyon Botları (AI Swarm)</h1>
+          <p className="text-muted-foreground mt-1">Platformdaki hayalet taraftar ordusunu yönetin.</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-colors"
+        >
+          <Plus className="w-5 h-5" />
+          Bot Ordusu Yarat
+        </button>
+      </div>
+
+      <div className="bg-card text-card-foreground border border-border rounded-lg overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
+        <div className="flex border-b border-border">
+          <button onClick={() => setActiveTab('bots')} className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 ${activeTab === 'bots' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            <Bot className="w-4 h-4" /> Bot Ordusu
+          </button>
+          <button onClick={() => setActiveTab('interactions')} className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 ${activeTab === 'interactions' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            <Users className="w-4 h-4" /> Bekleyen Etkileşim Onayları
+            {suggestions.length > 0 && (
+              <span className="ml-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">{suggestions.length}</span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === 'bots' && (
+          <div className="p-4 border-b border-border flex gap-4">
+            <div className="relative flex-1">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input 
+                type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Bot adı, takım veya persona ara..." 
+                className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-auto">
+          {activeTab === 'bots' ? (
+            loading ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              Botlar yükleniyor...
+            </div>
+          ) : bots.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <Bot className="w-16 h-16 mb-4 opacity-50" />
+              <p>Henüz sistemde bot yok.</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted/50 text-muted-foreground sticky top-0 uppercase text-xs">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Kullanıcı (Bot)</th>
+                  <th className="px-6 py-3 font-medium">Takım</th>
+                  <th className="px-6 py-3 font-medium max-w-xs">Karakter Yönergesi (Persona)</th>
+                  <th className="px-6 py-3 font-medium">Aktivite</th>
+                  <th className="px-6 py-3 text-right font-medium">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredBots.map((bot) => (
+                  <tr key={bot.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={bot.users?.avatar_url || `https://ui-avatars.com/api/?name=${bot.team}`} 
+                          alt="Avatar" 
+                          className="w-8 h-8 rounded-full border border-border" 
+                        />
+                        <div className="font-medium">{bot.users?.username || 'Bilinmiyor'}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {bot.team}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground max-w-xs truncate" title={bot.persona_prompt}>
+                      {bot.persona_prompt}
+                    </td>
+                    <td className="px-6 py-4">
+                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                         bot.activity_level === 'high' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'
+                       }`}>
+                         {bot.activity_level.toUpperCase()}
+                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => { setSelectedBot(bot); setShowEditModal(true); }}
+                        className="text-muted-foreground hover:text-primary p-2 transition-colors mr-1"
+                        title="Personayı Düzenle"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteBot(bot.id, bot.user_id)}
+                        className="text-muted-foreground hover:text-destructive p-2 transition-colors"
+                        title="Sil"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )) : (
+            loadingSuggestions ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Bekleyen etkileşimler yükleniyor...
+              </div>
+            ) : suggestions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <Check className="w-16 h-16 mb-4 opacity-50 text-green-500" />
+                <p>Bekleyen Onay Yok.</p>
+                <p className="text-sm">Tüm bot etkileşimleri kontrol edildi.</p>
+              </div>
+            ) : (
+              <div className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {suggestions.map(suggestion => (
+                  <div key={suggestion.id} className="bg-muted/30 border border-border rounded-lg p-4 flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                         <img src={suggestion.bot?.avatar_url || `https://ui-avatars.com/api/?name=B`} className="w-8 h-8 rounded-full border border-border" />
+                         <div>
+                            <div className="text-xs text-primary font-bold">Bot</div>
+                            <div className="text-sm font-medium leading-none">{suggestion.bot?.username || 'Bilinmiyor'}</div>
+                         </div>
+                      </div>
+                      <div className="text-muted-foreground">➡️</div>
+                      <div className="flex items-center gap-2 flex-row-reverse">
+                         <img src={suggestion.target?.avatar_url || `https://ui-avatars.com/api/?name=U`} className="w-8 h-8 rounded-full border border-border" />
+                         <div className="text-right">
+                            <div className="text-xs text-muted-foreground font-bold">Hedef (Takip)</div>
+                            <div className="text-sm font-medium leading-none">{suggestion.target?.username || 'Bilinmiyor'}</div>
+                         </div>
+                      </div>
+                    </div>
+                    <div className="bg-background border border-border rounded p-2 text-sm">
+                      <p className="flex items-start gap-2 text-muted-foreground italic">
+                        <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" />
+                        "{suggestion.reason}"
+                      </p>
+                    </div>
+                    <div className="flex gap-2 mt-auto pt-2">
+                       <button 
+                         onClick={() => handleSuggestionAction(suggestion.id, 'approved')}
+                         className="flex-1 flex items-center justify-center gap-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 py-2 rounded-md font-medium text-sm transition-colors"
+                       >
+                         <Check className="w-4 h-4" /> Onayla
+                       </button>
+                       <button 
+                         onClick={() => handleSuggestionAction(suggestion.id, 'rejected')}
+                         className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 py-2 rounded-md font-medium text-sm transition-colors"
+                       >
+                         <X className="w-4 h-4" /> Reddet
+                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* CREATE SWARM MODAL */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl overflow-hidden p-6 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold mb-4">Yeni Bot Ordusu Yarat</h3>
+            <form onSubmit={handleGenerateSwarm} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Kaç Adet Bot?</label>
+                <input 
+                  type="number" 
+                  min="1" max="50"
+                  required
+                  value={swarmCount}
+                  onChange={(e) => setSwarmCount(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Tek seferde en fazla 50 adet yaratılabilir.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Hangi Takım?</label>
+                <input 
+                  type="text"
+                  list="team-options"
+                  value={team}
+                  onChange={(e) => setTeam(e.target.value)}
+                  placeholder="Takım ara veya listeden seç..."
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-foreground"
+                  required
+                />
+                <datalist id="team-options">
+                  {teams.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+                {teams.length === 0 && <p className="text-xs text-muted-foreground mt-1 text-orange-500">Takımlar yükleniyor...</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Persona Yönergesi</label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={personaPrompt}
+                  onChange={(e) => setPersonaPrompt(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-sm"
+                  placeholder="Botların davranış şeklini anlatın..."
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 hover:bg-muted text-foreground rounded-md transition-colors"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isGenerating}
+                  className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium transition-colors disabled:opacity-50"
+                >
+                  {isGenerating ? 'Yaratılıyor...' : 'Yarat (Spawn)'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && selectedBot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl overflow-hidden p-6 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold mb-4">Personayı Düzenle</h3>
+            <p className="text-sm text-muted-foreground mb-4">Bot: {selectedBot.users?.username}</p>
+            <form onSubmit={handleUpdatePersona} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Güncel Persona Yönergesi</label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={selectedBot.persona_prompt}
+                  onChange={(e) => setSelectedBot({...selectedBot, persona_prompt: e.target.value})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 hover:bg-muted text-foreground rounded-md transition-colors"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

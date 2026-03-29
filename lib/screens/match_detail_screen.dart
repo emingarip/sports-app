@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
 import '../services/chat_service.dart';
@@ -16,6 +17,7 @@ import 'voice_room_screen.dart';
 import 'mini_game_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/tts_service.dart';
+import 'private_chat_screen.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -27,6 +29,9 @@ class ChatMessage {
   final String? username;
   final String? systemEventText;
   final IconData? systemEventIcon;
+  final String? userId;
+  final String? avatarUrl;
+  final bool isBot;
 
   ChatMessage({
     required this.id,
@@ -36,6 +41,9 @@ class ChatMessage {
     this.username,
     this.systemEventText,
     this.systemEventIcon,
+    this.userId,
+    this.avatarUrl,
+    this.isBot = false,
   });
 }
 
@@ -75,6 +83,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   final Map<String, AnimationController> _reactionAnimators = {};
   final List<FloatingReaction> _activeReactions = [];
 
+  double _hypeLevel = 0.0;
+  int _messagesInLastWindow = 0;
+  Timer? _hypeTimer;
+
   late AnimationController _pulseController;
   late AnimationController _bgPulseController;
   bool _hasText = false;
@@ -101,6 +113,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     _bgPulseController = AnimationController(
         vsync: this, duration: const Duration(seconds: 3))
       ..repeat(reverse: true);
+
+    _hypeTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
+      _calculateHype();
+    });
 
     _msgController.addListener(() {
       if (_hasText != _msgController.text.trim().isNotEmpty) {
@@ -207,6 +223,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       final senderSession = innerPayload['sessionId'] as String?;
       
       if (emoji != null && senderSession != _sessionId) {
+        setState(() {
+          _messagesInLastWindow += 1;
+        });
         _showFloatingReaction(emoji);
       }
     })
@@ -303,6 +322,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   void _subscribeToChat() {
     _chatSubscription = _chatService.streamMatchMessages(widget.match.id).listen((messages) {
       if (mounted) {
+        final newMessagesCount = messages.length - _messages.length;
+        if (newMessagesCount > 0 && _messages.isNotEmpty) {
+          _messagesInLastWindow += newMessagesCount;
+        }
         setState(() {
           _messages = messages;
         });
@@ -326,9 +349,81 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     _presenceChannel?.unsubscribe();
     _gameChannel?.unsubscribe();
     _drivingModeTimer?.cancel();
+    _hypeTimer?.cancel();
     TtsService().stop();
     WidgetService().endLiveActivity();
     super.dispose();
+  }
+
+  void _calculateHype() {
+    if (!mounted) return;
+    setState(() {
+      double increase = _messagesInLastWindow * 0.15;
+      _hypeLevel += increase;
+      if (_messagesInLastWindow == 0) {
+        _hypeLevel -= 0.1;
+      }
+      _hypeLevel = _hypeLevel.clamp(0.0, 1.0);
+      _messagesInLastWindow = 0;
+
+      if (_hypeLevel >= 0.8) {
+        HapticFeedback.heavyImpact();
+      }
+    });
+  }
+
+  Widget _buildHypeBadge() {
+    if (_hypeLevel <= 0.0) return const SizedBox.shrink();
+    
+    final percentage = (_hypeLevel * 100).toInt();
+    final isHighHype = _hypeLevel >= 0.8;
+    
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isHighHype 
+                ? const Color(0xFFE11D48).withValues(alpha: 0.8)
+                : Colors.black.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isHighHype 
+                  ? Colors.white.withValues(alpha: 0.5) 
+                  : Colors.white.withValues(alpha: 0.1),
+            ),
+            boxShadow: isHighHype ? [
+               BoxShadow(
+                 color: const Color(0xFFE11D48).withValues(alpha: 0.6),
+                 blurRadius: 12,
+                 spreadRadius: 2,
+               )
+            ] : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isHighHype ? "🔥" : "⚡",
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "Nabız: %$percentage",
+                style: const TextStyle(
+                  color: Colors.white, 
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 12,
+                  fontFamily: 'Lexend'
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _toggleDrivingMode() async {
@@ -375,6 +470,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
     if (text.isEmpty) return;
     
     setState(() {
+      _messagesInLastWindow += 1;
       _msgController.clear();
     });
 
@@ -430,6 +526,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
   void _sendReaction(String emoji) {
     final userId = Supabase.instance.client.auth.currentUser?.id ?? 'anonymous';
     
+    setState(() {
+      _messagesInLastWindow += 1;
+    });
+
     // Broadcast immediately
     try {
       _gameChannel?.sendBroadcastMessage(
@@ -469,6 +569,27 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
       backgroundColor: context.colors.background,
       body: Stack(
         children: [
+          // Background Gradient Pulsing based on Hype
+          if (_hypeLevel > 0)
+            Positioned.fill(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 800),
+                opacity: _hypeLevel * 0.4,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: [
+                         const Color(0xFFE11D48).withValues(alpha: _hypeLevel),
+                         context.colors.background,
+                      ],
+                      center: Alignment.center,
+                      radius: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           NestedScrollView(
             controller: _scrollController,
             headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -527,6 +648,13 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
           if (_activeReactions.isNotEmpty)
             Positioned.fill(
               child: _buildFloatingReactions(),
+            ),
+
+          if (_hypeLevel > 0)
+            Positioned(
+              top: safeTop + 70, // Below status bar and app bar header
+              right: 16,
+              child: SafeArea(child: _buildHypeBadge()),
             ),
         ],
       ),
@@ -1367,16 +1495,46 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         children: [
           if (!isMe) ...[
             if (!isPrevSameUser)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: context.colors.surfaceContainerHigh,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+              GestureDetector(
+                onTap: () async {
+                  if (msg.userId == null) return;
+                  try {
+                    // Show a quick loading indicator or just rely on fast network
+                    final roomId = await _chatService.getOrCreatePrivateRoom(msg.userId!);
+                    if (!mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrivateChatScreen(
+                          roomId: roomId,
+                          otherUserId: msg.userId!,
+                          otherUsername: msg.username ?? 'Kullanıcı',
+                          otherAvatarUrl: msg.avatarUrl,
+                          isBot: msg.isBot,
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Sohbet başlatılamadı.')),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.colors.surfaceContainerHigh,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                  ),
+                  child: msg.avatarUrl != null
+                      ? ClipOval(child: Image.network(msg.avatarUrl!, fit: BoxFit.cover))
+                      : Icon(Icons.person, color: context.colors.textMedium, size: 20),
                 ),
-                child: Icon(Icons.person, color: context.colors.textMedium, size: 20),
               )
             else
               const SizedBox(width: 36),

@@ -56,31 +56,26 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Stack(
-            children: [
-              IndexedStack(
-                index: currentIndex,
-                children: const [
-                  HomeDashboard(),
-                  AiMatchInsightsScreen(),
-                  PredictionMarketScreen(),
-                  LeaderboardScreen(),
-                  ProfileScreen(),
-                ],
-              ),
-              Positioned(
-                bottom: 80,
-                left: 0,
-                right: 0,
-                child: FloatingAudioRoom(),
-              ),
-              const CustomBottomNav(),
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: currentIndex,
+            children: const [
+              HomeDashboard(),
+              AiMatchInsightsScreen(),
+              PredictionMarketScreen(),
+              LeaderboardScreen(),
+              ProfileScreen(),
             ],
           ),
-        ),
+          Positioned(
+            bottom: 80,
+            left: 0,
+            right: 0,
+            child: FloatingAudioRoom(),
+          ),
+          const CustomBottomNav(),
+        ],
       ),
     );
   }

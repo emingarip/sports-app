@@ -1,0 +1,53 @@
+{
+  "id": "gen-1774709939-PjC2nvG41le6FpUcsYXm",
+  "object": "chat.completion",
+  "created": 1774709939,
+  "model": "minimax/minimax-m2.5-20260211:free",
+  "provider": "OpenInference",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "Merhaba!",
+        "refusal": null,
+        "reasoning": "The user says: \"Test chat for live match América RJ U20 vs Vasco da Gama U20. Just say 'Hello!' in Turkish.\"\n\nWe need to understand the request: The user wants us to \"Just say \"Hello!\" in Turkish.\" This is presumably a test chat for live match América RJ U20 vs Vasco da Gama U20. The user is telling us they want a test chat for a live match (maybe the user wants us to respond to messages about that match?). But they say \"Just say 'Hello!' in Turkish.\"\n\nThe instruction is straightforward: say \"Hello!\" in Turkish. In Turkish, \"Hello!\" can be \"Merhaba!\" or \"Selam!\" But \"Hello!\" is \"Merhaba!\" or \"Selam!\" The request says \"Just say 'Hello!' in Turkish.\" So we must say \"Merhaba!\" or \"Selam!\". Usually \"Merhaba!\" is more formal \"Hello\". So we respond with \"Merhaba!\" Probably the best: \"Merhaba!\"\n\nThus respond in Turkish: \"Merhaba!\" And perhaps we need to incorporate live match context? But they said \"Just say 'Hello!' in Turkish.\" So we just do that. There's no disallowed content. There's no policy violation. So we comply. The answer: \"Merhaba!\" Possibly \"Selam!\" The phrase \"Hello!\" in Turkish is indeed \"Merhaba!\" or \"Selam!\" The phrase \"Hello!\" in English corresponds to \"Merhaba!\" in Turkish. So answer: \"Merhaba!\"\n\nThus final: \"Merhaba!\"\n",
+        "reasoning_details": [
+          {
+            "type": "reasoning.text",
+            "text": "The user says: \"Test chat for live match América RJ U20 vs Vasco da Gama U20. Just say 'Hello!' in Turkish.\"\n\nWe need to understand the request: The user wants us to \"Just say \"Hello!\" in Turkish.\" This is presumably a test chat for live match América RJ U20 vs Vasco da Gama U20. The user is telling us they want a test chat for a live match (maybe the user wants us to respond to messages about that match?). But they say \"Just say 'Hello!' in Turkish.\"\n\nThe instruction is straightforward: say \"Hello!\" in Turkish. In Turkish, \"Hello!\" can be \"Merhaba!\" or \"Selam!\" But \"Hello!\" is \"Merhaba!\" or \"Selam!\" The request says \"Just say 'Hello!' in Turkish.\" So we must say \"Merhaba!\" or \"Selam!\". Usually \"Merhaba!\" is more formal \"Hello\". So we respond with \"Merhaba!\" Probably the best: \"Merhaba!\"\n\nThus respond in Turkish: \"Merhaba!\" And perhaps we need to incorporate live match context? But they said \"Just say 'Hello!' in Turkish.\" So we just do that. There's no disallowed content. There's no policy violation. So we comply. The answer: \"Merhaba!\" Possibly \"Selam!\" The phrase \"Hello!\" in Turkish is indeed \"Merhaba!\" or \"Selam!\" The phrase \"Hello!\" in English corresponds to \"Merhaba!\" in Turkish. So answer: \"Merhaba!\"\n\nThus final: \"Merhaba!\"\n",
+            "format": "unknown",
+            "index": 0
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 62,
+    "completion_tokens": 335,
+    "total_tokens": 397,
+    "cost": 0,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0,
+      "upstream_inference_prompt_cost": 0,
+      "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 321,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}
