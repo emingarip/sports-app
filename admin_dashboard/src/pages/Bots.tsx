@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Bot, Plus, Search, Edit2, Play, Pause, Trash2 } from 'lucide-react';
+import { Bot, Plus, Search, Edit2, Trash2, Check, X, Users, MessageSquare } from 'lucide-react';
 
 interface BotPersona {
   id: string;
@@ -15,15 +16,33 @@ interface BotPersona {
   };
 }
 
+interface BotSuggestion {
+  id: string;
+  bot_id: string;
+  target_user_id: string;
+  reason: string;
+  status: string;
+  created_at: string;
+  bot?: { username: string; avatar_url: string };
+  target?: { username: string; avatar_url: string };
+}
+
 export default function Bots() {
+  const location = useLocation();
   const [bots, setBots] = useState<BotPersona[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   
+  const [activeTab, setActiveTab] = useState<'bots' | 'interactions'>('bots');
+  const [suggestions, setSuggestions] = useState<BotSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [teams, setTeams] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
   // Create Modal State
   const [swarmCount, setSwarmCount] = useState(10);
-  const [team, setTeam] = useState('Galatasaray');
+  const [team, setTeam] = useState('');
   const [personaPrompt, setPersonaPrompt] = useState('Sen ateşli bir taraftarsın. Takımına laf söyletmezsin.');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -32,8 +51,83 @@ export default function Bots() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchBots();
+    if (activeTab === 'bots') fetchBots();
+    if (activeTab === 'interactions') fetchSuggestions();
+  }, [activeTab]);
+
+  // Handle incoming routing state
+  useEffect(() => {
+    if (location.state?.preSelectedTeam) {
+      setTeam(location.state.preSelectedTeam);
+      setShowCreateModal(true);
+      setActiveTab('bots');
+      // optional: clear state so refresh doesn't keep opening modal
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    async function fetchTeams() {
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select('home_team, away_team')
+          .order('started_at', { ascending: false })
+          .limit(200);
+          
+        if (data && !error) {
+          const teamSet = new Set<string>();
+          data.forEach(m => {
+            if (m.home_team) teamSet.add(m.home_team);
+            if (m.away_team) teamSet.add(m.away_team);
+          });
+          const uniqueTeams = Array.from(teamSet).sort();
+          setTeams(uniqueTeams);
+          if (uniqueTeams.length > 0 && !team && !location.state?.preSelectedTeam) {
+            setTeam(uniqueTeams[0]);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching teams:', e);
+      }
+    }
+    fetchTeams();
   }, []);
+
+  async function fetchSuggestions() {
+    try {
+      setLoadingSuggestions(true);
+      const { data, error } = await supabase
+        .from('bot_follow_suggestions')
+        .select(`
+          *,
+          bot:users!bot_id(username, avatar_url),
+          target:users!target_user_id(username, avatar_url)
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSuggestions(data as any[]);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }
+
+  async function handleSuggestionAction(id: string, newStatus: 'approved' | 'rejected') {
+    try {
+      const { error } = await supabase
+        .from('bot_follow_suggestions')
+        .update({ status: newStatus })
+        .eq('id', id);
+      if (error) throw error;
+      setSuggestions(s => s.filter(x => x.id !== id));
+    } catch (err: any) {
+      alert(`Hata: ${err.message}`);
+    }
+  }
 
   async function fetchBots() {
     try {
@@ -100,18 +194,25 @@ export default function Bots() {
     }
   }
 
-  async function handleDeleteBot(botId: string, userId: string) {
-    if (!confirm('Bu botu ve içindeki kullanıcı hesabını silmek istediğinize emin misiniz?')) return;
+  async function handleDeleteBot(_botId: string, _userId: string) {
+    if (!confirm('Bu bot simülasyon motorundan ve sistemden (Auth dahil) kalıcı olarak silinecek, onaylıyor musunuz?')) return;
     try {
-      // Because bot_personas references users with ON DELETE CASCADE
-      // However, we theoretically need to delete auth.users which we can't do globally from client
-      // Instead, we just delete public.users if RLS allows, but RLS on users is id=auth.uid()
-      // Simplest: Admin can't delete auth users directly easily without edge function.
-      alert('Bot silme işlemi güvenlik gereği (Auth Users) şimdilik kısıtlanmıştır.');
-    } catch (error) {
-      console.error(error);
+      // Call the secure RPC to delete the auth.users record (which cascades to users and bot_personas)
+      const { error } = await supabase.rpc('delete_bot_user', {
+        target_user_id: _userId
+      });
+      if (error) throw error;
+      setBots(bots.filter(b => b.id !== _botId));
+    } catch (error: any) {
+      alert(`Bot silme işlemi başarısız: ${error.message}`);
     }
   }
+
+  const filteredBots = bots.filter(b => 
+    b.team.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (b.users?.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    b.persona_prompt.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 text-foreground">
@@ -130,19 +231,36 @@ export default function Bots() {
       </div>
 
       <div className="bg-card text-card-foreground border border-border rounded-lg overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
-        <div className="p-4 border-b border-border flex gap-4">
-          <div className="relative flex-1">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Bot adı veya takım ara..." 
-              className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
-            />
-          </div>
+        <div className="flex border-b border-border">
+          <button onClick={() => setActiveTab('bots')} className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 ${activeTab === 'bots' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            <Bot className="w-4 h-4" /> Bot Ordusu
+          </button>
+          <button onClick={() => setActiveTab('interactions')} className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 ${activeTab === 'interactions' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            <Users className="w-4 h-4" /> Bekleyen Etkileşim Onayları
+            {suggestions.length > 0 && (
+              <span className="ml-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">{suggestions.length}</span>
+            )}
+          </button>
         </div>
 
+        {activeTab === 'bots' && (
+          <div className="p-4 border-b border-border flex gap-4">
+            <div className="relative flex-1">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input 
+                type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Bot adı, takım veya persona ara..." 
+                className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-auto">
-          {loading ? (
+          {activeTab === 'bots' ? (
+            loading ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">
               Botlar yükleniyor...
             </div>
@@ -163,7 +281,7 @@ export default function Bots() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {bots.map((bot) => (
+                {filteredBots.map((bot) => (
                   <tr key={bot.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -210,6 +328,62 @@ export default function Bots() {
                 ))}
               </tbody>
             </table>
+          )) : (
+            loadingSuggestions ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Bekleyen etkileşimler yükleniyor...
+              </div>
+            ) : suggestions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <Check className="w-16 h-16 mb-4 opacity-50 text-green-500" />
+                <p>Bekleyen Onay Yok.</p>
+                <p className="text-sm">Tüm bot etkileşimleri kontrol edildi.</p>
+              </div>
+            ) : (
+              <div className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {suggestions.map(suggestion => (
+                  <div key={suggestion.id} className="bg-muted/30 border border-border rounded-lg p-4 flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                         <img src={suggestion.bot?.avatar_url || `https://ui-avatars.com/api/?name=B`} className="w-8 h-8 rounded-full border border-border" />
+                         <div>
+                            <div className="text-xs text-primary font-bold">Bot</div>
+                            <div className="text-sm font-medium leading-none">{suggestion.bot?.username || 'Bilinmiyor'}</div>
+                         </div>
+                      </div>
+                      <div className="text-muted-foreground">➡️</div>
+                      <div className="flex items-center gap-2 flex-row-reverse">
+                         <img src={suggestion.target?.avatar_url || `https://ui-avatars.com/api/?name=U`} className="w-8 h-8 rounded-full border border-border" />
+                         <div className="text-right">
+                            <div className="text-xs text-muted-foreground font-bold">Hedef (Takip)</div>
+                            <div className="text-sm font-medium leading-none">{suggestion.target?.username || 'Bilinmiyor'}</div>
+                         </div>
+                      </div>
+                    </div>
+                    <div className="bg-background border border-border rounded p-2 text-sm">
+                      <p className="flex items-start gap-2 text-muted-foreground italic">
+                        <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" />
+                        "{suggestion.reason}"
+                      </p>
+                    </div>
+                    <div className="flex gap-2 mt-auto pt-2">
+                       <button 
+                         onClick={() => handleSuggestionAction(suggestion.id, 'approved')}
+                         className="flex-1 flex items-center justify-center gap-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 py-2 rounded-md font-medium text-sm transition-colors"
+                       >
+                         <Check className="w-4 h-4" /> Onayla
+                       </button>
+                       <button 
+                         onClick={() => handleSuggestionAction(suggestion.id, 'rejected')}
+                         className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 py-2 rounded-md font-medium text-sm transition-colors"
+                       >
+                         <X className="w-4 h-4" /> Reddet
+                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>
@@ -234,16 +408,21 @@ export default function Bots() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Hangi Takım?</label>
-                <select 
+                <input 
+                  type="text"
+                  list="team-options"
                   value={team}
                   onChange={(e) => setTeam(e.target.value)}
+                  placeholder="Takım ara veya listeden seç..."
                   className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-foreground"
-                >
-                  <option value="Galatasaray">Galatasaray</option>
-                  <option value="Fenerbahçe">Fenerbahçe</option>
-                  <option value="Beşiktaş">Beşiktaş</option>
-                  <option value="Trabzonspor">Trabzonspor</option>
-                </select>
+                  required
+                />
+                <datalist id="team-options">
+                  {teams.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+                {teams.length === 0 && <p className="text-xs text-muted-foreground mt-1 text-orange-500">Takımlar yükleniyor...</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Persona Yönergesi</label>

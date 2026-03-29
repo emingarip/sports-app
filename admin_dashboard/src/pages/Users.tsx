@@ -9,6 +9,7 @@ interface UserData {
   avatar_url: string | null;
   k_coin_balance: number;
   reputation_score: number;
+  is_bot: boolean;
   created_at: string;
 }
 
@@ -16,6 +17,7 @@ export default function Users() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'humans' | 'bots'>('all');
   
   // Edit Modal State
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -58,11 +60,17 @@ export default function Users() {
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = 
       (user.username?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      
+    if (!matchesSearch) return false;
+    
+    if (filterType === 'humans') return !user.is_bot;
+    if (filterType === 'bots') return user.is_bot;
+    return true; // 'all'
+  });
 
   const handleEditBalance = async () => {
     if (!editingUser) return;
@@ -105,15 +113,26 @@ export default function Users() {
           </p>
         </div>
         
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Kullanıcı adı veya E-posta..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as any)}
+            className="px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm font-medium"
+          >
+            <option value="all">Tüm Kullanıcılar</option>
+            <option value="humans">Sadece Gerçek İnsanlar</option>
+            <option value="bots">Sadece Botlar</option>
+          </select>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Kullanıcı adı veya E-posta..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+            />
+          </div>
         </div>
       </div>
 
@@ -149,8 +168,11 @@ export default function Users() {
                           )}
                         </div>
                         <div>
-                          <div className="font-semibold text-card-foreground">
+                          <div className="font-semibold text-card-foreground flex items-center gap-2">
                             {user.username || 'İsimsiz Oyuncu'}
+                            {user.is_bot && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary">BOT</span>
+                            )}
                           </div>
                           <div className="text-xs text-muted-foreground">{user.email}</div>
                         </div>

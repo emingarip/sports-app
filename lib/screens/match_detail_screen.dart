@@ -17,6 +17,7 @@ import 'voice_room_screen.dart';
 import 'mini_game_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/tts_service.dart';
+import 'private_chat_screen.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -28,6 +29,9 @@ class ChatMessage {
   final String? username;
   final String? systemEventText;
   final IconData? systemEventIcon;
+  final String? userId;
+  final String? avatarUrl;
+  final bool isBot;
 
   ChatMessage({
     required this.id,
@@ -37,6 +41,9 @@ class ChatMessage {
     this.username,
     this.systemEventText,
     this.systemEventIcon,
+    this.userId,
+    this.avatarUrl,
+    this.isBot = false,
   });
 }
 
@@ -1488,16 +1495,46 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
         children: [
           if (!isMe) ...[
             if (!isPrevSameUser)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: context.colors.surfaceContainerHigh,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+              GestureDetector(
+                onTap: () async {
+                  if (msg.userId == null) return;
+                  try {
+                    // Show a quick loading indicator or just rely on fast network
+                    final roomId = await _chatService.getOrCreatePrivateRoom(msg.userId!);
+                    if (!mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrivateChatScreen(
+                          roomId: roomId,
+                          otherUserId: msg.userId!,
+                          otherUsername: msg.username ?? 'Kullanıcı',
+                          otherAvatarUrl: msg.avatarUrl,
+                          isBot: msg.isBot,
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Sohbet başlatılamadı.')),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.colors.surfaceContainerHigh,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                  ),
+                  child: msg.avatarUrl != null
+                      ? ClipOval(child: Image.network(msg.avatarUrl!, fit: BoxFit.cover))
+                      : Icon(Icons.person, color: context.colors.textMedium, size: 20),
                 ),
-                child: Icon(Icons.person, color: context.colors.textMedium, size: 20),
               )
             else
               const SizedBox(width: 36),

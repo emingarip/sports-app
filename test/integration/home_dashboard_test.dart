@@ -10,8 +10,17 @@ import 'package:sports_app/providers/notification_provider.dart';
 import 'package:sports_app/models/notification.dart';
 import 'package:sports_app/providers/knowledge_graph_provider.dart';
 import 'package:sports_app/theme/app_theme.dart';
+import 'package:sports_app/services/announcement_service.dart';
+import 'package:sports_app/models/announcement.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
+
+class MockAnnouncementNotifier extends AnnouncementNotifier {
+  @override
+  AnnouncementState build() {
+    return AnnouncementState(activeAnnouncements: [], dismissedIds: [], isLoading: false);
+  }
+}
 
 class MockNotificationNotifier extends NotificationNotifier {
   @override
@@ -46,6 +55,7 @@ void main() {
           matchRepositoryProvider.overrideWithValue(mockRepository),
           favoritesProvider.overrideWith(() => MockFavoritesNotifier()),
           notificationProvider.overrideWith(() => MockNotificationNotifier()),
+          announcementProvider.overrideWith(() => MockAnnouncementNotifier()),
           personalizedMatchesProvider.overrideWith((ref) => <model.Match>[]),
         ],
         child: MaterialApp(

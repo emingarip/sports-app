@@ -5,6 +5,8 @@ import '../models/match_insight.dart';
 import '../services/insight_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
+import '../providers/store_provider.dart';
+import '../models/store_product.dart';
 
 class AiMatchInsightsScreen extends ConsumerStatefulWidget {
   const AiMatchInsightsScreen({super.key});
@@ -89,6 +91,9 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(entitlementsProvider); // Rebuild when entitlements change
+    final hasPremium = ref.watch(entitlementsProvider.notifier).hasAccess('ai_premium_base');
+
     return Scaffold(
       backgroundColor: context.colors.background,
       extendBodyBehindAppBar: true,
@@ -142,14 +147,86 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final insight = _insights[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: InsightCard(
-                        insight: insight,
-                        onVoteChanged: (vote) => _onVoteChanged(insight, vote),
-                      ),
-                    );
+                     final insight = _insights[index];
+                     // Free insights (first 2) or Premium user
+                     if (hasPremium || index < 2) {
+                       return Padding(
+                         padding: const EdgeInsets.only(bottom: 12),
+                         child: InsightCard(
+                           insight: insight,
+                           onVoteChanged: (vote) => _onVoteChanged(insight, vote),
+                         ),
+                       );
+                     }
+                     
+                     // For non-premium users, blur the remaining insights
+                     // Only show the "Lock" widget on the very first restricted insight
+                     final isFirstRestricted = index == 2;
+                     
+                     return Padding(
+                       padding: const EdgeInsets.only(bottom: 12),
+                       child: Stack(
+                         children: [
+                           ImageFiltered(
+                             imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                             child: IgnorePointer(
+                               child: InsightCard(
+                                 insight: insight,
+                                 onVoteChanged: (_) {},
+                               ),
+                             ),
+                           ),
+                           if (isFirstRestricted)
+                             Positioned.fill(
+                               child: Center(
+                                 child: Container(
+                                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+                                   padding: const EdgeInsets.all(24),
+                                   decoration: BoxDecoration(
+                                     color: context.colors.surfaceContainerHighest.withOpacity(0.95),
+                                     borderRadius: BorderRadius.circular(24),
+                                     border: Border.all(color: context.colors.primaryContainer.withOpacity(0.5), width: 2),
+                                   ),
+                                   child: Column(
+                                     mainAxisSize: MainAxisSize.min,
+                                     children: [
+                                       Icon(Icons.lock_person, color: context.colors.primaryContainer, size: 48),
+                                       const SizedBox(height: 16),
+                                       Text(
+                                         'Premium Insights Locked', 
+                                         style: TextStyle(fontFamily: 'Lexend', fontSize: 18, fontWeight: FontWeight.bold, color: context.colors.textHigh),
+                                         textAlign: TextAlign.center,
+                                       ),
+                                       const SizedBox(height: 8),
+                                       Text(
+                                         'Unlock all advanced algorithms and AI insights for this match.', 
+                                         textAlign: TextAlign.center, 
+                                         style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: context.colors.textMedium)
+                                       ),
+                                       const SizedBox(height: 20),
+                                       SizedBox(
+                                         width: double.infinity,
+                                         child: FilledButton.icon(
+                                           onPressed: () {
+                                             _showPremiumPurchaseBottomSheet(context, ref);
+                                           },
+                                           icon: const Icon(Icons.workspace_premium),
+                                           label: const Text('Unlock via Store', style: TextStyle(fontWeight: FontWeight.bold)),
+                                           style: FilledButton.styleFrom(
+                                             padding: const EdgeInsets.symmetric(vertical: 16),
+                                             backgroundColor: context.colors.primaryContainer,
+                                             foregroundColor: context.colors.background,
+                                           ),
+                                         ),
+                                       )
+                                     ],
+                                   ),
+                                 ),
+                               ),
+                             ),
+                         ],
+                       ),
+                     );
                   },
                   childCount: _insights.length,
                 ),
@@ -173,6 +250,113 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
                   ),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  void _showPremiumPurchaseBottomSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => _PremiumPurchaseModal(parentRef: ref),
+    );
+  }
+}
+
+class _PremiumPurchaseModal extends ConsumerStatefulWidget {
+  final WidgetRef parentRef;
+  const _PremiumPurchaseModal({required this.parentRef});
+
+  @override
+  ConsumerState<_PremiumPurchaseModal> createState() => _PremiumPurchaseModalState();
+}
+
+class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
+  bool _isPurchasing = false;
+
+  void _buyProduct(StoreProduct product) async {
+    setState(() => _isPurchasing = true);
+    try {
+      await ref.read(storeServiceProvider).buyStoreItem(product.productCode);
+      await ref.read(entitlementsProvider.notifier).refresh();
+      
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kilit Açıldı! Premium ayrıcalıkların keyfini çıkarın.', style: TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPurchasing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final productsAsync = ref.watch(storeProductsProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: context.colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Icon(Icons.workspace_premium, color: context.colors.primaryContainer, size: 64),
+            const SizedBox(height: 16),
+            Text('Premium K-Coin Paketi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: context.colors.textHigh, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('Hesabınızı yükseltin ve gelişmiş yapay zeka analizlerinin tamamına anında erişin.', textAlign: TextAlign.center, style: TextStyle(color: context.colors.textMedium)),
+            const SizedBox(height: 32),
+            productsAsync.when(
+              data: (products) {
+                // Find ai_premium_base or ai_premium_1m
+                final p = products.where((p) => p.productCode.contains('premium_base') || p.productCode.contains('premium')).firstOrNull;
+                if (p == null) {
+                  return Text('Mağazada uygun paket bulunamadı.', style: TextStyle(color: context.colors.error));
+                }
+                
+                return SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: context.colors.primaryContainer,
+                      foregroundColor: context.colors.background,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: _isPurchasing ? null : () => _buyProduct(p),
+                    child: _isPurchasing 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text('Satın Al (${p.price} K-Coin)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (e, st) => Text('Paketler yüklenemedi.', style: TextStyle(color: context.colors.error)),
             ),
           ],
         ),

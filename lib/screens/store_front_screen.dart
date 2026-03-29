@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/wallet_provider.dart';
+import '../providers/store_provider.dart';
 import '../models/k_coin_package.dart';
+import '../models/store_product.dart';
 import '../theme/app_theme.dart';
 
 class StoreFrontScreen extends ConsumerWidget {
@@ -11,6 +13,10 @@ class StoreFrontScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final balance = ref.watch(walletBalanceProvider);
     final packagesAsync = ref.watch(kCoinPackagesProvider);
+    final storeProductsAsync = ref.watch(storeProductsProvider);
+    
+    // Watch entitlements to trigger rebuilds when they change
+    ref.watch(entitlementsProvider);
 
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -82,6 +88,59 @@ class StoreFrontScreen extends ConsumerWidget {
             error: (e, st) => SliverToBoxAdapter(
               child: Center(
                 child: Text('Error loading packages', style: TextStyle(color: context.colors.error)),
+              ),
+            ),
+          ),
+          
+          // Premium Store Items Section
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16.0, 32.0, 16.0, 16.0),
+            sliver: SliverToBoxAdapter(
+              child: Text(
+                'Premium Features & Items',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: context.colors.textHigh,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ),
+          ),
+          storeProductsAsync.when(
+            data: (products) {
+              if (products.isEmpty) {
+                return SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Text(
+                        'No premium items available.',
+                        style: TextStyle(color: context.colors.textMedium),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      return _buildStoreItemCard(context, ref, products[index]);
+                    },
+                    childCount: products.length,
+                  ),
+                ),
+              );
+            },
+            loading: () => const SliverToBoxAdapter(
+              child: Center(child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: CircularProgressIndicator(),
+              )),
+            ),
+            error: (e, st) => SliverToBoxAdapter(
+              child: Center(
+                child: Text('Error loading store items', style: TextStyle(color: context.colors.error)),
               ),
             ),
           ),
@@ -225,5 +284,181 @@ class StoreFrontScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildStoreItemCard(BuildContext context, WidgetRef ref, StoreProduct product) {
+    // Check if user already owns it
+    final hasAccess = ref.watch(entitlementsProvider.notifier).hasAccess(product.productCode);
+    
+    // Determine the icon based on product type
+    IconData typeIcon = Icons.shopping_bag;
+    if (product.productType == 'subscription') typeIcon = Icons.access_time_filled;
+    if (product.productType == 'lifetime') typeIcon = Icons.all_inclusive;
+    if (product.productType == 'consumable') typeIcon = Icons.offline_bolt;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasAccess ? context.colors.primaryContainer.withOpacity(0.5) : context.colors.outline.withOpacity(0.1),
+          width: hasAccess ? 2.0 : 1.0,
+        ),
+      ),
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: context.colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(typeIcon, color: context.colors.primaryContainer, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.title,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: context.colors.textHigh,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
+                        if (hasAccess)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green.withOpacity(0.5)),
+                            ),
+                            child: const Text('OWNED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${product.price}',
+                                style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      product.description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: context.colors.textMedium,
+                          ),
+                    ),
+                    if (product.durationDays != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          'Duration: ${product.durationDays} Days',
+                          style: TextStyle(color: context.colors.primaryContainer, fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (!hasAccess)
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => _handlePurchaseProduct(context, ref, product),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: context.colors.primaryContainer,
+                    foregroundColor: context.colors.background,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Purchase with K-Coins', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handlePurchaseProduct(BuildContext context, WidgetRef ref, StoreProduct product) async {
+    // Show confirm dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.colors.surfaceContainerHighest,
+        title: Text('Confirm Purchase', style: TextStyle(color: context.colors.textHigh)),
+        content: Text(
+          'Are you sure you want to spend ${product.price} K-Coins for "${product.title}"?',
+          style: TextStyle(color: context.colors.textMedium),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel', style: TextStyle(color: context.colors.textMedium)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: context.colors.primaryContainer),
+            child: Text('Purchase', style: TextStyle(color: context.colors.background)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    if (!context.mounted) return;
+
+    try {
+      // Execute transaction
+      await ref.read(storeServiceProvider).buyStoreItem(product.productCode);
+      
+      // Refresh local state
+      await ref.read(entitlementsProvider.notifier).refresh();
+      // Wait a moment for Postgres trigger / user update to be picked up by wallet channel
+      // We can also force refresh the wallet balance to be safe:
+      ref.invalidate(walletBalanceProvider);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully purchased ${product.title}!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: context.colors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

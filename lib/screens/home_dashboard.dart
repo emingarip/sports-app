@@ -23,6 +23,8 @@ import 'package:app_links/app_links.dart';
 import 'voice_room_screen.dart';
 import '../providers/voice_room_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../widgets/global_announcement_card.dart';
+import 'inbox_screen.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -436,11 +438,17 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       // Page 0: Main Feed
                       CustomScrollView(
                         slivers: [
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 16.0),
+                              child: GlobalAnnouncementList(),
+                            ),
+                          ),
                           if (featured != null &&
                               statusFilter == StatusFilter.all && !isStarredFilter)
                             SliverPadding(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 16.0),
+                                  horizontal: 16.0, vertical: 8.0),
                               sliver: SliverToBoxAdapter(
                                   child: _buildFeaturedMatchCard(featured)),
                             ),
@@ -622,6 +630,15 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 delegate: MatchSearchDelegate(ref),
               );
             }),
+        IconButton(
+          icon: Icon(Icons.mark_chat_unread_outlined, color: context.colors.textMedium),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const InboxScreen()),
+            );
+          },
+        ),
         const NotificationBell(),
         const SizedBox(width: 8),
       ],

@@ -80,10 +80,20 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
         .limit(3);
         
       if (data) {
+        // Resolve bot usernames for 'Anonim' entries
+        const anonIds = data.filter((d: any) => !d.users?.username).map((d: any) => d.user_id);
+        let botLogos: Record<string, string> = {};
+        if (anonIds.length > 0) {
+            const { data: bots } = await supabase.from('bot_personas').select('user_id, team').in('user_id', anonIds);
+            if (bots) {
+                bots.forEach((b: any) => { botLogos[b.user_id] = (b.team || 'Anonim') + ' Bot'; });
+            }
+        }
+
         setTopScores(data.map((d: any) => ({
           id: d.id,
           score: d.score,
-          username: d.users?.username || 'Anonim'
+          username: d.users?.username || botLogos[d.user_id] || 'Anonim'
         })));
       }
 
