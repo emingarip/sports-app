@@ -13,6 +13,7 @@ import '../providers/wallet_provider.dart';
 import '../providers/badge_provider.dart';
 import 'store_front_screen.dart';
 import 'badges_screen.dart';
+import 'purchase_history_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -210,6 +211,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
               icon: const Icon(Icons.notifications_active, size: 16),
               label: const Text('Notification Settings'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.textHigh,
+                side: BorderSide(color: context.colors.surfaceContainerHigh),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PurchaseHistoryScreen()),
+                );
+              },
+              icon: const Icon(Icons.receipt_long, size: 16),
+              label: const Text('Purchase History'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.textHigh,
                 side: BorderSide(color: context.colors.surfaceContainerHigh),

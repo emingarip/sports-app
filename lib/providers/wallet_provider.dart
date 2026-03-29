@@ -4,6 +4,8 @@ import '../models/k_coin_package.dart';
 import 'package:sports_app/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+import '../services/revenuecat_service.dart';
 
 part 'wallet_provider.g.dart';
 
@@ -14,9 +16,32 @@ KCoinRepository kCoinRepository(Ref ref) {
 }
 
 @riverpod
-Future<List<KCoinPackage>> kCoinPackages(Ref ref) {
+Future<List<KCoinPackage>> kCoinPackages(Ref ref) async {
   final repo = ref.watch(kCoinRepositoryProvider);
-  return repo.getActivePackages();
+  final supabasePackages = await repo.getActivePackages();
+  
+  try {
+    final offerings = await Purchases.getOfferings();
+    if (offerings.current != null && offerings.current!.availablePackages.isNotEmpty) {
+      final rcPackages = offerings.current!.availablePackages;
+      
+      return supabasePackages.map((pkg) {
+        if (pkg.storeProductId != null) {
+          try {
+            final rcPackage = rcPackages.firstWhere(
+              (p) => p.storeProduct.identifier == pkg.storeProductId
+            );
+            return pkg.copyWith(displayPrice: rcPackage.storeProduct.priceString);
+          } catch (_) {}
+        }
+        return pkg.copyWith(displayPrice: '\$${pkg.priceUsd}');
+      }).toList();
+    }
+  } catch (e) {
+    if (kDebugMode) print('RevenueCat offerings fetch failed: $e');
+  }
+
+  return supabasePackages.map((pkg) => pkg.copyWith(displayPrice: '\$${pkg.priceUsd}')).toList();
 }
 
 @Riverpod(keepAlive: true)
@@ -75,16 +100,37 @@ class WalletBalance extends _$WalletBalance {
 
   Future<void> purchasePackage(KCoinPackage package) async {
     try {
-      // In a real app, this would trigger the IAP payment sheet first.
-      // After success, we grant the coins via backend.
-      final repo = ref.read(kCoinRepositoryProvider);
-      await repo.processTransaction(
-        amount: package.coinAmount, 
-        transactionType: 'purchase',
-        referenceId: package.id,
-      );
-      // Eagerly fetch the new balance so the UI updates instantly
-      await _fetchInitialBalance();
+      if (kIsWeb) {
+        // Fallback for Web/Testing where Apple/Google IAP is absent
+        final repo = ref.read(kCoinRepositoryProvider);
+        await repo.processTransaction(
+          amount: package.coinAmount, 
+          transactionType: 'purchase',
+          referenceId: package.id,
+        );
+        await _fetchInitialBalance();
+        return;
+      }
+
+      final rcPackages = await RevenueCatService.getKCoinPackages();
+      final productId = package.storeProductId ?? '';
+      
+      Package? rcPackage;
+      try {
+        rcPackage = rcPackages.firstWhere((p) => p.storeProduct.identifier == productId);
+      } catch (_) {}
+
+      if (rcPackage == null) {
+        throw Exception("Product not found in Apple/Google Store yet. Please configure RevenueCat dashboard.");
+      }
+
+      final success = await RevenueCatService.purchasePackage(rcPackage);
+      if (!success) {
+        throw Exception("Purchase was cancelled or failed.");
+      }
+      
+      // Note: Do NOT manually increment the balance here. 
+      // The Supabase Webhook will securely increment it, and the Realtime _channel listener will automatically update the UI state.
     } catch (e) {
       if (kDebugMode) print('Purchase failed: \$e');
       rethrow;

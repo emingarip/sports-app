@@ -259,14 +259,36 @@ class StoreFrontScreen extends ConsumerWidget {
                 try {
                   await ref.read(walletBalanceProvider.notifier).purchasePackage(package);
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Purchased ${package.coinAmount} K-Coins!')),
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: context.colors.surfaceContainer,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        icon: const Icon(Icons.check_circle, color: Colors.green, size: 64),
+                        title: Text('Purchase Successful!', style: TextStyle(color: context.colors.textHigh)),
+                        content: Text(
+                          'You have successfully purchased ${package.coinAmount} K-Coins. They have been added to your wallet.',
+                          style: TextStyle(color: context.colors.textMedium),
+                          textAlign: TextAlign.center,
+                        ),
+                        actionsAlignment: MainAxisAlignment.center,
+                        actions: [
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: context.colors.primaryContainer,
+                              foregroundColor: context.colors.background,
+                            ),
+                            child: const Text('Awesome!'),
+                          )
+                        ],
+                      ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Purchase failed: \$e')),
+                      SnackBar(content: Text('Purchase failed: $e')),
                     );
                   }
                 }
@@ -276,7 +298,7 @@ class StoreFrontScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(
-                '\$${package.priceUsd.toStringAsFixed(2)}',
+                package.displayPrice ?? '\$${package.priceUsd.toStringAsFixed(2)}',
                 style: TextStyle(color: context.colors.primaryContainer, fontWeight: FontWeight.bold),
               ),
             ),

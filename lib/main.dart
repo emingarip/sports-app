@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/supabase_service.dart';
+import 'services/revenuecat_service.dart';
 
 import 'providers/theme_provider.dart';
 
@@ -24,6 +25,7 @@ void main() async {
     debugPrint("App: Firebase init failed: $e");
   }
   await SupabaseService.initialize();
+  await RevenueCatService.initialize();
   runApp(const ProviderScope(child: MyApp()));
 }
 

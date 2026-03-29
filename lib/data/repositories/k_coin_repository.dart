@@ -40,4 +40,21 @@ class KCoinRepository {
       'p_reference_id': referenceId,
     });
   }
+
+  Future<List<Map<String, dynamic>>> getPurchasingHistory() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    try {
+      final response = await _client
+          .from('k_coin_purchasing_history')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
 }
