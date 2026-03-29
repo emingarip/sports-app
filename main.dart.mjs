@@ -431,6 +431,7 @@ class CompiledApp {
       _1352: (x0,x1,x2,x3) => x0.addEventListener(x1,x2,x3),
       _1353: (x0,x1,x2,x3) => x0.removeEventListener(x1,x2,x3),
       _1354: (x0,x1) => x0.createElement(x1),
+      _1359: (x0,x1,x2,x3) => x0.open(x1,x2,x3),
       _1372: () => globalThis.Notification.requestPermission(),
       _1373: x0 => x0.decode(),
       _1374: (x0,x1,x2,x3) => x0.open(x1,x2,x3),
