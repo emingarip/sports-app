@@ -94,7 +94,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                     
                     final dateStr = item['created_at'];
                     final date = dateStr != null ? DateTime.tryParse(dateStr)?.toLocal() : null;
-                    final formattedDate = date != null ? DateFormat('MMM d, yyyy • h:mm a').format(date) : '';
+                    final formattedDate = date != null ? DateFormat('MMM d, yyyy • HH:mm').format(date) : '';
 
                     IconData iconData = Icons.receipt_long;
                     Color iconColor = context.colors.primaryContainer;
@@ -112,20 +112,21 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
 
                     return Container(
                       decoration: BoxDecoration(
-                        color: context.colors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: context.colors.outline.withOpacity(0.1)),
+                        color: context.colors.surfaceContainerHigh.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: context.colors.outline.withOpacity(0.05)),
                       ),
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            width: 52,
+                            height: 52,
                             decoration: BoxDecoration(
-                              color: iconColor.withOpacity(0.2),
+                              color: iconColor.withOpacity(0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(iconData, color: iconColor),
+                            child: Icon(iconData, color: iconColor, size: 26),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -136,40 +137,46 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                                   title,
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         color: context.colors.textHigh,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 16,
                                       ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Text(
                                   formattedDate,
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                         color: context.colors.textMedium,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
                                       ),
                                 ),
                               ],
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
                                 '${isPositive ? '+' : ''}$amount',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      color: isPositive ? Colors.green : Colors.redAccent,
-                                      fontWeight: FontWeight.bold,
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      color: isPositive ? Colors.greenAccent : Colors.redAccent,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 18,
                                     ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  Icon(Icons.monetization_on, size: 12, color: context.colors.primaryContainer),
+                                  const Icon(Icons.check_circle, size: 14, color: Colors.tealAccent),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'K-Coins',
+                                    'BAŞARILI',
                                     style: TextStyle(
-                                      color: context.colors.textMedium,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
+                                      color: Colors.tealAccent,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
                                 ],
