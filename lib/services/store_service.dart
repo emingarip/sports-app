@@ -44,7 +44,8 @@ class StoreService {
         'p_product_code': productCode,
       });
 
-      return response as bool;
+      final data = response as Map<String, dynamic>;
+      return data['success'] == true;
     } catch (e) {
       if (e.toString().contains('Insufficient K-Coin balance')) {
          throw Exception('Yetersiz bakiye. K-Coin satın almalısınız veya kazanmalısınız.');

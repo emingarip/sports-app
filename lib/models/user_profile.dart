@@ -4,7 +4,7 @@ class UserProfile {
   final String email;
   final String? avatarUrl;
   final int reputationScore;
-  final int virtualCurrencyBalance;
+  final int kCoinBalance;
 
   UserProfile({
     required this.id,
@@ -12,7 +12,7 @@ class UserProfile {
     required this.email,
     this.avatarUrl,
     required this.reputationScore,
-    required this.virtualCurrencyBalance,
+    required this.kCoinBalance,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -22,7 +22,7 @@ class UserProfile {
       email: json['email'] as String,
       avatarUrl: json['avatar_url'] as String?,
       reputationScore: json['reputation_score'] as int? ?? 0,
-      virtualCurrencyBalance: json['virtual_currency_balance'] as int? ?? 0,
+      kCoinBalance: json['k_coin_balance'] as int? ?? 0,
     );
   }
 
@@ -33,7 +33,7 @@ class UserProfile {
       'email': email,
       'avatar_url': avatarUrl,
       'reputation_score': reputationScore,
-      'virtual_currency_balance': virtualCurrencyBalance,
+      'k_coin_balance': kCoinBalance,
     };
   }
 }

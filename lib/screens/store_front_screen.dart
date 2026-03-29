@@ -436,9 +436,6 @@ class StoreFrontScreen extends ConsumerWidget {
       
       // Refresh local state
       await ref.read(entitlementsProvider.notifier).refresh();
-      // Wait a moment for Postgres trigger / user update to be picked up by wallet channel
-      // We can also force refresh the wallet balance to be safe:
-      ref.invalidate(walletBalanceProvider);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
