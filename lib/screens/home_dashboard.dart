@@ -18,6 +18,9 @@ import '../providers/navigation_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
 import '../widgets/notification_bell.dart';
 import 'profile_screen.dart';
+import '../models/user_profile.dart';
+import '../widgets/frame_avatar.dart';
+import '../services/supabase_service.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'voice_room_screen.dart';
@@ -44,6 +47,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
   RealtimeChannel? _onlinePresenceChannel;
+  UserProfile? _profile;
 
   @override
   void initState() {
@@ -59,8 +63,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     });
 
     _initDeepLinks();
+    _fetchProfile();
     
-    // Track global online user presence
+    // Track global online user présence
     try {
       _onlinePresenceChannel = Supabase.instance.client.channel('online_users');
       _onlinePresenceChannel?.subscribe((status, [error]) async {
@@ -74,6 +79,18 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       });
     } catch (_) {
       // Ignored for widget tests environment
+    }
+  }
+
+  Future<void> _fetchProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      final data = await SupabaseService().getUserProfile(user.id);
+      if (data != null && mounted) {
+        setState(() {
+          _profile = UserProfile.fromJson(data);
+        });
+      }
     }
   }
 
@@ -594,18 +611,25 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       title: Row(
         children: [
           GestureDetector(
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ProfileScreen()),
               );
+              _fetchProfile();
             },
-            child: CircleAvatar(
-              backgroundColor: context.colors.surfaceContainer,
-              radius: 18,
-              child:
-                  Icon(Icons.person, color: context.colors.textMedium, size: 20),
-            ),
+            child: _profile != null
+                ? FrameAvatar(
+                    avatarUrl: _profile!.avatarUrl,
+                    activeFrame: _profile!.activeFrame,
+                    radius: 18,
+                  )
+                : CircleAvatar(
+                    backgroundColor: context.colors.surfaceContainer,
+                    radius: 18,
+                    child:
+                        Icon(Icons.person, color: context.colors.textMedium, size: 20),
+                  ),
           ),
           const SizedBox(width: 8),
           Expanded(
