@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
@@ -94,8 +93,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 )
               else ...[
                 _buildHeroSection(),
-                _buildBadgeShowcase(),
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
                 _buildMetricsGrid(),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                _buildEconomyActions(),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                _buildBadgeShowcase(),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                _buildSettingsMenu(),
                 _buildRecentActivityHeader(),
                 if (_bets.isEmpty) _buildEmptyActivityState() else _buildBetsList(),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -145,142 +150,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildHeroSection() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+        padding: const EdgeInsets.fromLTRB(24.0, 40.0, 24.0, 24.0),
         child: Column(
           children: [
             FrameAvatar(
               avatarUrl: _profile!.avatarUrl,
               activeFrame: _profile!.activeFrame,
-              radius: 50,
+              radius: 54,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               '@${_profile!.username}',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 26,
                 fontWeight: FontWeight.w900,
                 color: context.colors.textHigh,
+                letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              _profile!.email,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: context.colors.textMedium,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: context.colors.surfaceContainerHigh.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final didUpdate = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => EditProfileScreen(profile: _profile!)),
-                );
-                if (didUpdate == true) {
-                  _fetchProfile(); // Refresh profile state after saving
-                }
-              },
-              icon: const Icon(Icons.edit, size: 16),
-              label: const Text('Edit Profile'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.textHigh,
-                side: BorderSide(color: context.colors.surfaceContainerHigh),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                _profile!.email,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: context.colors.textMedium,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen()),
-                );
-              },
-              icon: const Icon(Icons.notifications_active, size: 16),
-              label: const Text('Notification Settings'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.textHigh,
-                side: BorderSide(color: context.colors.surfaceContainerHigh),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PurchaseHistoryScreen()),
-                );
-              },
-              icon: const Icon(Icons.receipt_long, size: 16),
-              label: const Text('Purchase History'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.textHigh,
-                side: BorderSide(color: context.colors.surfaceContainerHigh),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AvatarFramesScreen()),
-                );
-                await _fetchProfile();
-                ref.invalidate(leaderboardProvider);
-              },
-              icon: const Icon(Icons.face_retouching_natural, size: 16),
-              label: const Text('My Avatar Frames'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.textHigh,
-                side: BorderSide(color: context.colors.surfaceContainerHigh),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () async {
-                await SupabaseService.client.auth.updateUser(
-                  UserAttributes(data: {'onboarding_completed': false}),
-                );
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Onboarding sıfırlandı. Lütfen uygulamayı kapatıp açın.')),
-                );
-              },
-              icon: const Icon(Icons.restore, size: 16),
-              label: const Text('Reset Onboarding (Test Yalnızca)'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.error,
-                side: BorderSide(color: context.colors.error),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Consumer(
-              builder: (context, ref, child) {
-                final currentMode = ref.watch(themeModeNotifierProvider);
-                return SegmentedButton<ThemeMode>(
-                  style: SegmentedButton.styleFrom(
-                    backgroundColor: context.colors.surfaceContainerLowest,
-                    foregroundColor: context.colors.textMedium,
-                    selectedForegroundColor: context.colors.textHigh,
-                    selectedBackgroundColor: context.colors.primaryContainer,
-                  ),
-                  segments: const [
-                    ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode), label: Text('Light')),
-                    ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.settings_suggest), label: Text('System')),
-                    ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode), label: Text('Dark')),
-                  ],
-                  selected: {currentMode},
-                  onSelectionChanged: (Set<ThemeMode> newSelection) {
-                    ref.read(themeModeNotifierProvider.notifier).setThemeMode(newSelection.first);
-                  },
-                );
-              },
             ),
           ],
         ),
@@ -298,33 +200,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Consumer(
                 builder: (context, ref, child) {
                   final balance = ref.watch(walletBalanceProvider);
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const StoreFrontScreen()),
-                      );
-                    },
-                    child: _buildMetricCard(
-                      title: 'K-COINS',
-                      value: balance.toString(),
-                      icon: Icons.monetization_on,
-                      color: context.colors.primaryContainer,
-                      onColor: context.colors.onPrimaryContainer,
-                    ),
+                  return _buildBentoCard(
+                    title: 'K-COINS',
+                    value: balance.toString(),
+                    icon: Icons.monetization_on,
+                    bgColor: context.colors.primaryContainer.withOpacity(0.15),
+                    iconColor: context.colors.primaryContainer,
+                    textColor: context.colors.textHigh,
+                    borderColor: context.colors.primaryContainer.withOpacity(0.3),
                   );
                 },
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: _buildMetricCard(
+              child: _buildBentoCard(
                 title: 'REPUTATION',
                 value: _profile!.reputationScore.toString(),
                 icon: Icons.star,
-                color: context.colors.surfaceContainerLowest,
-                onColor: context.colors.textHigh,
-                borderColor: context.colors.surfaceContainerHigh,
+                bgColor: context.colors.surfaceContainerHigh.withOpacity(0.5),
+                iconColor: Colors.amber,
+                textColor: context.colors.textHigh,
+                borderColor: context.colors.outline.withOpacity(0.1),
               ),
             ),
           ],
@@ -333,41 +230,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildMetricCard({
+  Widget _buildBentoCard({
     required String title,
     required String value,
     required IconData icon,
-    required Color color,
-    required Color onColor,
+    required Color bgColor,
+    required Color iconColor,
+    required Color textColor,
     Color? borderColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(24),
         border: borderColor != null ? Border.all(color: borderColor) : null,
-        boxShadow: const [
-           BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: onColor, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                  color: onColor.withOpacity(0.8),
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(height: 16),
           Text(
@@ -375,10 +263,206 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
-              color: onColor,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+              color: context.colors.textMedium,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEconomyActions() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+          ),
+          child: Column(
+            children: [
+              _buildSettingsTile(
+                icon: Icons.storefront,
+                iconColor: Colors.orangeAccent,
+                title: 'K-Coin Store',
+                subtitle: 'Buy K-Coins & Premium items',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StoreFrontScreen())),
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.face_retouching_natural,
+                iconColor: Colors.purpleAccent,
+                title: 'Avatar Frames Wardrobe',
+                subtitle: 'Manage and equip your frames',
+                onTap: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const AvatarFramesScreen()));
+                  await _fetchProfile();
+                  ref.invalidate(leaderboardProvider);
+                },
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.receipt_long,
+                iconColor: Colors.greenAccent,
+                title: 'Purchase History',
+                subtitle: 'View your past transactions',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseHistoryScreen())),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsMenu() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+          ),
+          child: Column(
+            children: [
+              _buildSettingsTile(
+                icon: Icons.edit,
+                iconColor: Colors.blueAccent,
+                title: 'Edit Profile',
+                onTap: () async {
+                  final didUpdate = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(profile: _profile!)));
+                  if (didUpdate == true) _fetchProfile();
+                },
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.notifications_active,
+                iconColor: Colors.pinkAccent,
+                title: 'Notification Settings',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen())),
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.dark_mode,
+                iconColor: Colors.indigoAccent,
+                title: 'Theme Settings',
+                trailing: _buildThemeToggle(),
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.logout,
+                iconColor: Colors.redAccent,
+                title: 'Log Out',
+                titleColor: Colors.redAccent,
+                onTap: _handleLogout,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeToggle() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final currentMode = ref.watch(themeModeNotifierProvider);
+        return SegmentedButton<ThemeMode>(
+          showSelectedIcon: false,
+          style: SegmentedButton.styleFrom(
+            backgroundColor: context.colors.surfaceContainerLowest,
+            foregroundColor: context.colors.textMedium,
+            selectedForegroundColor: context.colors.textHigh,
+            selectedBackgroundColor: context.colors.primaryContainer,
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+          segments: const [
+            ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode, size: 16)),
+            ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.settings_suggest, size: 16)),
+            ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode, size: 16)),
+          ],
+          selected: {currentMode},
+          onSelectionChanged: (Set<ThemeMode> newSelection) {
+            ref.read(themeModeNotifierProvider.notifier).setThemeMode(newSelection.first);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+    Color? titleColor,
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: titleColor ?? context.colors.textHigh,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: context.colors.textMedium,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null)
+              trailing
+            else if (onTap != null)
+              Icon(Icons.chevron_right, color: context.colors.textMedium, size: 20),
+          ],
+        ),
       ),
     );
   }
@@ -407,9 +491,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: context.colors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.colors.surfaceContainerLow),
+            color: context.colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
           ),
           child: Center(
             child: Column(
@@ -471,9 +555,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: context.colors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: context.colors.surfaceContainerLow),
+                color: context.colors.surfaceContainer,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: context.colors.outline.withOpacity(0.05)),
               ),
               child: Row(
                 children: [
