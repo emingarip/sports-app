@@ -112,9 +112,9 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
 
                     return Container(
                       decoration: BoxDecoration(
-                        color: context.colors.surfaceContainerHigh.withOpacity(0.5),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
                       child: Row(
@@ -136,7 +136,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                                 Text(
                                   title,
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        color: context.colors.textHigh,
+                                        color: Colors.black87,
                                         fontWeight: FontWeight.w800,
                                         fontSize: 16,
                                       ),
@@ -145,7 +145,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                                 Text(
                                   formattedDate,
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: context.colors.textMedium,
+                                        color: Colors.black54,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
                                       ),
@@ -160,7 +160,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                               Text(
                                 '${isPositive ? '+' : ''}$amount',
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      color: isPositive ? Colors.greenAccent : Colors.redAccent,
+                                      color: isPositive ? const Color(0xFF00685B) : const Color(0xFFD32F2F),
                                       fontWeight: FontWeight.w900,
                                       fontSize: 18,
                                     ),
@@ -168,12 +168,12 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  const Icon(Icons.check_circle, size: 14, color: Colors.tealAccent),
+                                  const Icon(Icons.check_circle, size: 14, color: Color(0xFF00685B)),
                                   const SizedBox(width: 4),
-                                  Text(
+                                  const Text(
                                     'BAŞARILI',
                                     style: TextStyle(
-                                      color: Colors.tealAccent,
+                                      color: Color(0xFF00685B),
                                       fontSize: 11,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 0.5,
