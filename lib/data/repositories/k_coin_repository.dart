@@ -46,15 +46,62 @@ class KCoinRepository {
     if (userId == null) return [];
 
     try {
-      final response = await _client
+      // 1. Fetch real-money top-ups
+      final topupsResponse = await _client
           .from('k_coin_purchasing_history')
           .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .eq('user_id', userId);
 
-      return List<Map<String, dynamic>>.from(response);
+      // 2. Fetch store transactions (e.g. buying a frame)
+      final txResponse = await _client
+          .from('k_coin_transactions')
+          .select()
+          .eq('user_id', userId);
+
+      List<Map<String, dynamic>> unifiedList = [];
+
+      for (var row in (topupsResponse as List)) {
+        unifiedList.add({
+          'type': 'topup',
+          'amount': row['coins_granted'] ?? 0,
+          'title': 'K-Coin Paketi (${row['product_id'] ?? 'Bilinmiyor'})',
+          'is_positive': true,
+          'created_at': row['created_at'],
+        });
+      }
+
+      for (var row in (txResponse as List)) {
+        final String tType = row['transaction_type'] ?? 'unknown';
+        final int amount = row['amount'] ?? 0;
+        String title = '';
+        if (tType == 'purchase') {
+          title = 'Mağaza: ${row['reference_id'] ?? 'Bilinmiyor'}';
+        } else if (tType == 'reward') {
+          title = 'Ödül';
+        } else {
+          title = 'İşlem ($tType)';
+        }
+
+        unifiedList.add({
+          'type': tType,
+          'amount': amount,
+          'title': title,
+          'is_positive': amount > 0,
+          'created_at': row['created_at'],
+        });
+      }
+
+      // 3. Sort by created_at descending
+      unifiedList.sort((a, b) {
+        final dateA = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final dateB = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return dateB.compareTo(dateA);
+      });
+
+      return unifiedList;
     } catch (e) {
       return [];
     }
   }
 }
+

@@ -63,11 +63,25 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = _history[index];
-                    final coins = item['coins_granted'] ?? 0;
-                    final productId = item['product_id'] ?? 'Unknown';
+                    final int amount = item['amount'] ?? 0;
+                    final bool isPositive = item['is_positive'] ?? true;
+                    final String type = item['type'] ?? 'unknown';
+                    final String title = item['title'] ?? 'İşlem';
+                    
                     final dateStr = item['created_at'];
                     final date = dateStr != null ? DateTime.tryParse(dateStr)?.toLocal() : null;
                     final formattedDate = date != null ? DateFormat('MMM d, yyyy • h:mm a').format(date) : '';
+
+                    IconData iconData = Icons.receipt_long;
+                    Color iconColor = context.colors.primaryContainer;
+                    
+                    if (type == 'purchase') {
+                      iconData = Icons.shopping_bag;
+                      iconColor = Colors.orange;
+                    } else if (type == 'topup') {
+                      iconData = Icons.monetization_on;
+                      iconColor = Colors.green;
+                    }
 
                     return Container(
                       decoration: BoxDecoration(
@@ -81,10 +95,10 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: context.colors.primaryContainer.withOpacity(0.2),
+                              color: iconColor.withOpacity(0.2),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(Icons.receipt_long, color: context.colors.primaryContainer),
+                            child: Icon(iconData, color: iconColor),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -92,7 +106,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  productId,
+                                  title,
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         color: context.colors.textHigh,
                                         fontWeight: FontWeight.bold,
@@ -112,9 +126,9 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '+\$$coins',
+                                '${isPositive ? '+' : ''}$amount',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      color: Colors.green,
+                                      color: isPositive ? Colors.green : Colors.redAccent,
                                       fontWeight: FontWeight.bold,
                                     ),
                               ),
