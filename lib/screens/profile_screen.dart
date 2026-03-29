@@ -153,10 +153,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         padding: const EdgeInsets.fromLTRB(24.0, 40.0, 24.0, 24.0),
         child: Column(
           children: [
-            FrameAvatar(
-              avatarUrl: _profile!.avatarUrl,
-              activeFrame: _profile!.activeFrame,
-              radius: 54,
+            GestureDetector(
+              onTap: () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => const AvatarFramesScreen()));
+                await _fetchProfile();
+                ref.invalidate(leaderboardProvider);
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  FrameAvatar(
+                    avatarUrl: _profile!.avatarUrl,
+                    activeFrame: _profile!.activeFrame,
+                    radius: 54,
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: context.colors.primaryContainer,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.colors.background, width: 2),
+                      ),
+                      child: Icon(
+                        Icons.palette,
+                        color: context.colors.onPrimaryContainer,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             Text(
@@ -299,18 +328,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 title: 'K-Coin Store',
                 subtitle: 'Buy K-Coins & Premium items',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StoreFrontScreen())),
-              ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
-              _buildSettingsTile(
-                icon: Icons.face_retouching_natural,
-                iconColor: Colors.purpleAccent,
-                title: 'Avatar Frames Wardrobe',
-                subtitle: 'Manage and equip your frames',
-                onTap: () async {
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const AvatarFramesScreen()));
-                  await _fetchProfile();
-                  ref.invalidate(leaderboardProvider);
-                },
               ),
               Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
               _buildSettingsTile(
