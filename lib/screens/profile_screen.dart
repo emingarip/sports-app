@@ -16,6 +16,7 @@ import 'badges_screen.dart';
 import 'purchase_history_screen.dart';
 import 'avatar_frames_screen.dart';
 import '../widgets/frame_avatar.dart';
+import '../providers/leaderboard_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -223,11 +224,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AvatarFramesScreen()),
                 );
+                await _fetchProfile();
+                ref.invalidate(leaderboardProvider);
               },
               icon: const Icon(Icons.face_retouching_natural, size: 16),
               label: const Text('My Avatar Frames'),
