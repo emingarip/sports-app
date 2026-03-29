@@ -75,12 +75,15 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                     IconData iconData = Icons.receipt_long;
                     Color iconColor = context.colors.primaryContainer;
                     
-                    if (type == 'purchase') {
+                    if (type == 'purchase' || type == 'store_purchase') {
                       iconData = Icons.shopping_bag;
                       iconColor = Colors.orange;
                     } else if (type == 'topup') {
                       iconData = Icons.monetization_on;
                       iconColor = Colors.green;
+                    } else if (type == 'reward' || type == 'daily_reward') {
+                      iconData = Icons.card_giftcard;
+                      iconColor = Colors.purpleAccent;
                     }
 
                     return Container(

@@ -74,10 +74,10 @@ class KCoinRepository {
         final String tType = row['transaction_type'] ?? 'unknown';
         final int amount = row['amount'] ?? 0;
         String title = '';
-        if (tType == 'purchase') {
+        if (tType == 'purchase' || tType == 'store_purchase') {
           title = 'Mağaza: ${row['reference_id'] ?? 'Bilinmiyor'}';
-        } else if (tType == 'reward') {
-          title = 'Ödül';
+        } else if (tType == 'reward' || tType == 'daily_reward') {
+          title = 'Günlük K-Coin Ödülü';
         } else {
           title = 'İşlem ($tType)';
         }
