@@ -47,3 +47,8 @@ app.*.map.json
 # Environment Variables
 .env
 .env.*
+
+# Generated and Untracked Files
+simulation_engine/node_modules/
+sports_games_web/out/
+vercel_app.html
