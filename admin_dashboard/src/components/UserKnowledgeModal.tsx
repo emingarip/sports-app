@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, Network, Loader2, Heart, MessageSquare, Target, Eye } from 'lucide-react';
+import { X, Network, Loader2 } from 'lucide-react';
+import { ReactFlow, Controls, Background, MarkerType } from '@xyflow/react';
+import type { Node, Edge } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
 interface KnowledgeModalProps {
   userId: string;
@@ -26,12 +29,31 @@ interface UserEvent {
   created_at: string;
 }
 
+const TranslateEntityType = (type: string) => {
+  switch(type) {
+    case 'team': return 'Takım';
+    case 'league': return 'Lig';
+    case 'match': return 'Maç';
+    default: return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+}
+
+const getEventLabel = (type: string) => {
+  switch(type) {
+    case 'match_favorited': return 'Favoriye Aldı';
+    case 'prediction_placed': return 'Tahmin Yaptı';
+    case 'chat_message_sent': return 'Mesaj Attı';
+    case 'match_viewed': return 'Görüntüledi';
+    default: return type;
+  }
+}
+
 export default function UserKnowledgeModal({ userId, username, onClose }: KnowledgeModalProps) {
-  const [activeTab, setActiveTab] = useState<'interests' | 'events'>('interests');
-  const [interests, setInterests] = useState<UserInterest[]>([]);
-  const [events, setEvents] = useState<UserEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -53,8 +75,11 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
       });
       if (eventsError) throw eventsError;
 
-      setInterests(interestsData || []);
-      setEvents(eventsData || []);
+      const interests = interestsData || [] as UserInterest[];
+      const events = eventsData || [] as UserEvent[];
+
+      buildGraph(interests, events);
+
     } catch (err: any) {
       console.error('Error fetching knowledge graph data:', err);
       setError(err.message || 'Veri yüklenirken bir hata oluştu.');
@@ -63,42 +88,120 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
     }
   };
 
-  const getEventIcon = (eventType: string) => {
-    switch (eventType) {
-      case 'match_favorited':
-        return <Heart className="w-4 h-4 text-red-500" />;
-      case 'prediction_placed':
-        return <Target className="w-4 h-4 text-blue-500" />;
-      case 'chat_message_sent':
-        return <MessageSquare className="w-4 h-4 text-green-500" />;
-      case 'match_viewed':
-        return <Eye className="w-4 h-4 text-gray-500" />;
-      default:
-        return <Network className="w-4 h-4 text-primary" />;
-    }
-  };
+  const buildGraph = (interests: UserInterest[], events: UserEvent[]) => {
+    const initialNodes: Node[] = [];
+    const initialEdges: Edge[] = [];
 
-  const TranslateEntityType = (type: string) => {
-    switch(type) {
-      case 'team': return 'Takım';
-      case 'league': return 'Lig';
-      case 'match': return 'Maç';
-      default: return type.charAt(0).toUpperCase() + type.slice(1);
-    }
-  }
+    // Center User Node
+    initialNodes.push({
+      id: 'center_user',
+      position: { x: 0, y: 0 },
+      data: { 
+        label: (
+          <div className="flex flex-col items-center justify-center font-bold text-white bg-blue-600 rounded-full w-24 h-24 shadow-lg border-4 border-blue-400">
+            <span className="text-2xl mb-1">👑</span>
+            <span className="text-xs truncate max-w-[80px] px-1">{username}</span>
+          </div>
+        )
+      },
+      style: { background: 'transparent', border: 'none', padding: 0, width: 96, height: 96 },
+      type: 'default',
+    });
+
+    const entityMap = new Map<string, { type: string, score: number }>();
+
+    interests.forEach(i => {
+      entityMap.set(i.entity_id, { type: i.entity_type, score: i.interest_score });
+    });
+    events.forEach(e => {
+      if (!entityMap.has(e.entity_id)) {
+        entityMap.set(e.entity_id, { type: e.entity_type, score: 0 }); 
+      }
+    });
+
+    const entitiesList = Array.from(entityMap.entries());
+    const radius = Math.max(300, entitiesList.length * 40); 
+
+    const eventsPerEntity = new Map<string, string[]>();
+    events.forEach(e => {
+      const list = eventsPerEntity.get(e.entity_id) || [];
+      if (!list.includes(e.event_type)) {
+        list.push(e.event_type);
+      }
+      eventsPerEntity.set(e.entity_id, list);
+    });
+
+    entitiesList.forEach(([entity_id, data], index) => {
+      const angle = (index / (entitiesList.length || 1)) * 2 * Math.PI;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+
+      const recentEvents = eventsPerEntity.get(entity_id) || [];
+      const hasEvents = recentEvents.length > 0;
+
+      initialNodes.push({
+        id: `entity_${entity_id}`,
+        position: { x, y },
+        data: { 
+          label: (
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{TranslateEntityType(data.type)}</span>
+              <span className="font-bold text-sm text-foreground">{entity_id}</span>
+              {data.score > 0 && <span className="text-xs text-blue-500 font-semibold mt-1">Skor: {data.score.toFixed(1)}</span>}
+            </div>
+          )
+        },
+        style: { 
+          background: 'hsl(var(--card))', 
+          border: data.score > 5 ? '2px solid #3b82f6' : '1px solid hsl(var(--border))', 
+          borderRadius: '12px', 
+          padding: '12px 16px',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+          minWidth: 140
+        }
+      });
+
+      // Edge setup
+      if (data.score > 0) {
+        initialEdges.push({
+          id: `edge_interest_${entity_id}`,
+          source: 'center_user',
+          target: `entity_${entity_id}`,
+          label: `İlgi: ${data.score.toFixed(1)}`,
+          style: { strokeWidth: Math.max(1, Math.min(5, data.score / 5)), stroke: '#3b82f6' },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+          animated: hasEvents,
+        });
+      } else if (hasEvents) {
+        initialEdges.push({
+          id: `edge_event_${entity_id}`,
+          source: 'center_user',
+          target: `entity_${entity_id}`,
+          label: recentEvents.map(t => getEventLabel(t)).join(', '),
+          animated: true,
+          style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '5,5' },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' },
+          type: 'smoothstep'
+        });
+      }
+    });
+
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="bg-card w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card w-full max-w-6xl h-[85vh] rounded-2xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
-        <div className="flex items-center justify-between p-6 border-b border-border bg-muted/30">
+        <div className="flex items-center justify-between p-6 border-b border-border bg-muted/30 z-10 relative">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <Network className="w-6 h-6 text-primary" />
             </div>
             <div>
               <h2 className="text-xl font-bold">{username} - Knowledge Graph</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">Kullanıcının ilgi alanları ve geçmiş etkinlikleri</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Kullanıcının ilgi alanları ve etkileşim ağı (React Flow)</p>
             </div>
           </div>
           <button
@@ -109,99 +212,34 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
           </button>
         </div>
 
-        <div className="flex items-center border-b border-border bg-muted/10">
-          <button
-            onClick={() => setActiveTab('interests')}
-            className={`flex-1 py-4 text-sm font-semibold border-b-2 transition-colors ${
-              activeTab === 'interests'
-                ? 'border-primary text-primary bg-primary/5'
-                : 'border-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground'
-            }`}
-          >
-            İlgi Skorları (Interests)
-          </button>
-          <button
-            onClick={() => setActiveTab('events')}
-            className={`flex-1 py-4 text-sm font-semibold border-b-2 transition-colors ${
-              activeTab === 'events'
-                ? 'border-primary text-primary bg-primary/5'
-                : 'border-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground'
-            }`}
-          >
-            Son Etkinlikler (Events)
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 relative bg-muted/5">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground space-y-3">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground space-y-3 z-20">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p>Knowledge Base algoritmaları çözümleniyor...</p>
+              <p>Bağlantılar çözümleniyor...</p>
             </div>
           ) : error ? (
-            <div className="p-4 bg-destructive/10 text-destructive rounded-xl border border-destructive/20 text-center">
-              <p className="font-medium">{error}</p>
-            </div>
-          ) : activeTab === 'interests' ? (
-            // Interests Tab
-            interests.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">Kullanıcı için henüz yeterli ilgi skoru oluşmamış.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {interests.map((interest) => (
-                  <div key={interest.id} className="p-4 rounded-xl border border-border bg-card hover:bg-muted/10 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                       <span className="text-xs font-semibold px-2 py-1 bg-secondary text-secondary-foreground rounded-md">
-                          {TranslateEntityType(interest.entity_type)}
-                       </span>
-                       <span className="text-xl font-bold text-primary">
-                          {interest.interest_score.toFixed(1)} <span className="text-xs font-normal text-muted-foreground ml-0.5">skor</span>
-                       </span>
-                    </div>
-                    <h4 className="font-bold text-lg truncate mb-1" title={interest.entity_id}>{interest.entity_id}</h4>
-                    <div className="flex justify-between items-center text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                      <span>{interest.interaction_count} etkileşim</span>
-                      <span>Son: {new Date(interest.last_interaction).toLocaleDateString('tr-TR')}</span>
-                    </div>
-                  </div>
-                ))}
+            <div className="absolute inset-0 flex items-center justify-center p-6 z-20">
+              <div className="p-4 bg-destructive/10 text-destructive rounded-xl border border-destructive/20 text-center">
+                <p className="font-medium">{error}</p>
               </div>
-            )
+            </div>
           ) : (
-            // Events Tab
-            events.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">Henüz kaydedilmiş etkinlik bulunmuyor.</div>
-            ) : (
-               <div className="relative border-l-2 border-muted ml-3 space-y-6 pb-4">
-                 {events.map((ev) => (
-                   <div key={ev.id} className="relative pl-6">
-                     <div className="absolute -left-[9px] top-1 w-4 h-4 bg-background border-2 border-muted-foreground rounded-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
-                     </div>
-                     <div className="bg-card border border-border rounded-xl p-4 shadow-sm relative group hover:border-primary/50 transition-colors">
-                       <div className="flex justify-between items-start mb-2">
-                         <div className="flex items-center gap-2">
-                           {getEventIcon(ev.event_type)}
-                           <span className="font-semibold">{ev.event_type.replace('_', ' ')}</span>
-                         </div>
-                         <span className="text-xs text-muted-foreground">
-                           {new Date(ev.created_at).toLocaleString('tr-TR')}
-                         </span>
-                       </div>
-                       <div className="text-sm">
-                         <span className="text-muted-foreground mr-2">{TranslateEntityType(ev.entity_type)}:</span>
-                         <span className="font-medium bg-muted/50 px-2 py-0.5 rounded">{ev.entity_id}</span>
-                       </div>
-                       {Object.keys(ev.metadata || {}).length > 0 && (
-                          <div className="mt-3 text-xs bg-muted/30 p-2 rounded text-muted-foreground font-mono">
-                            {JSON.stringify(ev.metadata)}
-                          </div>
-                       )}
-                     </div>
-                   </div>
-                 ))}
-               </div>
-            )
+            <div className="w-full h-full">
+              <ReactFlow 
+                nodes={nodes} 
+                edges={edges} 
+                fitView 
+                fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.1}
+                maxZoom={2}
+                nodesDraggable={true}
+                nodesConnectable={false}
+              >
+                <Background gap={16} size={1} color="rgba(150,150,150,0.2)" />
+                <Controls className="bg-background border-border fill-foreground" />
+              </ReactFlow>
+            </div>
           )}
         </div>
       </div>

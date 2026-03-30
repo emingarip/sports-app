@@ -1,0 +1,4 @@
+src/components/UserKnowledgeModal.tsx(4,43): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/UserKnowledgeModal.tsx(4,49): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/UserKnowledgeModal.tsx(238,84): error TS2322: Type '{ gap: number; size: number; color: string; opacity: number; }' is not assignable to type 'IntrinsicAttributes & BackgroundProps'.
+  Property 'opacity' does not exist on type 'IntrinsicAttributes & BackgroundProps'.
