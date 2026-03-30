@@ -8,7 +8,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
   -- Verify the caller is an admin
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND is_admin = true) THEN
+  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true) THEN
     RAISE EXCEPTION 'Access denied';
   END IF;
 
