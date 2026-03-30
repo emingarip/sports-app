@@ -228,12 +228,12 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
 
     // Create Edges
     const addedEdges = new Set<string>();
+    const nodeHasIncoming = new Set<string>();
 
     // 1. Edges from Entity to Entity (from relations array)
     relations.forEach(rel => {
       if (displayedIds.has(rel.entity_a_id) && displayedIds.has(rel.entity_b_id)) {
-        // e.g. Match -> Team or Team -> League
-        // Dagre draws Left to Right. We want User -> Match -> Team -> League typically.
+        // Dagre draws Left to Right
         const edgeId = `rel_${rel.id}`;
         addedEdges.add(edgeId);
         
@@ -245,7 +245,34 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
           style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1.5, strokeDasharray: '3,3' },
           markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--muted-foreground))' },
         });
+
+        nodeHasIncoming.add(`entity_${rel.entity_b_id}`);
       }
+    });
+
+    // 1.5 Inferred frontend relations based on sub-string matching
+    // (Helps when entity_relations table in DB is empty but we want tree structure)
+    const matchNodes = entitiesList.filter(e => e[1].type === 'match');
+    const teamNodes = entitiesList.filter(e => e[1].type === 'team');
+    // We assume Match is the interactions source, so Match -> Team
+    matchNodes.forEach(([matchId]) => {
+      teamNodes.forEach(([teamId]) => {
+        // e.g. matchId = "galatasaray-fenerbahce", teamId = "galatasaray"
+        if (matchId.toLowerCase().includes(teamId.toLowerCase())) {
+          const edgeId = `inferred_${matchId}_${teamId}`;
+          if (!addedEdges.has(edgeId)) {
+            initialEdges.push({
+              id: edgeId,
+              source: `entity_${matchId}`,
+              target: `entity_${teamId}`,
+              label: 'İçerir',
+              style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1.5, strokeDasharray: '5,5' },
+              markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--muted-foreground))' },
+            });
+            nodeHasIncoming.add(`entity_${teamId}`);
+          }
+        }
+      });
     });
 
     // 2. Edges from User to Entity
@@ -253,22 +280,27 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
       const recentEvents = eventsPerEntity.get(entity_id) || [];
       const hasEvents = recentEvents.length > 0;
       
-      // If the entity is a "League" and is already connected to from a "Team", maybe skip drawing direct line from user?
-      // Actually, let's connect User to EVERYTHING they are interested in, to show their direct score.
-      if (data.score > 0 || hasEvents) {
-        initialEdges.push({
-          id: `edge_user_${entity_id}`,
-          source: 'center_user',
-          target: `entity_${entity_id}`,
-          label: hasEvents ? recentEvents.map(t => getEventLabel(t)).join(', ') : `İlgi: ${data.score.toFixed(1)}`,
-          style: { 
-            strokeWidth: Math.max(1, Math.min(4, data.score / 4)), 
-            stroke: hasEvents ? '#10b981' : '#3b82f6' 
-          },
-          markerEnd: { type: MarkerType.ArrowClosed, color: hasEvents ? '#10b981' : '#3b82f6' },
-          animated: hasEvents,
-          type: 'smoothstep'
-        });
+      const targetId = `entity_${entity_id}`;
+      
+      // To build a clean hierarchy: if an entity already has an incoming edge (like Match -> Team),
+      // we DO NOT connect it directly to the user UNLESS it has its own direct events too!
+      // This prevents the graph from looking like a flat star.
+      if (!nodeHasIncoming.has(targetId) || hasEvents) {
+        if (data.score > 0 || hasEvents) {
+          initialEdges.push({
+            id: `edge_user_${entity_id}`,
+            source: 'center_user',
+            target: targetId,
+            label: hasEvents ? recentEvents.map(t => getEventLabel(t)).join(', ') : `İlgi: ${data.score.toFixed(1)}`,
+            style: { 
+              strokeWidth: Math.max(1, Math.min(4, data.score / 4)), 
+              stroke: hasEvents ? '#10b981' : '#3b82f6' 
+            },
+            markerEnd: { type: MarkerType.ArrowClosed, color: hasEvents ? '#10b981' : '#3b82f6' },
+            animated: hasEvents,
+            type: 'smoothstep'
+          });
+        }
       }
     });
 
