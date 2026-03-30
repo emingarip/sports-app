@@ -309,24 +309,24 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                   Text(
                                     dayName,
                                     style: TextStyle(
-                                      fontSize: 9,
+                                      fontSize: 10,
                                       fontWeight: isSelected
                                           ? FontWeight.w900
-                                          : FontWeight.bold,
+                                          : FontWeight.w700,
                                       color: isSelected
                                           ? const Color(0xFFFACC15)
-                                          : context.colors.textMedium,
+                                          : context.colors.textMedium.withOpacity(0.95),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     dayNum,
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.w900,
                                       color: isSelected
                                           ? const Color(0xFFFACC15)
-                                          : context.colors.textHigh,
+                                          : context.colors.textHigh.withOpacity(0.95),
                                     ),
                                   ),
                                 ],
@@ -615,19 +615,19 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
             Icon(icon,
                 color: isSelected
                     ? context.colors.primary
-                    : context.colors.textMedium.withOpacity(0.7),
+                    : context.colors.textMedium.withOpacity(0.95),
                 size: isSelected ? 22 : 20),
             const SizedBox(height: 4),
             Text(
               label.toUpperCase(),
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 8,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
                 color: isSelected
                     ? context.colors.primary
-                    : context.colors.textMedium.withOpacity(0.7),
+                    : context.colors.textMedium.withOpacity(0.95),
               ),
               overflow: TextOverflow.ellipsis,
             ),
