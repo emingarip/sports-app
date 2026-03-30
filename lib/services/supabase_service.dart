@@ -152,7 +152,10 @@ class SupabaseService {
         throw Exception('Storage upload failed with code: ${response.statusCode} - ${response.body}');
       }
       
-      final publicUrl = client.storage.from('avatars').getPublicUrl(fileName);
+      // Bypass the bugged client.storage.from('avatars').getPublicUrl(fileName) 
+      // which creates an invalid Edge URL (.storage.supabase.co/v1/object/public) throwing 404s.
+      // We manually construct the guaranteed public URL pointing to the core proxy.
+      final publicUrl = 'https://nigatikzsnxdqdwwqewr.supabase.co/storage/v1/object/public/avatars/$fileName';
       return publicUrl;
     } catch (e) {
       debugPrint('Error uploading avatar: $e');
