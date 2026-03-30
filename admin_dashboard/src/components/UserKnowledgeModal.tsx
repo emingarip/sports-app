@@ -59,6 +59,17 @@ const getEventLabel = (type: string) => {
   }
 }
 
+const normalizeString = (str: string) => {
+  return str.toLocaleLowerCase('tr-TR')
+    .replace(/[çc]/g, 'c')
+    .replace(/[şs]/g, 's')
+    .replace(/[ğg]/g, 'g')
+    .replace(/[öo]/g, 'o')
+    .replace(/[üu]/g, 'u')
+    .replace(/[ıi]/g, 'i')
+    .replace(/[^a-z0-9]/g, '');
+};
+
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -252,13 +263,29 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
 
     // 1.5 Inferred frontend relations based on sub-string matching
     // (Helps when entity_relations table in DB is empty but we want tree structure)
-    const matchNodes = entitiesList.filter(e => e[1].type === 'match');
-    const teamNodes = entitiesList.filter(e => e[1].type === 'team');
+    // Handle both production types ('match', 'team') and local mock types ('mac', 'takim', 'takım')
+    const matchNodes = entitiesList.filter(e => {
+        const t = e[1].type.toLowerCase();
+        return t === 'match' || t === 'mac' || t === 'maç';
+    });
+    const teamNodes = entitiesList.filter(e => {
+        const t = e[1].type.toLowerCase();
+        return t === 'team' || t === 'takim' || t === 'takım';
+    });
+    const leagueNodes = entitiesList.filter(e => {
+        const t = e[1].type.toLowerCase();
+        return t === 'league' || t === 'lig';
+    });
+    
+    let inferredCount = 0;
+    
     // We assume Match is the interactions source, so Match -> Team
     matchNodes.forEach(([matchId]) => {
+      const normMatch = normalizeString(matchId);
       teamNodes.forEach(([teamId]) => {
+        const normTeam = normalizeString(teamId);
         // e.g. matchId = "galatasaray-fenerbahce", teamId = "galatasaray"
-        if (matchId.toLowerCase().includes(teamId.toLowerCase())) {
+        if (normTeam.length > 2 && normMatch.includes(normTeam)) {
           const edgeId = `inferred_${matchId}_${teamId}`;
           if (!addedEdges.has(edgeId)) {
             initialEdges.push({
@@ -270,18 +297,78 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
               markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--muted-foreground))' },
             });
             nodeHasIncoming.add(`entity_${teamId}`);
+            inferredCount++;
           }
         }
       });
     });
 
-    // 2. Edges from User to Entity
+    // 1.8 Structural Fallback Nodes (if completely flat)
+    // If we have literally 0 inferred counts AND 0 DB relations, and we want to prevent a 30-node flat vertical block:
+    // We can group them manually by type.
+    const useStructuralGrouping = inferredCount === 0 && relations.length === 0 && entitiesList.length > 5;
+    
+    if (useStructuralGrouping) {
+      if (leagueNodes.length > 0) {
+        initialNodes.push({
+          id: 'group_league',
+          position: { x: 0, y: 0 },
+          data: { label: <div className="font-bold text-xs">LİGLER</div> },
+          style: { background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px' }
+        });
+        initialEdges.push({ id: `edge_user_grp_league`, source: 'center_user', target: 'group_league', style: { strokeWidth: 2, stroke: 'hsl(var(--muted-foreground))' }, type: 'smoothstep' });
+      }
+      if (teamNodes.length > 0) {
+        initialNodes.push({
+          id: 'group_team',
+          position: { x: 0, y: 0 },
+          data: { label: <div className="font-bold text-xs">TAKIMLAR</div> },
+          style: { background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px' }
+        });
+        initialEdges.push({ id: `edge_user_grp_team`, source: 'center_user', target: 'group_team', style: { strokeWidth: 2, stroke: 'hsl(var(--muted-foreground))' }, type: 'smoothstep' });
+      }
+      if (matchNodes.length > 0) {
+        initialNodes.push({
+          id: 'group_match',
+          position: { x: 0, y: 0 },
+          data: { label: <div className="font-bold text-xs">MAÇLAR</div> },
+          style: { background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px' }
+        });
+        initialEdges.push({ id: `edge_user_grp_match`, source: 'center_user', target: 'group_match', style: { strokeWidth: 2, stroke: 'hsl(var(--muted-foreground))' }, type: 'smoothstep' });
+      }
+    }
+
+    // 2. Edges from User or Groups to Entity
     entitiesList.forEach(([entity_id, data]) => {
       const recentEvents = eventsPerEntity.get(entity_id) || [];
       const hasEvents = recentEvents.length > 0;
       
       const targetId = `entity_${entity_id}`;
       
+      // If we are doing structural grouping, wire them to groups instead of user directly
+      if (useStructuralGrouping) {
+        let parentGroup = 'center_user';
+        const typeLight = data.type.toLowerCase();
+        if (typeLight === 'league' || typeLight === 'lig') parentGroup = 'group_league';
+        else if (typeLight === 'team' || typeLight === 'takım' || typeLight === 'takim') parentGroup = 'group_team';
+        else if (typeLight === 'match' || typeLight === 'mac' || typeLight === 'maç') parentGroup = 'group_match';
+
+        initialEdges.push({
+          id: `edge_grp_${entity_id}`,
+          source: parentGroup,
+          target: targetId,
+          label: hasEvents ? recentEvents.map(t => getEventLabel(t)).join(', ') : `İlgi: ${data.score.toFixed(1)}`,
+          style: { 
+            strokeWidth: Math.max(1, Math.min(4, data.score / 4)), 
+            stroke: hasEvents ? '#10b981' : '#3b82f6' 
+          },
+          markerEnd: { type: MarkerType.ArrowClosed, color: hasEvents ? '#10b981' : '#3b82f6' },
+          animated: hasEvents,
+          type: 'smoothstep'
+        });
+        return; // Skip normal wiring
+      }
+
       // To build a clean hierarchy: if an entity already has an incoming edge (like Match -> Team),
       // we DO NOT connect it directly to the user UNLESS it has its own direct events too!
       // This prevents the graph from looking like a flat star.
