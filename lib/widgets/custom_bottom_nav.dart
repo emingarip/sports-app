@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_theme.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/match_provider.dart';
 import 'package:intl/intl.dart';
@@ -315,7 +314,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                           : FontWeight.w700,
                                       color: isSelected
                                           ? const Color(0xFFFACC15)
-                                          : context.colors.textMedium.withOpacity(0.95),
+                                          : Colors.white.withOpacity(0.5),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -326,7 +325,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                       fontWeight: FontWeight.w900,
                                       color: isSelected
                                           ? const Color(0xFFFACC15)
-                                          : context.colors.textHigh.withOpacity(0.95),
+                                          : Colors.white.withOpacity(0.9),
                                     ),
                                   ),
                                 ],
@@ -605,7 +604,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? context.colors.primaryContainer.withOpacity(0.2)
+              ? const Color(0xFFFACC15).withOpacity(0.15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(30),
         ),
@@ -614,8 +613,8 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
           children: [
             Icon(icon,
                 color: isSelected
-                    ? context.colors.primary
-                    : context.colors.textMedium.withOpacity(0.95),
+                    ? const Color(0xFFFACC15)
+                    : Colors.white.withOpacity(0.6),
                 size: isSelected ? 22 : 20),
             const SizedBox(height: 4),
             Text(
@@ -626,8 +625,8 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
                 color: isSelected
-                    ? context.colors.primary
-                    : context.colors.textMedium.withOpacity(0.95),
+                    ? const Color(0xFFFACC15)
+                    : Colors.white.withOpacity(0.6),
               ),
               overflow: TextOverflow.ellipsis,
             ),
