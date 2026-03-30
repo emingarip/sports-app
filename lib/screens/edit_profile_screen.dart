@@ -93,7 +93,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    // Forces any selected image to be downscaled to a max of 512x512 with 70% compression, 
+    // dramatically reducing Supabase Storage footprint and network upload time.
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery, 
+      imageQuality: 70,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       final ext = pickedFile.name.split('.').last.toLowerCase();
