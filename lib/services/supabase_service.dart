@@ -135,7 +135,7 @@ class SupabaseService {
       await client.storage.from('avatars').uploadBinary(
         fileName,
         imageBytes,
-        fileOptions: FileOptions(contentType: 'image/$fileExt', upsert: true),
+        fileOptions: FileOptions(contentType: 'image/$fileExt'),
       );
       
       final publicUrl = client.storage.from('avatars').getPublicUrl(fileName);
