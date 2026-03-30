@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../services/supabase_service.dart';
@@ -23,6 +25,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isUsernameAvailable = true;
   String? _usernameError;
   Timer? _debounceTimer;
+
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageExt;
 
   @override
   void initState() {
@@ -86,9 +91,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      final ext = pickedFile.name.split('.').last.toLowerCase();
+      setState(() {
+        _selectedImageBytes = bytes;
+        _selectedImageExt = ext;
+      });
+    }
+  }
+
   Future<void> _handleSave() async {
     final newUsername = _usernameController.text.trim();
-    final newAvatarUrl = _avatarUrlController.text.trim();
+    String newAvatarUrl = _avatarUrlController.text.trim();
 
     if (newUsername.isEmpty || _usernameError != null || (!_isUsernameAvailable && newUsername != widget.profile.username)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,6 +118,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() {
       _isSaving = true;
     });
+
+    if (_selectedImageBytes != null && _selectedImageExt != null) {
+      final uploadedUrl = await SupabaseService().uploadAvatar(
+        widget.profile.id,
+        _selectedImageBytes!,
+        _selectedImageExt!,
+      );
+      if (uploadedUrl != null) {
+        newAvatarUrl = uploadedUrl;
+        _avatarUrlController.text = uploadedUrl;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fotoğraf yüklenemedi. Devam ediliyor...')),
+        );
+      }
+    }
 
     final success = await SupabaseService().updateUserProfile(
       widget.profile.id,
@@ -208,27 +242,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Center(
       child: Column(
         children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: context.colors.surfaceContainer,
-              border: Border.all(color: context.colors.outline, width: 2),
-            ),
-            child: ClipOval(
-              child: _avatarUrlController.text.isNotEmpty
-                  ? Image.network(
-                      _avatarUrlController.text,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: 48, color: context.colors.textMedium),
-                    )
-                  : Icon(Icons.person, size: 48, color: context.colors.textMedium),
+          GestureDetector(
+            onTap: _pickImage,
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.colors.surfaceContainer,
+                    border: Border.all(color: context.colors.outline, width: 2),
+                  ),
+                  child: ClipOval(
+                    child: _selectedImageBytes != null
+                        ? Image.memory(
+                            _selectedImageBytes!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: 48, color: context.colors.textMedium),
+                          )
+                        : _avatarUrlController.text.isNotEmpty
+                            ? Image.network(
+                                _avatarUrlController.text,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: 48, color: context.colors.textMedium),
+                              )
+                            : Icon(Icons.person, size: 48, color: context.colors.textMedium),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: context.colors.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.colors.background, width: 2),
+                  ),
+                  child: Icon(Icons.camera_alt, size: 20, color: context.colors.background),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'Preview',
+            'Fotoğrafı Değiştir',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.colors.textMedium),
           )
         ],

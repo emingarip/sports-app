@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -125,6 +126,23 @@ class SupabaseService {
     } catch (e) {
       debugPrint('Error updating user profile: $e');
       return false;
+    }
+  }
+
+  Future<String?> uploadAvatar(String userId, Uint8List imageBytes, String fileExt) async {
+    try {
+      final fileName = '$userId.${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      await client.storage.from('avatars').uploadBinary(
+        fileName,
+        imageBytes,
+        fileOptions: FileOptions(contentType: 'image/$fileExt', upsert: true),
+      );
+      
+      final publicUrl = client.storage.from('avatars').getPublicUrl(fileName);
+      return publicUrl;
+    } catch (e) {
+      debugPrint('Error uploading avatar: $e');
+      return null;
     }
   }
 
