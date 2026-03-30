@@ -6,11 +6,13 @@ import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/supabase_service.dart';
 import 'services/revenuecat_service.dart';
+import 'package:rive/rive.dart' as rive;
 
 import 'providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await rive.RiveNative.init();
 
   try {
     await Firebase.initializeApp(

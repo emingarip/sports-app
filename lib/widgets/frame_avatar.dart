@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:rive/rive.dart' hide LinearGradient, RadialGradient;
+import 'package:rive/rive.dart' as rive;
 
-class FrameAvatar extends StatelessWidget {
+class FrameAvatar extends StatefulWidget {
   final String? avatarUrl;
   final String? activeFrame;
   final double radius;
@@ -17,32 +17,71 @@ class FrameAvatar extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<FrameAvatar> createState() => _FrameAvatarState();
+}
+
+class _FrameAvatarState extends State<FrameAvatar> {
+  rive.FileLoader? _riveLoader;
+
+  @override
+  void initState() {
+    super.initState();
+    _initLoaderIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(FrameAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeFrame != widget.activeFrame) {
+      _initLoaderIfNeeded();
+    }
+  }
+
+  void _initLoaderIfNeeded() {
+    _riveLoader?.dispose();
+    _riveLoader = null;
+    
+    if (widget.activeFrame != null && widget.activeFrame!.toLowerCase().endsWith('.riv')) {
+      _riveLoader = rive.FileLoader.fromUrl(
+        widget.activeFrame!,
+        riveFactory: rive.Factory.rive,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _riveLoader?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Basic CircleAvatar
     Widget avatar = CircleAvatar(
-      radius: radius,
+      radius: widget.radius,
       backgroundColor: Colors.grey.shade800,
-      backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-          ? NetworkImage(avatarUrl!)
+      backgroundImage: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+          ? NetworkImage(widget.avatarUrl!)
           : null,
-      child: avatarUrl == null || avatarUrl!.isEmpty
-          ? Icon(Icons.person, color: Colors.white, size: radius)
+      child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+          ? Icon(Icons.person, color: Colors.white, size: widget.radius)
           : null,
     );
 
     // If there is no frame, just return the standard avatar, padded by the default border size to maintain alignment sizes
-    if (activeFrame == null || activeFrame!.isEmpty) {
-      if (onTap != null) {
+    if (widget.activeFrame == null || widget.activeFrame!.isEmpty) {
+      if (widget.onTap != null) {
         return GestureDetector(
-          onTap: onTap,
+          onTap: widget.onTap,
           child: Padding(
-            padding: EdgeInsets.all(radius * 0.15),
+            padding: EdgeInsets.all(widget.radius * 0.15),
             child: avatar,
           ),
         );
       }
       return Padding(
-        padding: EdgeInsets.all(radius * 0.15),
+        padding: EdgeInsets.all(widget.radius * 0.15),
         child: avatar,
       );
     }
@@ -52,25 +91,32 @@ class FrameAvatar extends StatelessWidget {
     double paddingRatio = 0.15; // 15% of radius goes to frame thickness
     Widget? dynamicOverlay;
 
-    if (activeFrame!.startsWith('http://') || activeFrame!.startsWith('https://')) {
-      final lowerUrl = activeFrame!.toLowerCase();
+    if (widget.activeFrame!.startsWith('http://') || widget.activeFrame!.startsWith('https://')) {
+      final lowerUrl = widget.activeFrame!.toLowerCase();
       if (lowerUrl.endsWith('.json') || lowerUrl.endsWith('.lottie')) {
         dynamicOverlay = Lottie.network(
-          activeFrame!,
+          widget.activeFrame!,
           fit: BoxFit.cover,
         );
         paddingRatio = 0.08;
       } else if (lowerUrl.endsWith('.riv')) {
-        dynamicOverlay = RiveAnimation.network(
-          activeFrame!,
-          fit: BoxFit.cover,
-        );
+        dynamicOverlay = _riveLoader != null ? rive.RiveWidgetBuilder(
+          fileLoader: _riveLoader!,
+          builder: (context, state) => switch (state) {
+            rive.RiveLoading() => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            rive.RiveFailed() => const Center(child: Icon(Icons.error_outline, size: 16)),
+            rive.RiveLoaded() => rive.RiveWidget(
+              controller: state.controller,
+              fit: rive.Fit.cover,
+            )
+          },
+        ) : const SizedBox();
         paddingRatio = 0.08;
       } else if (lowerUrl.endsWith('.png') || lowerUrl.endsWith('.gif') || lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg') || lowerUrl.endsWith('.webp')) {
         frameDecoration = BoxDecoration(
           shape: BoxShape.circle,
           image: DecorationImage(
-            image: NetworkImage(activeFrame!),
+            image: NetworkImage(widget.activeFrame!),
             fit: BoxFit.cover,
           ),
         );
@@ -84,7 +130,7 @@ class FrameAvatar extends StatelessWidget {
         paddingRatio = 0.08;
       }
     } else {
-      switch (activeFrame) {
+      switch (widget.activeFrame) {
       case 'frame_gold_champion':
         frameDecoration = BoxDecoration(
           shape: BoxShape.circle,
@@ -153,14 +199,14 @@ class FrameAvatar extends StatelessWidget {
     }
 
     Widget framedAvatar = Container(
-      padding: EdgeInsets.all(radius * paddingRatio),
+      padding: EdgeInsets.all(widget.radius * paddingRatio),
       decoration: frameDecoration,
       child: avatar,
     );
 
     if (dynamicOverlay != null) {
       // Create a fixed size box so the overlay can fill it precisely
-      final double totalSize = (radius * 2) + (radius * paddingRatio * 2);
+      final double totalSize = (widget.radius * 2) + (widget.radius * paddingRatio * 2);
       framedAvatar = SizedBox(
         width: totalSize,
         height: totalSize,
@@ -171,10 +217,10 @@ class FrameAvatar extends StatelessWidget {
             framedAvatar,
             // Multiply overlay size slightly if they have built-in margins, usually 1.2x scale fits well.
             Positioned(
-              left: -radius * 0.2,
-              top: -radius * 0.2,
-              right: -radius * 0.2,
-              bottom: -radius * 0.2,
+              left: -widget.radius * 0.2,
+              top: -widget.radius * 0.2,
+              right: -widget.radius * 0.2,
+              bottom: -widget.radius * 0.2,
               child: IgnorePointer(
                 child: dynamicOverlay,
               ),
@@ -184,9 +230,9 @@ class FrameAvatar extends StatelessWidget {
       );
     }
 
-    if (onTap != null) {
+    if (widget.onTap != null) {
       return GestureDetector(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: framedAvatar,
       );
     }
