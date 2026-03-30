@@ -21,8 +21,10 @@ dependencies:
   intl: ^0.20.2
   live_activities: ^2.4.7
   livekit_client: ^2.6.5
+  lottie: ^3.3.2
   permission_handler: ^12.0.1
   purchases_flutter: ^9.15.1
+  rive: 0.13.0
   riverpod_annotation: ^4.0.2
   share_plus: ^12.0.1
   shared_preferences: ^2.5.5
