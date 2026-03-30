@@ -166,8 +166,27 @@ class SupabaseService {
   Future<void> deleteAvatar(String fileName) async {
     try {
       if (fileName.isEmpty) return;
-      await client.storage.from('avatars').remove([fileName]);
-      debugPrint('Old avatar deleted successfully: $fileName');
+
+      // We bypass client.storage.from('avatars').remove() because the Dart SDK
+      // automatically constructs the malformed .storage.supabase.co/v1 Edge route
+      // which results in silent CORS/404 failures just like the upload endpoint.
+      final url = Uri.parse('https://nigatikzsnxdqdwwqewr.supabase.co/storage/v1/object/avatars');
+      
+      final request = http.Request('DELETE', url)
+        ..headers.addAll({
+          'Authorization': 'Bearer ${client.auth.currentSession?.accessToken}',
+          'Content-Type': 'application/json',
+        })
+        ..body = '{"prefixes": ["$fileName"]}';
+        
+      final response = await http.Client().send(request);
+
+      if (response.statusCode == 200) {
+        debugPrint('Old avatar deleted successfully via HTTP: $fileName');
+      } else {
+        final responseBody = await response.stream.bytesToString();
+        debugPrint('Failed to delete old avatar via HTTP: ${response.statusCode} - $responseBody');
+      }
     } catch (e) {
       debugPrint('Error deleting old avatar: $e');
     }
