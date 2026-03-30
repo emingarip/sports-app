@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 import { Users, Coins, Activity, TrendingUp } from 'lucide-react';
 import {
   LineChart,
@@ -28,7 +29,7 @@ interface BetData {
   matches: { home_team: { name: string }; away_team: { name: string } };
 }
 
-export default function Dashboard({ _session }: { _session?: any }) {
+export default function Dashboard(_props: { _session?: Session | null }) {
   const [stats, setStats] = useState<DashboardStats>({ totalUsers: 0, totalKCoins: 0, totalBets: 0 });
   const [recentBets, setRecentBets] = useState<BetData[]>([]);
   const [loading, setLoading] = useState(true);

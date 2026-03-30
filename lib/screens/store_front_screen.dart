@@ -6,6 +6,7 @@ import '../models/k_coin_package.dart';
 import '../models/store_product.dart';
 import '../theme/app_theme.dart';
 import '../services/admob_service.dart';
+import '../services/supabase_service.dart';
 
 class StoreFrontScreen extends ConsumerWidget {
   const StoreFrontScreen({super.key});
@@ -219,35 +220,62 @@ class StoreFrontScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           // ADMOB REWARDED VIDEO BUTTON
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                // Show AdMob Rewarded Ad or Web Interstitial
-                AdMobService().showRewardedAd(
-                  context,
-                  onEarnedReward: () async {
-                    try {
-                      // Attempt to claim 50 coins securely via Supabase RPC
-                      final success = await ref.read(walletBalanceProvider.notifier).claimAdReward(50);
-                      if (success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Awesome! +50 K-Coins added from Ad.'),
-                            backgroundColor: Colors.green,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      } else if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Failed to add coins. Please try again.'),
-                            backgroundColor: context.colors.error,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    } catch (e) {
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                  );
+                  
+                  final eligibility = await SupabaseService().checkAdEligibility();
+                  
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop(); // Dismiss loader
+
+                  if (eligibility['eligible'] != true) {
+                    final reason = eligibility['reason'];
+                    String message = 'Reklamlar şu an yüklenemedi. Lütfen daha sonra deneyin.';
+                    if (reason == 'daily_limit_reached') {
+                      message = 'Günlük reklam sınırına ulaştınız. Lütfen yarın tekrar deneyin.';
+                    } else if (reason == 'cooling_down') {
+                      message = 'Biraz beklemelisiniz! Sıradaki reklam için süreniz henüz dolmadı.';
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      backgroundColor: context.colors.error,
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                    return;
+                  }
+
+                  // Show AdMob Rewarded Ad or Web Interstitial
+                  AdMobService().showRewardedAd(
+                    context,
+                    onEarnedReward: () async {
+                      try {
+                        // Attempt to claim 50 coins securely via Supabase RPC
+                        final success = await ref.read(walletBalanceProvider.notifier).claimAdReward(50);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Tebrikler! Reklamdan +50 K-Coin kazandınız.'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('K-Coin yüklenemedi. Günlük limite veya bekleme süresine takılmış olabilirsiniz.'),
+                              backgroundColor: context.colors.error,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (e) {
                       debugPrint('Error handling ad reward UI: \$e');
                     }
                   },

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Settings as SettingsIcon, Link as LinkIcon, Save, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Link as LinkIcon, Save, Loader2, Clock, Hash } from 'lucide-react';
 
 export default function Settings() {
   const [adLink, setAdLink] = useState('');
+  const [dailyLimit, setDailyLimit] = useState(5);
+  const [cooldownMins, setCooldownMins] = useState(10);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -16,16 +19,16 @@ export default function Settings() {
     try {
       const { data, error } = await supabase
         .from('app_settings')
-        .select('value')
-        .eq('key', 'adsterra_direct_link')
-        .single();
+        .select('*');
 
-      if (error && error.code !== 'PGRST116') { // Ignore "Rows not found" if empty
-        throw error;
-      }
+      if (error) throw error;
       
       if (data) {
-        setAdLink(data.value);
+        data.forEach(setting => {
+          if (setting.key === 'adsterra_direct_link') setAdLink(setting.value);
+          if (setting.key === 'daily_ad_limit') setDailyLimit(parseInt(setting.value) || 5);
+          if (setting.key === 'ad_cooldown_minutes') setCooldownMins(parseInt(setting.value) || 10);
+        });
       }
     } catch (error) {
       console.error('Ayarlar yüklenirken hata oluştu:', error);
@@ -40,15 +43,18 @@ export default function Settings() {
     setSuccessMessage('');
 
     try {
+      const recordsToUpsert = [
+        { key: 'adsterra_direct_link', value: adLink },
+        { key: 'daily_ad_limit', value: dailyLimit.toString() },
+        { key: 'ad_cooldown_minutes', value: cooldownMins.toString() }
+      ];
+
       const { error } = await supabase
         .from('app_settings')
-        .upsert({
-          key: 'adsterra_direct_link',
-          value: adLink,
-        }, { onConflict: 'key' });
+        .upsert(recordsToUpsert, { onConflict: 'key' });
 
       if (error) throw error;
-      setSuccessMessage('Reklam bağlantısı başarıyla güncellendi!');
+      setSuccessMessage('Tüm ayarlar başarıyla güncellendi!');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
       console.error('Ayarlar kaydedilirken hata oluştu:', error);
@@ -82,17 +88,18 @@ export default function Settings() {
           <div className="p-6 border-b border-border bg-muted/30">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <SettingsIcon className="w-5 h-5 text-primary" />
-              Sponsor / Reklam Yönlendirmesi
+              Sponsor / Reklam Yönetimi
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              "K-Coin Kazan" butonuna basıldığında açılacak hedef bağlantı. (Adsterra, Monetag vb. Direct Link)
+              "K-Coin Kazan" butonuna basıldığında açılacak hedef bağlantıyı ve izleme kapasite kurallarını belirleyin.
             </p>
           </div>
           
           <div className="p-6">
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-6">
+              
               <div className="space-y-2">
-                <label htmlFor="adLink" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <label htmlFor="adLink" className="text-sm font-medium leading-none">
                   Direct Link / Kampanya URL
                 </label>
                 <div className="relative">
@@ -110,6 +117,50 @@ export default function Settings() {
                 <p className="text-[0.8rem] text-muted-foreground">
                   Bu URL, mobil ve web kullanıcılarında "Reklam İzle" butonuna tıklandığında gösterilecek sponsor sayfasını belirler.
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="dailyLimit" className="text-sm font-medium leading-none">
+                    Günlük Reklam Sınırı
+                  </label>
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      id="dailyLimit"
+                      type="number"
+                      min="1"
+                      required
+                      value={dailyLimit}
+                      onChange={(e) => setDailyLimit(parseInt(e.target.value) || 0)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    Bir kullanıcının bir günde izleyebileceği maksimum reklam sayısı.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="cooldownMins" className="text-sm font-medium leading-none">
+                    Reklamlar Arası Bekleme Süresi (Dakika)
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      id="cooldownMins"
+                      type="number"
+                      min="0"
+                      required
+                      value={cooldownMins}
+                      onChange={(e) => setCooldownMins(parseInt(e.target.value) || 0)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    Kullanıcının ard arda reklam izlemesi için araya konan soğutma süresi.
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center gap-4 pt-2">

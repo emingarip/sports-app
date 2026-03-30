@@ -276,4 +276,16 @@ class SupabaseService {
     }
     return null;
   }
+
+  // Check ad eligibility (daily limit, cooldown)
+  Future<Map<String, dynamic>> checkAdEligibility() async {
+    try {
+      final response = await client.rpc('check_ad_eligibility');
+      return response as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error checking ad eligibility: $e');
+      return {'eligible': false, 'reason': 'error'};
+    }
+  }
 }
+
