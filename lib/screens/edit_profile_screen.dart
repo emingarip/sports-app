@@ -127,6 +127,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     if (_selectedImageBytes != null && _selectedImageExt != null) {
+      final oldAvatarUrl = widget.profile.avatarUrl; // Keep a reference to the old URL
+
       final uploadedUrl = await SupabaseService().uploadAvatar(
         widget.profile.id,
         _selectedImageBytes!,
@@ -135,6 +137,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (uploadedUrl != null) {
         newAvatarUrl = uploadedUrl;
         _avatarUrlController.text = uploadedUrl;
+
+        // Cleanup old avatar from bucket asynchronously
+        if (oldAvatarUrl != null && oldAvatarUrl.contains('avatars/')) {
+          final oldFileName = oldAvatarUrl.split('avatars/').last;
+          if (oldFileName.isNotEmpty) {
+            SupabaseService().deleteAvatar(oldFileName);
+          }
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Fotoğraf yüklenemedi. Devam ediliyor...')),

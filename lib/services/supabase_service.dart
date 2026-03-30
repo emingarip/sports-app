@@ -163,6 +163,16 @@ class SupabaseService {
     }
   }
 
+  Future<void> deleteAvatar(String fileName) async {
+    try {
+      if (fileName.isEmpty) return;
+      await client.storage.from('avatars').remove([fileName]);
+      debugPrint('Old avatar deleted successfully: $fileName');
+    } catch (e) {
+      debugPrint('Error deleting old avatar: $e');
+    }
+  }
+
   Future<bool> equipUserFrame(String userId, String? frameCode) async {
     try {
       await client.rpc('equip_user_frame', params: {
