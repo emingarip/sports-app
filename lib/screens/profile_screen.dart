@@ -16,6 +16,7 @@ import 'purchase_history_screen.dart';
 import 'avatar_frames_screen.dart';
 import '../widgets/frame_avatar.dart';
 import '../providers/leaderboard_provider.dart';
+import '../widgets/shimmer_loading.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -85,7 +86,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _buildAppBar(),
               if (_isLoading)
                 SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator(color: context.colors.primary)),
+                  child: const ProfileHeaderShimmer(),
                 )
               else if (_profile == null)
                 const SliverFillRemaining(

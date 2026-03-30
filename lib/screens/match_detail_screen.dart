@@ -19,6 +19,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/tts_service.dart';
 import 'private_chat_screen.dart';
 import '../widgets/frame_avatar.dart';
+import '../widgets/shimmer_loading.dart';
 
 enum MessageType { user, me, systemEvent }
 
@@ -884,7 +885,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with Tick
                 ),
               );
             },
-            loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+            loading: () => const SliverFillRemaining(child: Padding(padding: EdgeInsets.all(16.0), child: ListShimmer(itemCount: 4))),
             error: (e, st) => SliverFillRemaining(child: Center(child: Text('Hata: $e'))),
           ),
         ),

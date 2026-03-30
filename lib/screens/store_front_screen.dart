@@ -7,6 +7,7 @@ import '../models/store_product.dart';
 import '../theme/app_theme.dart';
 import '../services/admob_service.dart';
 import '../services/supabase_service.dart';
+import '../widgets/shimmer_loading.dart';
 
 class StoreFrontScreen extends ConsumerWidget {
   const StoreFrontScreen({super.key});
@@ -85,7 +86,7 @@ class StoreFrontScreen extends ConsumerWidget {
               );
             },
             loading: () => const SliverToBoxAdapter(
-              child: Center(child: CircularProgressIndicator()),
+              child: ListShimmer(itemCount: 3),
             ),
             error: (e, st) => SliverToBoxAdapter(
               child: Center(
@@ -135,10 +136,7 @@ class StoreFrontScreen extends ConsumerWidget {
               );
             },
             loading: () => const SliverToBoxAdapter(
-              child: Center(child: Padding(
-                padding: EdgeInsets.all(24.0),
-                child: CircularProgressIndicator(),
-              )),
+              child: ListShimmer(itemCount: 2),
             ),
             error: (e, st) => SliverToBoxAdapter(
               child: Center(

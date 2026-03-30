@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/prediction_provider.dart';
 import '../providers/wallet_provider.dart';
+import '../widgets/shimmer_loading.dart';
 
 class PredictionMarketScreen extends ConsumerStatefulWidget {
   const PredictionMarketScreen({super.key});
@@ -150,7 +151,7 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
     final activeMarketsAsync = ref.watch(activeMarketsProvider);
     
     return activeMarketsAsync.when(
-      loading: () => Center(child: CircularProgressIndicator(color: context.colors.accent)),
+      loading: () => const ListShimmer(itemCount: 5),
       error: (err, stack) => Center(child: Text('Error: $err', style: TextStyle(color: context.colors.error))),
       data: (predictions) {
         if (predictions.isEmpty) {
@@ -343,7 +344,7 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
     final myBetsAsync = ref.watch(myBetsProvider);
 
     return myBetsAsync.when(
-      loading: () => Center(child: CircularProgressIndicator(color: context.colors.accent)),
+      loading: () => const ListShimmer(itemCount: 5),
       error: (err, stack) => Center(child: Text('Error: $err', style: TextStyle(color: context.colors.error))),
       data: (bets) {
         if (bets.isEmpty) {

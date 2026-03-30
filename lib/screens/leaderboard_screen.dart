@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/leaderboard_provider.dart';
 import '../widgets/frame_avatar.dart';
+import '../widgets/shimmer_loading.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -82,7 +83,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ),
           );
         },
-        loading: () => Center(child: CircularProgressIndicator(color: context.colors.accent)),
+        loading: () => const ListShimmer(itemCount: 7),
         error: (err, stack) => Center(
           child: Text(
             'Could not load leaderboard.\n$err',
