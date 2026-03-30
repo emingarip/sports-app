@@ -54,22 +54,31 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
 
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [maxNodes, setMaxNodes] = useState<number>(40);
+
+  // Keep original data to rebuild graph when filter changes
+  const [rawInterests, setRawInterests] = useState<UserInterest[]>([]);
+  const [rawEvents, setRawEvents] = useState<UserEvent[]>([]);
 
   useEffect(() => {
     fetchData();
   }, [userId]);
 
+  useEffect(() => {
+    if (!loading && (rawInterests.length > 0 || rawEvents.length > 0)) {
+      buildGraph(rawInterests, rawEvents, maxNodes);
+    }
+  }, [maxNodes, loading]); // Rebuild layout if Top N dropdown changes
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch Interests
       const { data: interestsData, error: interestsError } = await supabase.rpc('admin_get_user_interests', {
         target_user_id: userId
       });
       if (interestsError) throw interestsError;
 
-      // Fetch Events
       const { data: eventsData, error: eventsError } = await supabase.rpc('admin_get_user_events', {
         target_user_id: userId
       });
@@ -78,8 +87,10 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
       const interests = interestsData || [] as UserInterest[];
       const events = eventsData || [] as UserEvent[];
 
-      buildGraph(interests, events);
+      setRawInterests(interests);
+      setRawEvents(events);
 
+      buildGraph(interests, events, maxNodes);
     } catch (err: any) {
       console.error('Error fetching knowledge graph data:', err);
       setError(err.message || 'Veri yüklenirken bir hata oluştu.');
@@ -88,7 +99,7 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
     }
   };
 
-  const buildGraph = (interests: UserInterest[], events: UserEvent[]) => {
+  const buildGraph = (interests: UserInterest[], events: UserEvent[], nodeLimit: number) => {
     const initialNodes: Node[] = [];
     const initialEdges: Edge[] = [];
 
@@ -98,7 +109,7 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
       position: { x: 0, y: 0 },
       data: { 
         label: (
-          <div className="flex flex-col items-center justify-center font-bold text-white bg-blue-600 rounded-full w-24 h-24 shadow-lg border-4 border-blue-400">
+          <div className="flex flex-col items-center justify-center font-bold text-white bg-blue-600 rounded-full w-24 h-24 shadow-lg border-4 border-blue-400 z-50 relative">
             <span className="text-2xl mb-1">👑</span>
             <span className="text-xs truncate max-w-[80px] px-1">{username}</span>
           </div>
@@ -119,8 +130,14 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
       }
     });
 
-    const entitiesList = Array.from(entityMap.entries());
-    const radius = Math.max(300, entitiesList.length * 40); 
+    // Make an array and sort by score descending
+    let entitiesList = Array.from(entityMap.entries());
+    entitiesList.sort((a, b) => b[1].score - a[1].score);
+
+    // Apply Node Limit
+    if (nodeLimit !== -1) {
+      entitiesList = entitiesList.slice(0, nodeLimit);
+    }
 
     const eventsPerEntity = new Map<string, string[]>();
     events.forEach(e => {
@@ -131,10 +148,20 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
       eventsPerEntity.set(e.entity_id, list);
     });
 
-    entitiesList.forEach(([entity_id, data], index) => {
-      const angle = (index / (entitiesList.length || 1)) * 2 * Math.PI;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
+    // Spiral Layout Settings
+    let currentAngle = 0;
+    const a = 180; // Starting radius (distance from center node)
+    const b = 40;  // Radius growth per radian
+    const targetArcLength = 220; // Pixels distance between consecutive nodes
+
+    entitiesList.forEach(([entity_id, data]) => {
+      // Calculate position on the spiral
+      const radius = a + b * currentAngle;
+      const x = Math.cos(currentAngle) * radius;
+      const y = Math.sin(currentAngle) * radius;
+      
+      // Calculate angle increment for the next node based on desired arc length
+      currentAngle += targetArcLength / radius;
 
       const recentEvents = eventsPerEntity.get(entity_id) || [];
       const hasEvents = recentEvents.length > 0;
@@ -168,7 +195,7 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
           source: 'center_user',
           target: `entity_${entity_id}`,
           label: `İlgi: ${data.score.toFixed(1)}`,
-          style: { strokeWidth: Math.max(1, Math.min(5, data.score / 5)), stroke: '#3b82f6' },
+          style: { strokeWidth: Math.max(1, Math.min(6, data.score / 3)), stroke: '#3b82f6' },
           markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
           animated: hasEvents,
         });
@@ -201,15 +228,31 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
             </div>
             <div>
               <h2 className="text-xl font-bold">{username} - Knowledge Graph</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">Kullanıcının ilgi alanları ve etkileşim ağı (React Flow)</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Kullanıcının ilgi alanları ve etkileşim ağı</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 mr-[-8px] text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-muted-foreground">Gösterilecek Düğüm Limit:</label>
+              <select 
+                value={maxNodes} 
+                onChange={(e) => setMaxNodes(parseInt(e.target.value))}
+                className="px-3 py-1.5 border border-border rounded-md bg-background text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none"
+              >
+                <option value={20}>En Önemli 20</option>
+                <option value={40}>En Önemli 40</option>
+                <option value={100}>En Önemli 100</option>
+                <option value={-1}>Tümü (Karmaşık Olabilir)</option>
+              </select>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors ml-2"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 relative bg-muted/5">
@@ -230,8 +273,8 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
                 nodes={nodes} 
                 edges={edges} 
                 fitView 
-                fitViewOptions={{ padding: 0.2 }}
-                minZoom={0.1}
+                fitViewOptions={{ padding: 0.1 }}
+                minZoom={0.05}
                 maxZoom={2}
                 nodesDraggable={true}
                 nodesConnectable={false}
