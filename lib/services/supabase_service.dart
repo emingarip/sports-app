@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -132,11 +133,24 @@ class SupabaseService {
   Future<String?> uploadAvatar(String userId, Uint8List imageBytes, String fileExt) async {
     try {
       final fileName = '$userId.${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-      await client.storage.from('avatars').uploadBinary(
-        fileName,
-        imageBytes,
-        fileOptions: FileOptions(contentType: 'image/$fileExt'),
+      
+      // We use raw HTTP POST here instead of client.storage.from(...).uploadBinary(...) 
+      // because the Supabase Dart SDK forces an 'x-upsert' header which triggers 
+      // strict CORS preflight rejections (Failed to fetch) natively on Flutter Web.
+      final url = Uri.parse('https://nigatikzsnxdqdwwqewr.supabase.co/storage/v1/object/avatars/$fileName');
+      
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${client.auth.currentSession?.accessToken}',
+          'Content-Type': 'image/$fileExt',
+        },
+        body: imageBytes,
       );
+
+      if (response.statusCode != 200) {
+        throw Exception('Storage upload failed with code: ${response.statusCode} - ${response.body}');
+      }
       
       final publicUrl = client.storage.from('avatars').getPublicUrl(fileName);
       return publicUrl;
