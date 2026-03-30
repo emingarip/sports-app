@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Users as UsersIcon, Search, ShieldAlert, Edit2, Loader2, Coins } from 'lucide-react';
+import { Users as UsersIcon, Search, ShieldAlert, Edit2, Loader2, Coins, Network } from 'lucide-react';
+import UserKnowledgeModal from '../components/UserKnowledgeModal';
 
 interface UserData {
   id: string;
@@ -23,6 +24,9 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [newBalance, setNewBalance] = useState<number>(0);
   const [saving, setSaving] = useState(false);
+
+  // Knowledge Graph Modal State
+  const [viewingKnowledgeUser, setViewingKnowledgeUser] = useState<{id: string, username: string} | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -198,16 +202,25 @@ export default function Users() {
                       })}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => {
-                          setEditingUser(user);
-                          setNewBalance(user.k_coin_balance || 0);
-                        }}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted text-muted-foreground transition-colors"
-                        title="Bakiyeyi Düzenle"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setViewingKnowledgeUser({ id: user.id, username: user.username })}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors"
+                          title="Knowledge Base (Algoritma)"
+                        >
+                          <Network className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingUser(user);
+                            setNewBalance(user.k_coin_balance || 0);
+                          }}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+                          title="Bakiyeyi Düzenle"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -252,6 +265,15 @@ export default function Users() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Knowledge Graph Modal */}
+      {viewingKnowledgeUser && (
+        <UserKnowledgeModal 
+          userId={viewingKnowledgeUser.id}
+          username={viewingKnowledgeUser.username || 'İsimsiz Oyuncu'}
+          onClose={() => setViewingKnowledgeUser(null)}
+        />
       )}
     </div>
   );
