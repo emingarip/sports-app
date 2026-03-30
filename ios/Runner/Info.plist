@@ -74,5 +74,9 @@
 	<string>Profil fotoğrafınızı seçebilmek veya güncelleyebilmek için galerinize erişim gerekmektedir.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Profil fotoğrafı çekebilmeniz için kameranıza erişim gerekmektedir.</string>
+	
+	<!-- Google Mobile Ads App ID (Test ID) -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 </dict>
 </plist>

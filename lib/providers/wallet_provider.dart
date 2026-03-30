@@ -145,11 +145,23 @@ class WalletBalance extends _$WalletBalance {
         transactionType: 'daily_reward',
         referenceId: 'test_reward',
       );
-      // Eagerly fetch the new balance so the UI updates instantly
       await _fetchInitialBalance();
     } catch (e) {
       if (kDebugMode) print('Reward claim failed: \$e');
       rethrow;
+    }
+  }
+
+  Future<bool> claimAdReward(int amount) async {
+    try {
+      final success = await SupabaseService().rewardUserCoins(amount);
+      if (success) {
+        await _fetchInitialBalance();
+      }
+      return success;
+    } catch (e) {
+      if (kDebugMode) print('Ad Reward claim failed: \$e');
+      return false;
     }
   }
 }

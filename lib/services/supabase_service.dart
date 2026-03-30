@@ -205,6 +205,22 @@ class SupabaseService {
     }
   }
 
+  Future<bool> rewardUserCoins(int amount) async {
+    try {
+      final response = await client.rpc('reward_k_coins', params: {
+        'p_amount': amount,
+      });
+      if (response != null && response is Map && response['success'] == true) {
+        debugPrint("K-Coins rewarded successfully! New balance: \${response['new_balance']}");
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error rewarding K-Coins (RPC): $e');
+      return false;
+    }
+  }
+
   Future<bool> isUsernameAvailable(String username) async {
     try {
       if (username.trim().isEmpty) return false;
@@ -246,5 +262,18 @@ class SupabaseService {
       debugPrint('Error fetching user bets: $e');
       return [];
     }
+  }
+
+  // Retrieves a dynamic app configuration string from the public.app_settings table
+  Future<String?> getAppSetting(String key) async {
+    try {
+      final response = await client.from('app_settings').select('value').eq('key', key).maybeSingle();
+      if (response != null) {
+        return response['value'] as String;
+      }
+    } catch (e) {
+      debugPrint('Error getting setting $key: $e');
+    }
+    return null;
   }
 }

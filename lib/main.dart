@@ -8,10 +8,14 @@ import 'services/supabase_service.dart';
 import 'services/revenuecat_service.dart';
 import 'package:rive/rive.dart' as rive;
 
+
+import 'services/admob_service.dart';
 import 'providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdMobService().initialize();
+  AdMobService().loadRewardedAd();
   await rive.RiveNative.init();
 
   try {

@@ -5,6 +5,7 @@ import '../providers/store_provider.dart';
 import '../models/k_coin_package.dart';
 import '../models/store_product.dart';
 import '../theme/app_theme.dart';
+import '../services/admob_service.dart';
 
 class StoreFrontScreen extends ConsumerWidget {
   const StoreFrontScreen({super.key});
@@ -213,6 +214,57 @@ class StoreFrontScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // ADMOB REWARDED VIDEO BUTTON
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                // Show AdMob Rewarded Ad or Web Interstitial
+                AdMobService().showRewardedAd(
+                  context,
+                  onEarnedReward: () async {
+                    try {
+                      // Attempt to claim 50 coins securely via Supabase RPC
+                      final success = await ref.read(walletBalanceProvider.notifier).claimAdReward(50);
+                      if (success && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Awesome! +50 K-Coins added from Ad.'),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Failed to add coins. Please try again.'),
+                            backgroundColor: context.colors.error,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint('Error handling ad reward UI: \$e');
+                    }
+                  },
+                );
+              },
+              icon: Icon(Icons.play_circle_fill, color: context.colors.primaryContainer, size: 28),
+              label: Text(
+                'Watch Ad (+50 K-Coins)', 
+                style: TextStyle(color: context.colors.textHigh, fontWeight: FontWeight.bold, fontSize: 16)
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: context.colors.primaryContainer, width: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                backgroundColor: context.colors.primaryContainer.withOpacity(0.1),
               ),
             ),
           ),

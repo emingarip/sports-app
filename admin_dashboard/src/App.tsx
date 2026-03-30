@@ -11,6 +11,7 @@ import Matches from './pages/Matches';
 import Bots from './pages/Bots';
 import Announcements from './pages/Announcements';
 import Products from './pages/Products';
+import Settings from './pages/Settings';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -48,6 +49,7 @@ function App() {
           <Route path="bots" element={<Bots />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="products" element={<Products />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </Router>
