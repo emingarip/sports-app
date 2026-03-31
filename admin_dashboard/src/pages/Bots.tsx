@@ -366,7 +366,7 @@ export default function Bots() {
                 ))}
               </tbody>
             </table>
-          )) : (
+          )) : activeTab === 'interactions' ? (
             loadingSuggestions ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 Bekleyen etkileşimler yükleniyor...
