@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Bot, Plus, Search, Edit2, Trash2, Check, X, Users, MessageSquare } from 'lucide-react';
+import { Bot, Plus, Search, Edit2, Trash2, Check, X, Users, MessageSquare, Database } from 'lucide-react';
 
 interface BotPersona {
   id: string;
@@ -34,9 +34,11 @@ export default function Bots() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'bots' | 'interactions'>('bots');
+  const [activeTab, setActiveTab] = useState<'bots' | 'interactions' | 'slang'>('bots');
   const [suggestions, setSuggestions] = useState<BotSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [slangs, setSlangs] = useState<any[]>([]);
+  const [loadingSlangs, setLoadingSlangs] = useState(false);
   const [teams, setTeams] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -53,6 +55,7 @@ export default function Bots() {
   useEffect(() => {
     if (activeTab === 'bots') fetchBots();
     if (activeTab === 'interactions') fetchSuggestions();
+    if (activeTab === 'slang') fetchSlangs();
   }, [activeTab]);
 
   // Handle incoming routing state
@@ -124,6 +127,38 @@ export default function Bots() {
         .eq('id', id);
       if (error) throw error;
       setSuggestions(s => s.filter(x => x.id !== id));
+    } catch (err: any) {
+      alert(`Hata: ${err.message}`);
+    }
+  }
+
+  async function fetchSlangs() {
+    try {
+      setLoadingSlangs(true);
+      const { data, error } = await supabase
+        .from('mackolik_slang_pool')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+      setSlangs(data as any[]);
+    } catch (error) {
+      console.error('Error fetching slangs:', error);
+    } finally {
+      setLoadingSlangs(false);
+    }
+  }
+
+  async function handleDeleteSlang(id: string) {
+    if (!confirm('Bu yorumu havuzdan silmek istediğinize emin misiniz?')) return;
+    try {
+      const { error } = await supabase
+        .from('mackolik_slang_pool')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setSlangs(s => s.filter(x => x.id !== id));
     } catch (err: any) {
       alert(`Hata: ${err.message}`);
     }
@@ -240,6 +275,9 @@ export default function Bots() {
             {suggestions.length > 0 && (
               <span className="ml-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">{suggestions.length}</span>
             )}
+          </button>
+          <button onClick={() => setActiveTab('slang')} className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 ${activeTab === 'slang' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            <Database className="w-4 h-4" /> Mackolik Havuzu
           </button>
         </div>
 
@@ -384,7 +422,58 @@ export default function Bots() {
                 ))}
               </div>
             )
-          )}
+          ) : activeTab === 'slang' ? (
+            loadingSlangs ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Mackolik yorumları yükleniyor...
+              </div>
+            ) : slangs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <Database className="w-16 h-16 mb-4 opacity-50 text-blue-500" />
+                <p>Havuzda hiç yorum yok.</p>
+                <p className="text-sm">Scraper arka planda çalıştıkça burası dolacaktır.</p>
+              </div>
+            ) : (
+             <div className="p-4 overflow-auto h-full"> 
+              <table className="w-full text-sm text-left relative">
+                <thead className="bg-muted/50 text-muted-foreground sticky top-0 uppercase text-xs z-10">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Tarih</th>
+                    <th className="px-6 py-3 font-medium w-3/5">Yorum İçeriği</th>
+                    <th className="px-6 py-3 font-medium">Kaynak (Maç)</th>
+                    <th className="px-6 py-3 text-right font-medium">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {slangs.map((slang) => (
+                    <tr key={slang.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                        {new Date(slang.created_at).toLocaleDateString()} {new Date(slang.created_at).toLocaleTimeString().slice(0,5)}
+                      </td>
+                      <td className="px-6 py-4 font-medium max-w-lg break-words text-foreground">
+                        "{slang.content}"
+                      </td>
+                      <td className="px-6 py-4 text-xs text-muted-foreground max-w-[200px] truncate" title={slang.match_id}>
+                        <a href={slang.match_id} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                           Linke Git
+                        </a>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          onClick={() => handleDeleteSlang(slang.id)}
+                          className="text-muted-foreground hover:text-destructive p-2 transition-colors"
+                          title="Sil"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+            )
+          ) : null}
         </div>
       </div>
 
