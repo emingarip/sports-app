@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { pipeline } from '@xenova/transformers';
+import { runScraper } from './mackolik_scraper.js';
 
 dotenv.config();
 
@@ -255,6 +256,10 @@ const ACTIVE_GAMES = [
 async function runSimulation() {
   console.log("🚀 Simulation Engine Started...");
   
+  // 0. Auto-run Mackolik Scraper on Startup and every 12 hours
+  runScraper();
+  setInterval(runScraper, 1000 * 60 * 60 * 12);
+
   // 1. Chat Simulation Loop (runs every 15 seconds)
   setInterval(simulateLiveChat, 15000);
 
@@ -409,7 +414,28 @@ async function simulateLiveChat() {
         }
       }
 
-      // D. Generate context-aware Chat Message via Gemini/OpenRouter
+      // D. Fetch Mackolik Slang from Pool
+      let slangArr = [];
+      try {
+        const { data: slangs } = await supabase
+          .from('mackolik_slang_pool')
+          .select('content')
+          .limit(100); // We take a recent chunk and randomize
+        
+        if (slangs && slangs.length > 0) {
+            const shuffled = slangs.sort(() => 0.5 - Math.random());
+            const picked = shuffled.slice(0, 5).map(s => `- "${s.content}"`);
+            slangArr = picked;
+        }
+      } catch (e) {
+         console.warn("Slang fetch error:", e);
+      }
+      
+      const slangContext = slangArr.length > 0 
+        ? `\nGERÇEK TARAFTAR ÜSLUBU (BUNLARI TAKLİT ET):\nAşağıda Mackolik'ten alınmış 5 gerçek taraftar yorumu var. Cümle kurarken buradaki kelimeleri, isyanı, sevinci ve sokak ağzını KOPYALA. Sadece eski oyuncu ve takım isimlerini kendi maçındakilere ({home_team} vs {away_team}) uyarla.\n${slangArr.join('\n')}\nAsla kibar veya bot gibi cevap verme!\n` 
+        : "";
+
+      // E. Generate context-aware Chat Message via Gemini/OpenRouter
       const topTopics = [
         "Skorun gidişatı hakkında yorum yap",
         "Kendi takımını öv ve gaza getir",
@@ -432,6 +458,7 @@ Senin tuttuğun takım: ${bot.team}.
 Senin kişiliğin/karakterin: "${bot.persona_prompt}".
       
 ${memoryContext}
+${slangContext}
 
 Bunlar dışında dilersen maç istatistiklerini kontrol etmek için \`get_match_stats\` aracını çağırıp skorun hangi dakikada kaç kaç olduğunu öğrenebilirsin (Argüman olarak maçın ID'si lazım: ${match.id}).
 
