@@ -433,7 +433,7 @@ async function simulateLiveChat() {
       }
       
       const slangContext = slangArr.length > 0 
-        ? `\nGERÇEK TARAFTAR ÜSLUBU (BUNLARI TAKLİT ET):\nAşağıda Mackolik'ten alınmış 5 gerçek taraftar yorumu var. Cümle kurarken buradaki kelimeleri, isyanı, sevinci ve sokak ağzını KOPYALA. Sadece eski oyuncu ve takım isimlerini kendi maçındakilere ({home_team} vs {away_team}) uyarla.\n${slangArr.join('\n')}\nAsla kibar veya bot gibi cevap verme!\n` 
+        ? `\n[TARAFTAR JARGONU VE ÜSLUP İLHAMI ÖRNEKLERİ]\nAşağıdaki mesajlar Mackolik'teki taraftarların jargonunu, konuşma yapısını ve sokak ağzını anlaman için verilmiş STİL ÖRNEKLERİDİR.\nKARIŞTIRMA KESİN KURAL: Bu örneklerdeki spesifik skor, iddaa, takım veya sayı belirten cümleleri (Örn: "Ev alır rahat olun", "Gene 8 olmadı", "X takımı gol atar") SAKIN BİREBİR KOPYALAYIP YAPIŞTIRMA!\nBunları sadece "ruh halini, argosunu, isyanını ve kelime kalıplarını" (örn: 'hoca', 'çöp', 'harbi') kendi özgün cümlene sentezlemek için kullan.\nYazacağın tüm tepki, ŞU ANKİ ${match.home_team} - ${match.away_team} maçının KENDİ skoruna (${match.home_score}-${match.away_score}) tamamen uygun olmak ZORUNDADIR! Mantıksız kopuk laflar etme.\nÖrnek Havuz:\n${slangArr.join('\n')}\n` 
         : "";
 
       // E. Generate context-aware Chat Message via Gemini/OpenRouter
@@ -452,9 +452,9 @@ async function simulateLiveChat() {
       ];
       const randomTopic = topTopics[Math.floor(Math.random() * topTopics.length)];
 
-      const aiPrompt = `
+const aiPrompt = `
 Sen Türkçe konuşan fanatik bir futbol taraftarısın. 
-Şu an canlı bir maç izliyorsun: ${match.home_team} vs ${match.away_team}. Skor: ${match.home_score}-${match.away_score}. Maç dakikası: ${match.minute}.
+Şu an canlı bir maç izliyorsun: ${match.home_team} vs ${match.away_team}. Skor: ${match.home_score}-${match.away_score}. Maç dakikası: ${match.minute}. Yorumun KESİNLİKLE bu skora, bu dakikaya ve gidişata uymalıdır! Maç 0-0 ise "fark oldu", "7-0 biter" veya skorla bağdaşmayan absürt sayılar uydurma.
 Senin tuttuğun takım: ${bot.team}.
 Senin kişiliğin/karakterin: "${bot.persona_prompt}".
       
@@ -471,7 +471,7 @@ Görevlerin:
 2. DİKKAT: Eğer "ODADAKİ SON KONUŞMALAR" kısmında bir kullanıcı ağır küfür, hakaret veya aşırı kaba bir dil kullanıyorsa ANINDA \`ban_user\` aracını çağırarak o kişiyi uzaklaştır. Aracı çağırdıktan sonra sohbete de "Biraz edepli konuş koçum, biletini kestim!" gibi racon kesen, uyarıcı bir mesaj yaz.
 3. Asla robotik veya destan gibi uzun kelimeler kullanma. 'aynn', 'hoca naptın', 'abi', 'harbi' gibi sokak ağzı kullan.
 4. Gerçekçi görünmek için BİLEREK ufak klavye harf hataları yap (typo, ö yerine o, mrb vs.).
-5. ÇOK KISA, genellikle 1-2 kelime veya en fazla 1 kısa cümle yaz. DİKKAT: Ürettiğin cümlenin başına KESİNLİKLE "[isim]:" gibi kendi adını veya başkasının adını YAZMA!
+5. ÇOK KISA, genellikle 1-2 kelime veya en fazla 1 kısa cümle yaz. Skorla çakışan (gerçek skor ${match.home_score}-${match.away_score} iken başka skorlar söyleyen) rastgele yorumlardan kesinlikle sakın! DİKKAT: Ürettiğin cümlenin başına KESİNLİKLE "[isim]:" gibi kendi adını veya başkasının adını YAZMA!
 6. KESİNLİKLE YAPILANDIRILMIŞ BİR JSON CEVABI DÖN! Aşağıdaki formata birebir uy ve dışına hiçbir ekstra metin veya özel tag (Örn: </end_of_turn>) ekleme:
 { "message": "söyleyeceğin söz burada olacak" }
 7. ŞU ANKİ KAFAN / EYLEMİN: "${randomTopic}". DİKKAT: Önce "ODADAKİ SON KONUŞMALAR" kısmına bak. Eğer orada sana veya takımına sataşılmışsa veya devam eden hararetli bir konu varsa onlara yanıt ver (Bağlamı asla görmezden gelme!). Eğer verecek çok özel bir cevabın yoksa, "ŞU ANKİ KAFAN" olarak belirtilen konuya geçiş yap ve bu eylemi gerçekleştir.`;
