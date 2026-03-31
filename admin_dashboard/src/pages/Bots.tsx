@@ -47,6 +47,7 @@ export default function Bots() {
   const [team, setTeam] = useState('');
   const [personaPrompt, setPersonaPrompt] = useState('Sen ateşli bir taraftarsın. Takımına laf söyletmezsin.');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [autoMode, setAutoMode] = useState(true);
 
   // Edit State
   const [selectedBot, setSelectedBot] = useState<BotPersona | null>(null);
@@ -191,17 +192,53 @@ export default function Bots() {
     e.preventDefault();
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-bot-swarm', {
-        body: { count: swarmCount, team, persona_prompt: personaPrompt }
-      });
+      if (autoMode) {
+        // AI Otomatik Üretim Modu (Local Ollama üzerinden)
+        const prompt = `Türkiye Süper Lig veya 1. Lig takımlarından rastgele seçilmiş ${swarmCount} adet farklı futbol taraftarı fiktif "bot" karakteri üret. 
+Her birinin farklı yaşı (15 - 65), cinsiyeti, memleketi, mesleği ve favori takımı (Örn: Galatasaray, Fenerbahçe, Beşiktaş, Trabzonspor, Göztepe, vs.) olsun.
+"persona_prompt" alanına bu demografik özelliklerini ve karakterini (örn: 22 yaşında İzmirli üniversiteli. Holigan ve bol argolu konuşur vs.) Türkçe olarak detaylandır.
+LÜTFEN BANA SADECE GEÇERLİ BİR JSON ARRAY DÖN. Hiçbir açıklama metni veya markdown markdown quote (json) ekleme. Sadece köşeli parantez ile başlayan array: [{"team": "...", "persona_prompt": "..."}]`;
 
-      if (error) throw error;
+        const response = await fetch("http://localhost:11434/api/generate", {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+           body: JSON.stringify({
+             model: "gemma2:2b",
+             prompt,
+             stream: false
+           })
+        });
+        
+        const data = await response.json();
+        let text = data.response.trim();
+        // Temizlik: Markdown bloklarını sil
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const generatedBots = JSON.parse(text);
+
+        let createdCount = 0;
+        for (const b of generatedBots) {
+          if (!b.team || !b.persona_prompt) continue;
+          const { data: resData, error: err } = await supabase.functions.invoke('generate-bot-swarm', {
+            body: { count: 1, team: b.team, persona_prompt: b.persona_prompt }
+          });
+          if (!err && resData?.created_count) {
+             createdCount += resData.created_count;
+          }
+        }
+        alert(`${createdCount} benzersiz bot yapay zeka tarafından tasarlandı ve oluşturuldu!`);
+      } else {
+        // Klasik Manuel Mod
+        const { data, error } = await supabase.functions.invoke('generate-bot-swarm', {
+          body: { count: swarmCount, team, persona_prompt: personaPrompt }
+        });
+        if (error) throw error;
+        alert(`${data.created_count} bot başarıyla oluşturuldu!`);
+      }
       
-      alert(`${data.created_count} bot başarıyla oluşturuldu!`);
       setShowCreateModal(false);
       fetchBots();
     } catch (error: any) {
-      alert(`Hata: ${error.message}`);
+      alert(`Hata: ${error.message} (Yapay zeka üretimi için localhost:11434 Ollama'nın açık olduğuna emin olun)`);
     } finally {
       setIsGenerating(false);
     }
@@ -483,47 +520,63 @@ export default function Bots() {
           <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl overflow-hidden p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold mb-4">Yeni Bot Ordusu Yarat</h3>
             <form onSubmit={handleGenerateSwarm} className="space-y-4">
+              
+              <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg outline outline-1 outline-primary/20 cursor-pointer" onClick={() => setAutoMode(!autoMode)}>
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${autoMode ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                  {autoMode && <Check className="w-3 h-3 text-primary-foreground" />}
+                </div>
+                <div>
+                  <div className="font-semibold text-sm">Ollama AI ile Otomatik Karakter Üret</div>
+                  <div className="text-xs text-muted-foreground">Yaş, memleket ve tutulan takımı yapay zeka tasarlar.</div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Kaç Adet Bot?</label>
                 <input 
                   type="number" 
-                  min="1" max="50"
+                  min="1" max="15"
                   required
                   value={swarmCount}
                   onChange={(e) => setSwarmCount(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Tek seferde en fazla 50 adet yaratılabilir.</p>
+                <p className="text-xs text-muted-foreground mt-1">Yapay zeka üretiminde max 15 önerilir (Timeout önlemi).</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Hangi Takım?</label>
-                <input 
-                  type="text"
-                  list="team-options"
-                  value={team}
-                  onChange={(e) => setTeam(e.target.value)}
-                  placeholder="Takım ara veya listeden seç..."
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-foreground"
-                  required
-                />
-                <datalist id="team-options">
-                  {teams.map((t) => (
-                    <option key={t} value={t} />
-                  ))}
-                </datalist>
-                {teams.length === 0 && <p className="text-xs text-muted-foreground mt-1 text-orange-500">Takımlar yükleniyor...</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Persona Yönergesi</label>
-                <textarea 
-                  required
-                  rows={4}
-                  value={personaPrompt}
-                  onChange={(e) => setPersonaPrompt(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-sm"
-                  placeholder="Botların davranış şeklini anlatın..."
-                />
-              </div>
+
+              {!autoMode && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Hangi Takım?</label>
+                    <input 
+                      type="text"
+                      list="team-options"
+                      value={team}
+                      onChange={(e) => setTeam(e.target.value)}
+                      placeholder="Takım ara veya listeden seç..."
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-foreground"
+                      required={!autoMode}
+                    />
+                    <datalist id="team-options">
+                      {teams.map((t) => (
+                        <option key={t} value={t} />
+                      ))}
+                    </datalist>
+                    {teams.length === 0 && <p className="text-xs text-muted-foreground mt-1 text-orange-500">Takımlar yükleniyor...</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Persona Yönergesi</label>
+                    <textarea 
+                      required={!autoMode}
+                      rows={4}
+                      value={personaPrompt}
+                      onChange={(e) => setPersonaPrompt(e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary text-sm"
+                      placeholder="Botların davranış şeklini anlatın..."
+                    />
+                  </div>
+                </>
+              )}
               <div className="flex justify-end gap-3 pt-4">
                 <button 
                   type="button" 
