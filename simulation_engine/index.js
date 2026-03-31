@@ -420,7 +420,8 @@ async function simulateLiveChat() {
         const { data: slangs } = await supabase
           .from('mackolik_slang_pool')
           .select('content')
-          .limit(100); // We take a recent chunk and randomize
+          .order('id', { ascending: false })
+          .limit(1000); // Fetch a massive chunk from the past days to randomize
         
         if (slangs && slangs.length > 0) {
             const shuffled = slangs.sort(() => 0.5 - Math.random());

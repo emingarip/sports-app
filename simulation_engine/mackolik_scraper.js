@@ -47,8 +47,8 @@ async function runScraper() {
             return links.map(l => l.href).filter(href => !href.includes('/forum') && !href.includes('/kadro'));
         });
 
-        // Deduplicate and get top matches
-        let uniqueMatches = [...new Set(matchLinks)].slice(0, 5);
+        // Deduplicate and get top matches (Fetch up to 30 matches to get backlogged data)
+        let uniqueMatches = [...new Set(matchLinks)].slice(0, 30);
         
         if (uniqueMatches.length === 0) {
             console.log("No dynamic matches found. Using fallback legendary derbies...");
@@ -72,6 +72,12 @@ async function runScraper() {
             try {
                 await page.goto(forumUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
                 await delay(4000);
+
+                // Scroll to load older comments from backlog
+                for (let i = 0; i < 3; i++) {
+                    await page.evaluate(() => window.scrollBy(0, document.body.scrollHeight));
+                    await delay(2000);
+                }
 
                 // Extract comments via specific class without the author
                 const rawTexts = await page.evaluate(() => {

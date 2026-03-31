@@ -139,7 +139,7 @@ export default function Bots() {
         .from('mackolik_slang_pool')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(600);
 
       if (error) throw error;
       setSlangs(data as any[]);
