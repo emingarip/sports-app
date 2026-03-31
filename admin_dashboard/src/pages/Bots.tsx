@@ -48,6 +48,7 @@ export default function Bots() {
   const [personaPrompt, setPersonaPrompt] = useState('Sen ateşli bir taraftarsın. Takımına laf söyletmezsin.');
   const [isGenerating, setIsGenerating] = useState(false);
   const [autoMode, setAutoMode] = useState(true);
+  const [ollamaModel, setOllamaModel] = useState('gemma2:2b');
 
   // Edit State
   const [selectedBot, setSelectedBot] = useState<BotPersona | null>(null);
@@ -203,17 +204,31 @@ LÜTFEN BANA SADECE GEÇERLİ BİR JSON ARRAY DÖN. Hiçbir açıklama metni vey
            method: "POST",
            headers: { "Content-Type": "application/json" },
            body: JSON.stringify({
-             model: "gemma2:2b",
+             model: ollamaModel,
              prompt,
              stream: false
            })
         });
         
         const data = await response.json();
+        
+        if (data.error) {
+           throw new Error(`Ollama Hatası: ${data.error}`);
+        }
+        
+        if (!data.response) {
+           throw new Error("Ollama'dan boş (undefined) yanıt döndü.");
+        }
+
         let text = data.response.trim();
         // Temizlik: Markdown bloklarını sil
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const generatedBots = JSON.parse(text);
+        let generatedBots = [];
+        try {
+           generatedBots = JSON.parse(text);
+        } catch(err) {
+           throw new Error(`Ollama geçersiz bir JSON döndürdü. Lütfen tekrar deneyin. Gelen yanıt: ${text.substring(0,50)}...`);
+        }
 
         let createdCount = 0;
         for (const b of generatedBots) {
@@ -543,6 +558,21 @@ LÜTFEN BANA SADECE GEÇERLİ BİR JSON ARRAY DÖN. Hiçbir açıklama metni vey
                 />
                 <p className="text-xs text-muted-foreground mt-1">Yapay zeka üretiminde max 15 önerilir (Timeout önlemi).</p>
               </div>
+
+              {autoMode && (
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Ollama Model Adı</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={ollamaModel}
+                    onChange={(e) => setOllamaModel(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary"
+                    placeholder="örn: gemma2:2b, llama3..."
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Bilgisayarınıza inik bir Ollama modelini yazın.</p>
+                </div>
+              )}
 
               {!autoMode && (
                 <>
