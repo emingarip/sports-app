@@ -62,11 +62,17 @@ async function runScraper() {
         let totalScraped = 0;
 
         for (const url of uniqueMatches) {
-            // Convert /mac/teamA-vs-teamB/id to /mac/teamA-vs-teamB/forum/id
+            // Ensure we strictly construct /mac/{slug}/forum/{id}
             const cleanUrl = url.endsWith('/') ? url.slice(0, -1) : url;
             const parts = cleanUrl.split('/');
             const id = parts.pop();
-            const forumUrl = [...parts, 'forum', id].join('/');
+            
+            const macIndex = parts.indexOf('mac');
+            if (macIndex === -1 || !parts[macIndex + 1]) continue;
+            
+            const matchSlug = parts[macIndex + 1];
+            const baseUrl = parts.slice(0, macIndex + 1).join('/');
+            const forumUrl = `${baseUrl}/${matchSlug}/forum/${id}`;
 
             console.log(`\nVisiting: ${forumUrl}`);
             try {
