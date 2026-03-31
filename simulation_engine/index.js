@@ -433,7 +433,7 @@ async function simulateLiveChat() {
       }
       
       const slangContext = slangArr.length > 0 
-        ? `\n[TARAFTAR JARGONU VE ÜSLUP İLHAMI ÖRNEKLERİ]\nAşağıdaki mesajlar Mackolik'teki taraftarların jargonunu, konuşma yapısını ve sokak ağzını anlaman için verilmiş STİL ÖRNEKLERİDİR.\nKARIŞTIRMA KESİN KURAL: Bu örneklerdeki spesifik skor, iddaa, takım veya sayı belirten cümleleri (Örn: "Ev alır rahat olun", "Gene 8 olmadı", "X takımı gol atar") SAKIN BİREBİR KOPYALAYIP YAPIŞTIRMA!\nBunları sadece "ruh halini, argosunu, isyanını ve kelime kalıplarını" (örn: 'hoca', 'çöp', 'harbi') kendi özgün cümlene sentezlemek için kullan.\nYazacağın tüm tepki, ŞU ANKİ ${match.home_team} - ${match.away_team} maçının KENDİ skoruna (${match.home_score}-${match.away_score}) tamamen uygun olmak ZORUNDADIR! Mantıksız kopuk laflar etme.\nÖrnek Havuz:\n${slangArr.join('\n')}\n` 
+        ? `\n[ZORUNLU MACKOLİK TARAFTAR AĞZI]\nAşağıdaki listelenen yorumlar Mackolik uygulamasından toplanmıştır. GÖREVİN: Cümle kurarken BURADAKİ AĞZI, KELİMELERİ VE TAVRI KESİNLİKLE KULLANMAKTIR.\nKURAL: Sadece bu örneklerde geçen spesifik SKOR, İDDAA (örn: üst biter, ev alır) veya İLGİSİZ TAKIM İSİMLERİNİ kullanma! Bunun yerine o cümlelerdeki SOKAK ARGOSUNU, İSYANI ve KÜFÜRSÜZ HOLİGANLIĞI kendi şu anki ${match.home_score}-${match.away_score} skoruna uyarlayarak birebir kullanacaksın.\nÖrnek Mackolik Havuzu:\n${slangArr.join('\n')}\n` 
         : "";
 
       // E. Generate context-aware Chat Message via Gemini/OpenRouter
@@ -469,7 +469,7 @@ ${chatHistoryContext}
 Görevlerin:
 1. Odadaki sohbete dahil ol. Gerekirse yukarıda konuşan kullanıcılara "@kullaniciadi" yazarak cevap ver, onlara sataş veya hak ver. Küfür etme ama trübün argosu serbest.
 2. DİKKAT: Eğer "ODADAKİ SON KONUŞMALAR" kısmında bir kullanıcı ağır küfür, hakaret veya aşırı kaba bir dil kullanıyorsa ANINDA \`ban_user\` aracını çağırarak o kişiyi uzaklaştır. Aracı çağırdıktan sonra sohbete de "Biraz edepli konuş koçum, biletini kestim!" gibi racon kesen, uyarıcı bir mesaj yaz.
-3. Asla robotik veya destan gibi uzun kelimeler kullanma. 'aynn', 'hoca naptın', 'abi', 'harbi' gibi sokak ağzı kullan.
+3. Cümleni kurarken mutlaka [ZORUNLU MACKOLİK TARAFTAR AĞZI] bölümündeki örneklerden kelimeler, tavırlar veya kalıplar ÇAL, ancak maç skoruna (${match.home_score}-${match.away_score}) sadık kal.
 4. Gerçekçi görünmek için BİLEREK ufak klavye harf hataları yap (typo, ö yerine o, mrb vs.).
 5. ÇOK KISA, genellikle 1-2 kelime veya en fazla 1 kısa cümle yaz. Skorla çakışan (gerçek skor ${match.home_score}-${match.away_score} iken başka skorlar söyleyen) rastgele yorumlardan kesinlikle sakın! DİKKAT: Ürettiğin cümlenin başına KESİNLİKLE "[isim]:" gibi kendi adını veya başkasının adını YAZMA!
 6. KESİNLİKLE YAPILANDIRILMIŞ BİR JSON CEVABI DÖN! Aşağıdaki formata birebir uy ve dışına hiçbir ekstra metin veya özel tag (Örn: </end_of_turn>) ekleme:
