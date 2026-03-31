@@ -43,7 +43,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   final Set<String> _expandedLeagues = {};
   bool _hasInitializedExpansion = false;
   late final PageController _pageController;
-  
+
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
   RealtimeChannel? _onlinePresenceChannel;
@@ -64,15 +64,16 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
     _initDeepLinks();
     _fetchProfile();
-    
+
     // Track global online user présence
     try {
       _onlinePresenceChannel = Supabase.instance.client.channel('online_users');
       _onlinePresenceChannel?.subscribe((status, [error]) async {
         if (status == RealtimeSubscribeStatus.subscribed) {
-          final userId = Supabase.instance.client.auth.currentUser?.id ?? 'anonymous_${DateTime.now().millisecondsSinceEpoch}';
+          final userId = Supabase.instance.client.auth.currentUser?.id ??
+              'anonymous_${DateTime.now().millisecondsSinceEpoch}';
           await _onlinePresenceChannel?.track({
-            'user_id': userId, 
+            'user_id': userId,
             'online_at': DateTime.now().toIso8601String()
           });
         }
@@ -100,7 +101,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
   Future<void> _initDeepLinks() async {
     _appLinks = AppLinks();
-    
+
     // Check initial link if app was cold-started
     try {
       final initialUri = await _appLinks.getInitialLink();
@@ -128,16 +129,17 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       roomName = uri.queryParameters['room'];
       pinCode = uri.queryParameters['pin'];
     }
-      
+
     if (roomName != null && mounted) {
       // Auto join the room utilizing the PIN from link
       ref.read(voiceRoomProvider.notifier).joinRoom(
-        roomName,
-        isPrivate: pinCode != null,
-        pinCode: pinCode,
-        forceIsHost: false,
-      );
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+            roomName,
+            isPrivate: pinCode != null,
+            pinCode: pinCode,
+            forceIsHost: false,
+          );
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
     }
   }
 
@@ -301,7 +303,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       slivers.add(LeagueGroup(
         league: league,
         matches: matches,
-        isExpanded: matchState.statusFilter != StatusFilter.all || matchState.isStarredFilter ||
+        isExpanded: matchState.statusFilter != StatusFilter.all ||
+            matchState.isStarredFilter ||
             _expandedLeagues.contains(league.id),
         onToggle: () {
           setState(() {
@@ -360,7 +363,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           _expandedLeagues.clear();
           final allMatches = ref.read(matchStateProvider).matches;
           _expandedLeagues.addAll(
-            allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
+              allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
         });
       }
     });
@@ -442,7 +445,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   }
                 },
                 child: NestedScrollView(
-                  headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+                  headerSliverBuilder:
+                      (BuildContext context, bool innerBoxIsScrolled) {
                     return <Widget>[
                       _buildAppBar(context),
                       _buildStickyContext(context),
@@ -452,7 +456,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     controller: _pageController,
                     onPageChanged: (index) {
                       if (index == 1) {
-                        ref.read(knowledgeGraphProvider.notifier).calculatePersonalizedFeed();
+                        ref
+                            .read(knowledgeGraphProvider.notifier)
+                            .calculatePersonalizedFeed();
                       }
                     },
                     children: [
@@ -466,7 +472,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                             ),
                           ),
                           if (featured != null &&
-                              statusFilter == StatusFilter.all && !isStarredFilter)
+                              statusFilter == StatusFilter.all &&
+                              !isStarredFilter)
                             SliverPadding(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16.0, vertical: 8.0),
@@ -474,7 +481,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                   child: _buildFeaturedMatchCard(featured)),
                             ),
                           ..._buildLeagueSlivers(),
-                          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                          const SliverToBoxAdapter(
+                              child: SizedBox(height: 120)),
                         ],
                       ),
                       // Page 1: Senin İçin ✨ Feed
@@ -494,18 +502,16 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
   Widget _buildPersonalizedFeed() {
     final personalizedList = ref.watch(personalizedMatchesProvider);
-    
+
     if (personalizedList.isEmpty) {
-      return CustomScrollView(
-        slivers: [
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(top: 40),
-              child: EmptyState(message: "Sana özel öneriler oluşturuluyor... Bol bol maç incele!"),
-            ),
-          )
-        ]
-      );
+      return CustomScrollView(slivers: [
+        const SliverPadding(
+          padding: EdgeInsets.only(top: 40),
+          sliver: EmptyState(
+              message:
+                  "Sana özel öneriler oluşturuluyor... Bol bol maç incele!"),
+        )
+      ]);
     }
 
     return CustomScrollView(
@@ -518,20 +524,21 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: context.colors.primary, size: 20),
+                    Icon(Icons.auto_awesome,
+                        color: context.colors.primary, size: 20),
                     const SizedBox(width: 8),
-                    Text("Senin İçin", 
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: context.colors.textHigh,
-                      )
-                    ),
+                    Text("Senin İçin",
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: context.colors.textHigh,
+                            )),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text("İlgilendiğin maçlara göre yapay zeka tarafından senin için seçildi.", 
-                  style: TextStyle(fontSize: 12, color: context.colors.textMedium)
-                ),
+                Text(
+                    "İlgilendiğin maçlara göre yapay zeka tarafından senin için seçildi.",
+                    style: TextStyle(
+                        fontSize: 12, color: context.colors.textMedium)),
               ],
             ),
           ),
@@ -549,7 +556,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                         color: context.colors.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: context.colors.primary.withValues(alpha: 0.3)), // Special border for AI recs
+                            color: context.colors.primary.withValues(
+                                alpha: 0.3)), // Special border for AI recs
                       ),
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,12 +584,14 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis),
                                   ),
-                                  Icon(Icons.auto_awesome, size: 12, color: context.colors.primary),
+                                  Icon(Icons.auto_awesome,
+                                      size: 12, color: context.colors.primary),
                                   const SizedBox(width: 4),
-                                  Text("Önerilen", style: TextStyle(
-                                      fontSize: 10,
-                                      color: context.colors.primary,
-                                      fontWeight: FontWeight.bold)),
+                                  Text("Önerilen",
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: context.colors.primary,
+                                          fontWeight: FontWeight.bold)),
                                 ])),
                             MatchCard(match: match, hasBorder: false),
                           ])),
@@ -631,8 +641,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 : CircleAvatar(
                     backgroundColor: context.colors.surfaceContainer,
                     radius: 18,
-                    child:
-                        Icon(Icons.person, color: context.colors.textMedium, size: 20),
+                    child: Icon(Icons.person,
+                        color: context.colors.textMedium, size: 20),
                   ),
           ),
           const SizedBox(width: 8),
@@ -659,7 +669,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               );
             }),
         IconButton(
-          icon: Icon(Icons.mark_chat_unread_outlined, color: context.colors.textMedium),
+          icon: Icon(Icons.mark_chat_unread_outlined,
+              color: context.colors.textMedium),
           onPressed: () {
             Navigator.push(
               context,
@@ -944,7 +955,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 height: 6.0,
                 width: isSelected ? 24.0 : 6.0,
                 decoration: BoxDecoration(
-                  color: isSelected ? context.colors.primary : context.colors.textLow.withValues(alpha: 0.3),
+                  color: isSelected
+                      ? context.colors.primary
+                      : context.colors.textLow.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(3.0),
                 ),
               );

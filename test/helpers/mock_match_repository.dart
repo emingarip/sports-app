@@ -6,7 +6,8 @@ import 'package:sports_app/data/repositories/match_repository.dart';
 /// No Supabase connection required.
 class MockMatchRepository implements MatchRepository {
   List<Match> _matches;
-  final StreamController<List<Match>> _controller = StreamController<List<Match>>.broadcast();
+  final StreamController<List<Match>> _controller =
+      StreamController<List<Match>>.broadcast();
 
   MockMatchRepository({List<Match>? initialMatches})
       : _matches = initialMatches ?? [];
@@ -27,7 +28,7 @@ class MockMatchRepository implements MatchRepository {
   Future<List<Match>> getMatches() async => _matches;
 
   @override
-  Stream<List<Match>> getMatchesStream() {
+  Stream<List<Match>> getMatchesStream(DateTime date) {
     // Emit current state immediately, then listen for updates
     Future.microtask(() => _controller.add(_matches));
     return _controller.stream;
@@ -45,11 +46,12 @@ class MockMatchRepository implements MatchRepository {
       return _matches;
     }
     final lowerCaseQuery = query.toLowerCase();
-    return _matches.where((match) =>
-        match.homeTeam.toLowerCase().contains(lowerCaseQuery) ||
-        match.awayTeam.toLowerCase().contains(lowerCaseQuery) ||
-        (match.leagueName?.toLowerCase().contains(lowerCaseQuery) ?? false)
-    ).toList();
+    return _matches
+        .where((match) =>
+            match.homeTeam.toLowerCase().contains(lowerCaseQuery) ||
+            match.awayTeam.toLowerCase().contains(lowerCaseQuery) ||
+            (match.leagueName?.toLowerCase().contains(lowerCaseQuery) ?? false))
+        .toList();
   }
 
   void dispose() {

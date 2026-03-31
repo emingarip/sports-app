@@ -26,9 +26,13 @@ class SupabaseMatchProvider implements MatchRepository {
       leagueLogoUrl: data['league_logo_url'],
       homeTeam: data['home_team'],
       awayTeam: data['away_team'],
-      homeLogo: data['home_logo_url'] ?? 'https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png',
-      awayLogo: data['away_logo_url'] ?? 'https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/1200px-Chelsea_FC.svg.png',
-      startTime: data['started_at'] != null ? DateTime.parse(data['started_at']) : DateTime.now(),
+      homeLogo: data['home_logo_url'] ??
+          'https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png',
+      awayLogo: data['away_logo_url'] ??
+          'https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/1200px-Chelsea_FC.svg.png',
+      startTime: data['started_at'] != null
+          ? DateTime.parse(data['started_at'])
+          : DateTime.now(),
       status: status,
       homeScore: data['home_score']?.toString(),
       awayScore: data['away_score']?.toString(),
@@ -42,23 +46,36 @@ class SupabaseMatchProvider implements MatchRepository {
         .from('matches')
         .select('*')
         .order('started_at', ascending: false);
-    
+
     return (response as List<dynamic>).map((data) => _mapMatch(data)).toList();
   }
 
   @override
-  Stream<List<model.Match>> getMatchesStream() {
-    // Calculate a start date of 2 days ago to ensure we capture recent finished matches
-    // while preventing the stream from hitting the 1000 row PostgREST limit on historical data.
-    final pastDate = DateTime.now().subtract(const Duration(days: 2)).toUtc();
-    final startCutoff = DateTime.utc(pastDate.year, pastDate.month, pastDate.day).toIso8601String();
+  Stream<List<model.Match>> getMatchesStream(DateTime date) {
+    // Determine the exact bounds of the user's requested local day in UTC.
+    // We expand 'startOfDay' back by 12 hours so we don't accidentally cut off matches
+    // that started late "yesterday" but are still 'live' today across midnight.
+    final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0)
+        .subtract(const Duration(hours: 12))
+        .toUtc()
+        .toIso8601String();
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59)
+        .toUtc()
+        .toIso8601String();
 
     return _client
         .from('matches')
         .stream(primaryKey: ['id'])
-        .gte('started_at', startCutoff)
+        .gte('started_at', startOfDay)
         .order('started_at', ascending: true)
-        .map((events) => events.map((data) => _mapMatch(data)).toList());
+        .map((events) {
+          // Apply the upper-bound filter client-side to strip matches beyond endOfDay
+          return events
+              .where((data) =>
+                  (data['started_at'] as String).compareTo(endOfDay) <= 0)
+              .map((data) => _mapMatch(data))
+              .toList();
+        });
   }
 
   @override
@@ -89,7 +106,7 @@ class SupabaseMatchProvider implements MatchRepository {
         .or('home_team.ilike.%$query%,away_team.ilike.%$query%,league_name.ilike.%$query%')
         .order('started_at', ascending: false)
         .limit(50);
-        
+
     return (response as List<dynamic>).map((data) => _mapMatch(data)).toList();
   }
 }

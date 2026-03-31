@@ -13,15 +13,22 @@ class ChatService {
         .order('created_at', ascending: true)
         .asyncMap((data) async {
           // Because stream() doesn't support joins natively in Supabase flutter,
-          // we should ideally fetch users here or just use a view. 
+          // we should ideally fetch users here or just use a view.
           // For simplicity, let's fetch the relevant user details for the new messages.
           if (data.isEmpty) return [];
-          
-          final userIds = data.map((d) => d['user_id']).where((id) => id != null).toSet().toList();
+
+          final userIds = data
+              .map((d) => d['user_id'])
+              .where((id) => id != null)
+              .toSet()
+              .toList();
           Map<String, dynamic> userMap = {};
-          
+
           if (userIds.isNotEmpty) {
-            final usersRes = await _client.from('users').select('id, username, avatar_url, is_bot, active_frame').inFilter('id', userIds);
+            final usersRes = await _client
+                .from('users')
+                .select('id, username, avatar_url, is_bot, active_frame')
+                .inFilter('id', userIds);
             for (var u in usersRes) {
               userMap[u['id']] = u;
             }
@@ -29,17 +36,22 @@ class ChatService {
 
           return data.map((json) {
             final isMe = json['user_id'] == _client.auth.currentUser?.id;
-            
+
             // Format time from timestamp
             final createdAt = DateTime.parse(json['created_at']).toLocal();
-            final timeStr = '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
+            final timeStr =
+                '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
 
             final uId = json['user_id'];
             final uData = userMap[uId] ?? {};
-            
+
             return ChatMessage(
               id: json['id'] ?? '',
-              type: isMe ? MessageType.me : (json['type'] == 'system_event' ? MessageType.systemEvent : MessageType.user),
+              type: isMe
+                  ? MessageType.me
+                  : (json['type'] == 'system_event'
+                      ? MessageType.systemEvent
+                      : MessageType.user),
               text: json['message'],
               username: uData['username'] ?? (isMe ? 'You' : 'Fan'),
               time: timeStr,
@@ -47,12 +59,21 @@ class ChatService {
               avatarUrl: uData['avatar_url'],
               activeFrame: uData['active_frame'],
               isBot: uData['is_bot'] == true,
+              replyToId: json['reply_to_id'],
+              replyToUsername: json['reply_to_username'],
+              replyToText: json['reply_to_text'],
             );
           }).toList();
         });
   }
 
-  Future<void> sendMessage(String matchId, String text) async {
+  Future<void> sendMessage(
+    String matchId,
+    String text, {
+    String? replyToId,
+    String? replyToUsername,
+    String? replyToText,
+  }) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not logged in');
 
@@ -60,6 +81,9 @@ class ChatService {
       'match_id': matchId,
       'user_id': user.id,
       'message': text,
+      if (replyToId != null) 'reply_to_id': replyToId,
+      if (replyToUsername != null) 'reply_to_username': replyToUsername,
+      if (replyToText != null) 'reply_to_text': replyToText,
     });
   }
 
@@ -70,8 +94,12 @@ class ChatService {
     if (myId == otherUserId) throw Exception('Cannot chat with yourself');
 
     // 1. Find rooms I am in
-    final myRoomsRes = await _client.from('chat_participants').select('room_id').eq('user_id', myId);
-    final myRoomIds = (myRoomsRes as List).map((r) => r['room_id'] as String).toList();
+    final myRoomsRes = await _client
+        .from('chat_participants')
+        .select('room_id')
+        .eq('user_id', myId);
+    final myRoomIds =
+        (myRoomsRes as List).map((r) => r['room_id'] as String).toList();
 
     if (myRoomIds.isNotEmpty) {
       // 2. See if the other user is in any of these rooms
@@ -89,7 +117,8 @@ class ChatService {
     }
 
     // 3. If no shared room, create a new one
-    final newRoomRes = await _client.from('chat_rooms').insert({}).select('id').single();
+    final newRoomRes =
+        await _client.from('chat_rooms').insert({}).select('id').single();
     final newRoomId = newRoomRes['id'] as String;
 
     // 4. Add both participants

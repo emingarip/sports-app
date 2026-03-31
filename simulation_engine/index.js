@@ -18,11 +18,221 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-lite-preview-02-05:free";
+const LLM_PROVIDER = process.env.LLM_PROVIDER || "openrouter"; // 'openrouter' veya 'ollama'
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "gemma2:2b";
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !OPENROUTER_API_KEY) {
-  console.error("Missing environment variables. Please check your .env file.");
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error("Missing SUPABASE environment variables.");
   process.exit(1);
 }
+
+// ----------------------------------------------------------------------
+// BOT TOOLS (Function Calling)
+// ----------------------------------------------------------------------
+const botTools = [
+  {
+    type: "function",
+    function: {
+      name: "get_match_stats",
+      description: "Get real-time live statistics (score, current minute) for a specific match ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          match_id: { type: "string", description: "The unique ID of the match to check." }
+        },
+        required: ["match_id"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "ban_user",
+      description: "Ban a user from the platform if they use heavy profanity, swear violently, or severely insult someone in the chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          username: { type: "string", description: "The exact username of the human who swore." },
+          reason: { type: "string", description: "A short reason for the ban." }
+        },
+        required: ["username", "reason"]
+      }
+    }
+  }
+];
+
+const toolHandlers = {
+  get_match_stats: async (args) => {
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('home_team, away_team, home_score, away_score, minute, status')
+        .eq('id', args.match_id)
+        .single();
+      if (error || !data) return JSON.stringify({ error: "Match not found or offline" });
+      
+      return JSON.stringify({
+        home_team: data.home_team,
+        away_team: data.away_team,
+        score: `${data.home_score} - ${data.away_score}`,
+        minute: data.minute || "Unknown",
+        status: data.status
+      });
+    } catch(e) {
+      return JSON.stringify({ error: e.message });
+    }
+  },
+  ban_user: async (args) => {
+    try {
+      // Remove any hallucinated brackets the LLM might have sent (e.g., '[eg]' -> 'eg')
+      let cleanUsername = args.username.replace(/[\[\]\s]/g, "");
+
+      const { data: user, error: uErr } = await supabase
+        .from('users')
+        .select('id, is_bot, is_banned')
+        .ilike('username', cleanUsername)
+        .single();
+        
+      if (uErr || !user) return JSON.stringify({ error: `User ${cleanUsername} not found.` });
+      
+      if (user.is_bot) return JSON.stringify({ error: `You cannot ban another bot.` });
+      
+      if (user.is_banned) return JSON.stringify({ error: `User is already banned. Do not say you banned them again.` });
+      
+      const { error: banErr } = await supabase
+        .from('users')
+        .update({ is_banned: true })
+        .eq('id', user.id);
+        
+      if (banErr) return JSON.stringify({ error: `Failed to ban user: ${banErr.message}` });
+      
+      return JSON.stringify({ success: true, message: `User ${cleanUsername} has been successfully banned for: ${args.reason}. Now write a cool response letting everyone know you cut their ticket.` });
+    } catch(e) {
+      return JSON.stringify({ error: e.message });
+    }
+  }
+};
+
+// ----------------------------------------------------------------------
+// UNIFIED LLM HELPER (Supports OpenRouter, Ollama & Tool Calling Loop)
+// ----------------------------------------------------------------------
+async function callLLM(aiPrompt, fallbackModel = null, extraParams = {}) {
+  const isOllama = LLM_PROVIDER === 'ollama';
+  const url = isOllama ? `${OLLAMA_BASE_URL}/api/chat` : "https://openrouter.ai/api/v1/chat/completions";
+  const model = isOllama ? OLLAMA_MODEL : OPENROUTER_MODEL;
+
+  let messages = Array.isArray(aiPrompt) ? [...aiPrompt] : [{ role: "user", content: aiPrompt }];
+  let maxToolLoops = 3;
+  let loopCount = 0;
+
+  const headers = { "Content-Type": "application/json" };
+  if (!isOllama) {
+    if (!OPENROUTER_API_KEY) {
+      console.warn("[WARN] OPENROUTER_API_KEY is missing but provider is openrouter!");
+    } else {
+      headers["Authorization"] = `Bearer ${OPENROUTER_API_KEY}`;
+    }
+  }
+
+  while (loopCount < maxToolLoops) {
+    loopCount++;
+
+    let payload;
+    if (isOllama) {
+      // Ollama Native API format
+      payload = {
+        model: model,
+        messages: messages,
+        stream: false,
+        options: {
+           temperature: extraParams.temperature || 0.8
+        }
+      };
+      if (extraParams.tools) payload.tools = extraParams.tools;
+    } else {
+      // OpenRouter / OpenAI format
+      payload = {
+        model: model,
+        messages: messages,
+        ...extraParams
+      };
+    }
+
+    try {
+      let response = await fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(payload)
+      });
+
+      let result = await response.json();
+      
+      let responseMessage = isOllama ? result.message : result.choices?.[0]?.message;
+      
+      // Auto Fallback Logic only for OpenRouter (simplistic, tries once on initial fail)
+      if (!responseMessage?.content && !responseMessage?.tool_calls && fallbackModel && !isOllama && loopCount === 1) {
+        console.log(`[DEBUG] Primary AI model failed, attempting fallback to ${fallbackModel}.`);
+        payload.model = fallbackModel;
+        response = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
+        result = await response.json();
+        responseMessage = result.choices?.[0]?.message;
+      }
+
+      if (!responseMessage) return "";
+
+      // 1. TOOL CALLING INTERCEPTION
+      if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+        // Log the assistant's intention to call tools
+        messages.push(responseMessage);
+        
+        for (const toolCall of responseMessage.tool_calls) {
+          const functionName = toolCall.function.name;
+          let args = {};
+          if (typeof toolCall.function.arguments === 'string') {
+            try { args = JSON.parse(toolCall.function.arguments); } catch(e){}
+          } else {
+            args = toolCall.function.arguments || {};
+          }
+          
+          console.log(`[🛠️ TOOLS] Bot invoked tool: ${functionName}`, args);
+          
+          let toolResult = JSON.stringify({ error: "Function not mapped globally" });
+          if (toolHandlers[functionName]) {
+            toolResult = await toolHandlers[functionName](args);
+          }
+          
+          // Inject Tool Response logic into context
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id || "ollama-dummy-id", 
+            name: functionName,
+            content: toolResult
+          });
+        }
+        
+        // Loop again so LLM can read the tool output!
+        continue;
+      }
+
+      // 2. STANDARD TEXT RETURN
+      let text = responseMessage.content?.trim() || "";
+      
+      // Strip <think>...</think> tags if they exist (for reasoning models)
+      if (text) {
+        text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      }
+      
+      return text;
+    } catch (err) {
+      console.error(`[LLM Error] (${isOllama ? 'Ollama' : 'OpenRouter'}):`, err.message);
+      return "";
+    }
+  }
+  
+  return ""; // Exceeded max loops
+}
+
 
 // Suppress Supabase Realtime REST fallback deprecation warning to keep terminal clean
 const originalConsoleWarn = console.warn;
@@ -106,27 +316,9 @@ async function handleNewChatMessage(payload) {
     Eğer sıradan veya boş bir mesajsa: "HAYIR"
     `;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        "model": OPENROUTER_MODEL,
-        "messages": [
-          {
-            "role": "user",
-            "content": aiPrompt
-          }
-        ]
-      })
-    });
-
-    const result = await response.json();
-    const aiText = result.choices?.[0]?.message?.content?.trim() || "";
+    const aiText = await callLLM(aiPrompt);
     
-    if (aiText.startsWith("EVET")) {
+    if (aiText && aiText.startsWith("EVET")) {
       const reason = aiText.split('|')[1]?.trim() || "Mesajını çok beğendi.";
 
       // Gerçekçilik için 2 ila 8 saniye bekle
@@ -218,6 +410,21 @@ async function simulateLiveChat() {
       }
 
       // D. Generate context-aware Chat Message via Gemini/OpenRouter
+      const topTopics = [
+        "Skorun gidişatı hakkında yorum yap",
+        "Kendi takımını öv ve gaza getir",
+        "Rakip takımla veya sohbettekilerle dalga geç",
+        "Sadece tutkulu kısa bir amigoluk yap",
+        "Sanki faul/ofsayt olmuş gibi hakeme kız",
+        "Rastgele bir futbolcu/teknik direktör övgüsü yap",
+        "Stresli olduğunu ve maçın gergin geçtiğini söyle",
+        "Tek bir küfürsüz argo kelime yaz (Örn: Çöp, rezalet vs.)",
+        "Maçta gol kaçmış gibi tepki ver (Örn: Ah be nasıl kaçar!)",
+        "Kısa bir 'inşallah yeneriz' tarzı temenni yaz",
+        "Sana laf atanlara doğrudan laf sokarak cevap ver"
+      ];
+      const randomTopic = topTopics[Math.floor(Math.random() * topTopics.length)];
+
       const aiPrompt = `
 Sen Türkçe konuşan fanatik bir futbol taraftarısın. 
 Şu an canlı bir maç izliyorsun: ${match.home_team} vs ${match.away_team}. Skor: ${match.home_score}-${match.away_score}. Maç dakikası: ${match.minute}.
@@ -226,54 +433,53 @@ Senin kişiliğin/karakterin: "${bot.persona_prompt}".
       
 ${memoryContext}
 
+Bunlar dışında dilersen maç istatistiklerini kontrol etmek için \`get_match_stats\` aracını çağırıp skorun hangi dakikada kaç kaç olduğunu öğrenebilirsin (Argüman olarak maçın ID'si lazım: ${match.id}).
+
 ODADAKİ SON KONUŞMALAR:
 ${chatHistoryContext}
 
 Görevlerin:
 1. Odadaki sohbete dahil ol. Gerekirse yukarıda konuşan kullanıcılara "@kullaniciadi" yazarak cevap ver, onlara sataş veya hak ver. Küfür etme ama trübün argosu serbest.
-2. Asla robotik veya destan gibi uzun kelimeler kullanma. 'aynn', 'hoca naptın', 'abi', 'harbi' gibi sokak ağzı kullan.
-3. Gerçekçi görünmek için BİLEREK ufak klavye harf hataları yap (typo, ö yerine o, mrb vs.).
-4. ÇOK KISA, genellikle 1-2 kelime veya en fazla 1 kısa cümle yaz. 
-5. Tırnak işareti, ekstra açıklama vb. kullanmadan direkt vereceğin mesajı yaz.`;
+2. DİKKAT: Eğer "ODADAKİ SON KONUŞMALAR" kısmında bir kullanıcı ağır küfür, hakaret veya aşırı kaba bir dil kullanıyorsa ANINDA \`ban_user\` aracını çağırarak o kişiyi uzaklaştır. Aracı çağırdıktan sonra sohbete de "Biraz edepli konuş koçum, biletini kestim!" gibi racon kesen, uyarıcı bir mesaj yaz.
+3. Asla robotik veya destan gibi uzun kelimeler kullanma. 'aynn', 'hoca naptın', 'abi', 'harbi' gibi sokak ağzı kullan.
+4. Gerçekçi görünmek için BİLEREK ufak klavye harf hataları yap (typo, ö yerine o, mrb vs.).
+5. ÇOK KISA, genellikle 1-2 kelime veya en fazla 1 kısa cümle yaz. DİKKAT: Ürettiğin cümlenin başına KESİNLİKLE "[isim]:" gibi kendi adını veya başkasının adını YAZMA!
+6. KESİNLİKLE YAPILANDIRILMIŞ BİR JSON CEVABI DÖN! Aşağıdaki formata birebir uy ve dışına hiçbir ekstra metin veya özel tag (Örn: </end_of_turn>) ekleme:
+{ "message": "söyleyeceğin söz burada olacak" }
+7. ŞU ANKİ KAFAN / EYLEMİN: "${randomTopic}". DİKKAT: Önce "ODADAKİ SON KONUŞMALAR" kısmına bak. Eğer orada sana veya takımına sataşılmışsa veya devam eden hararetli bir konu varsa onlara yanıt ver (Bağlamı asla görmezden gelme!). Eğer verecek çok özel bir cevabın yoksa, "ŞU ANKİ KAFAN" olarak belirtilen konuya geçiş yap ve bu eylemi gerçekleştir.`;
 
-      let response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          "model": OPENROUTER_MODEL,
-          "messages": [{ "role": "user", "content": aiPrompt }],
-          "reasoning": { "enabled": true }
-        })
+      // DEBUG: Log the generated prompt that is sent to Ollama
+      console.log(`\n\x1b[35m========== 🤖 OLLAMA'YA GİDEN PROMPT (${bot.username}) ==========\x1b[0m\n${aiPrompt}\n\x1b[35m==============================================================\x1b[0m\n`);
+
+      let rawResponse = await callLLM(aiPrompt, "google/gemma-2-9b-it:free", {
+        tools: botTools,
+        reasoning: { enabled: true },
+        temperature: 0.95,
+        top_p: 0.95
       });
-
-      let result = await response.json();
-      let messageContent = result.choices?.[0]?.message?.content?.trim() || "";
       
-      // Fallback mechanism
-      if (!messageContent) {
-        console.log(`[DEBUG] Primary AI model failed, attempting fallback. Error:`, result.error?.message);
-        response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            "model": "google/gemma-2-9b-it:free",
-            "messages": [{ "role": "user", "content": aiPrompt }]
-          })
-        });
-        
-        result = await response.json();
-        messageContent = result.choices?.[0]?.message?.content?.trim() || "";
-        if (!messageContent) {
-            console.log(`[DEBUG] Fallback AI model also failed. Stopping retries for this tick.`);
-            continue;
-        }
+      if (!rawResponse) {
+          console.log(`[DEBUG] AI models completely failed. Stopping retries for this tick.`);
+          continue;
       }
+      
+      // Auto-strip trailing model tokens or XML tags (e.g. </end_of_turn>)
+      let messageContent = rawResponse.replace(/<\/?[^>]+(>|$)/g, "").trim();
+
+      // Try parsing structured JSON out of the response
+      try {
+        const jsonMatch = messageContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.message) {
+            messageContent = parsed.message;
+          }
+        }
+      } catch (e) {
+        // Fallback to stripped raw string if format wasn't JSON
+      }
+
+      if (!messageContent || messageContent.trim() === '') continue;
 
       // E. Insert into DB with Human Typing Delay (2 to 8 seconds)
       const typingDelay = Math.floor(Math.random() * 6000) + 2000;
@@ -482,22 +688,10 @@ async function handleNewPrivateMessage(payload) {
     Lütfen karakterine uygun, samimi ve doğal bir dille kısa ve öz bir cevap ver. Asla bir yapay zeka olduğunu belli etme. Sadece mesaja odaklan.
     `;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_MODEL,
-        messages: [{ role: "user", content: aiPrompt }],
-        max_tokens: 150,
-        temperature: 0.8
-      })
+    let replyText = await callLLM(aiPrompt, null, {
+      max_tokens: 150,
+      temperature: 0.8
     });
-
-    const aiData = await response.json();
-    let replyText = aiData.choices?.[0]?.message?.content?.trim();
 
     if (!replyText) return;
 
