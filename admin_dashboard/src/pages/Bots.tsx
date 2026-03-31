@@ -48,7 +48,7 @@ export default function Bots() {
   const [personaPrompt, setPersonaPrompt] = useState('Sen ateşli bir taraftarsın. Takımına laf söyletmezsin.');
   const [isGenerating, setIsGenerating] = useState(false);
   const [autoMode, setAutoMode] = useState(true);
-  const [ollamaModel, setOllamaModel] = useState('gemma2:2b');
+  const [ollamaModel, setOllamaModel] = useState('orieg/gemma3-tools:12b');
 
   // Edit State
   const [selectedBot, setSelectedBot] = useState<BotPersona | null>(null);
