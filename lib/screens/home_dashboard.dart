@@ -28,6 +28,7 @@ import '../providers/voice_room_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/global_announcement_card.dart';
 import 'inbox_screen.dart';
+import 'package:share_plus/share_plus.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -660,6 +661,18 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         ],
       ),
       actions: [
+        IconButton(
+          icon: Icon(Icons.card_giftcard, color: context.colors.primary),
+          tooltip: 'Davet Et & Kazan',
+          onPressed: () {
+            final userId = Supabase.instance.client.auth.currentUser?.id;
+            if (userId != null) {
+              Share.share(
+                "Velocity Score'a katıl ve anında K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId"
+              );
+            }
+          },
+        ),
         IconButton(
             icon: Icon(Icons.search, color: context.colors.textMedium),
             onPressed: () {

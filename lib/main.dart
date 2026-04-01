@@ -11,6 +11,7 @@ import 'package:rive/rive.dart' as rive;
 
 import 'services/admob_service.dart';
 import 'providers/theme_provider.dart';
+import 'services/deep_link_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ void main() async {
   }
   await SupabaseService.initialize();
   await RevenueCatService.initialize();
+  await DeepLinkService().initialize();
   runApp(const ProviderScope(child: MyApp()));
 }
 

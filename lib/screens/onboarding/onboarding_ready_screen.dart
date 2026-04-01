@@ -9,6 +9,8 @@ import 'components/step_label.dart';
 import 'components/onboarding_bottom_bar.dart';
 import '../main_layout.dart';
 import '../../services/supabase_service.dart';
+import '../../services/deep_link_service.dart';
+import '../../data/repositories/k_coin_repository.dart';
 
 class OnboardingReadyScreen extends ConsumerStatefulWidget {
   const OnboardingReadyScreen({super.key});
@@ -171,6 +173,26 @@ class _OnboardingReadyScreenState extends ConsumerState<OnboardingReadyScreen> w
                   }
 
                   await SupabaseService().completeOnboarding();
+                  
+                  // Process Referral Reward if applicable
+                  final referrerId = await DeepLinkService().getSavedReferrerId();
+                  if (referrerId != null && referrerId.isNotEmpty) {
+                    try {
+                      final currentUser = SupabaseService().getCurrentUser();
+                      if (currentUser != null) {
+                        // The referrer gets the reward for inviting
+                        await KCoinRepository(SupabaseService.client).sendEvent(
+                          referrerId, 
+                          'invite_friend', 
+                          {'invited_user': currentUser.id}
+                        );
+                        debugPrint("Referral friend event triggered for $referrerId!");
+                        await DeepLinkService().clearReferrerId();
+                      }
+                    } catch (e) {
+                      debugPrint("Failed to send referral reward: $e");
+                    }
+                  }
                 } catch (e) {
                   debugPrint("Failed to update onboarding status: $e");
                 }
