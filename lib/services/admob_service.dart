@@ -106,7 +106,7 @@ class _WebAdTimerDialog extends StatefulWidget {
 }
 
 class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
-  int _timeLeft = 15;
+  int _timeLeft = 15; // Set back to 15 in prod
   Timer? _timer;
 
   @override

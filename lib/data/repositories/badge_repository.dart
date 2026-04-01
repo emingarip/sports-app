@@ -8,7 +8,7 @@ class BadgeRepository {
   final String _baseUrl;
 
   BadgeRepository({String? baseUrl})
-      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://10.0.2.2:8080/api/v1';
+      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://10.0.2.2:3000/api/v1';
 
   /// Fetches all badge definitions.
   Future<List<Badge>> getAllBadges() async {

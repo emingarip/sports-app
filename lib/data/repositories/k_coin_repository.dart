@@ -9,7 +9,7 @@ class KCoinRepository {
   final String _baseUrl;
 
   KCoinRepository(this._client, {String? baseUrl})
-      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://10.0.2.2:8080/api/v1';
+      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://10.0.2.2:3000/api/v1';
 
   Future<int> getUserBalance(String userId) async {
     try {
@@ -60,18 +60,6 @@ class KCoinRepository {
       'amount': amount,
       'reference_id': referenceId,
     });
-
-    // Optionally still log to Supabase for historical/receipt purposes
-    try {
-      await _client.from('k_coin_transactions').insert({
-        'user_id': userId,
-        'amount': amount,
-        'transaction_type': transactionType,
-        'reference_id': referenceId,
-      });
-    } catch (_) {
-      // Ignore if it fails, GamificationSystem is the source of truth for the balance
-    }
   }
 
   Future<List<Map<String, dynamic>>> getPurchasingHistory() async {
