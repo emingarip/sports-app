@@ -1,18 +1,25 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../models/k_coin_package.dart';
 
 class KCoinRepository {
   final SupabaseClient _client;
+  final String _baseUrl;
 
-  KCoinRepository(this._client);
+  KCoinRepository(this._client, {String? baseUrl})
+      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://10.0.2.2:8080/api/v1';
 
   Future<int> getUserBalance(String userId) async {
-    final response = await _client
-        .from('users')
-        .select('k_coin_balance')
-        .eq('id', userId)
-        .single();
-    return response['k_coin_balance'] as int? ?? 0;
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/users/$userId'));
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return (json['points'] as num?)?.toInt() ?? 0;
+      }
+    } catch (_) {}
+    return 0;
   }
 
   Future<List<KCoinPackage>> getActivePackages() async {
@@ -25,6 +32,21 @@ class KCoinRepository {
     return (response as List).map((e) => KCoinPackage.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<void> sendEvent(String userId, String eventType, Map<String, dynamic> metadata) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/events'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'event_type': eventType,
+        'metadata': metadata,
+      }),
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to send event to gamification system');
+    }
+  }
+
   Future<void> processTransaction({
     required int amount,
     required String transactionType,
@@ -33,12 +55,23 @@ class KCoinRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not logged in');
 
-    await _client.rpc('process_k_coin_transaction', params: {
-      'p_user_id': userId,
-      'p_amount': amount,
-      'p_transaction_type': transactionType,
-      'p_reference_id': referenceId,
+    // Send Gamification Event for the transaction
+    await sendEvent(userId, transactionType, {
+      'amount': amount,
+      'reference_id': referenceId,
     });
+
+    // Optionally still log to Supabase for historical/receipt purposes
+    try {
+      await _client.from('k_coin_transactions').insert({
+        'user_id': userId,
+        'amount': amount,
+        'transaction_type': transactionType,
+        'reference_id': referenceId,
+      });
+    } catch (_) {
+      // Ignore if it fails, GamificationSystem is the source of truth for the balance
+    }
   }
 
   Future<List<Map<String, dynamic>>> getPurchasingHistory() async {

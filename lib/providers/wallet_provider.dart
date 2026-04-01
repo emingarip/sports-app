@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../data/repositories/k_coin_repository.dart';
 import '../models/k_coin_package.dart';
 import 'package:sports_app/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../services/revenuecat_service.dart';
@@ -46,21 +45,13 @@ Future<List<KCoinPackage>> kCoinPackages(Ref ref) async {
 
 @Riverpod(keepAlive: true)
 class WalletBalance extends _$WalletBalance {
-  RealtimeChannel? _channel;
-
   @override
   int build() {
-    _fetchInitialBalance();
-    _subscribeToWalletChanges();
-    
-    ref.onDispose(() {
-      _channel?.unsubscribe();
-    });
-    
+    refreshBalance();
     return 0; // Default until loaded
   }
 
-  Future<void> _fetchInitialBalance() async {
+  Future<void> refreshBalance() async {
     final user = SupabaseService().getCurrentUser();
     if (user == null) return;
     
@@ -69,33 +60,8 @@ class WalletBalance extends _$WalletBalance {
       final balance = await repo.getUserBalance(user.id);
       state = balance;
     } catch (e) {
-      if (kDebugMode) print('Error fetching balance: \$e');
+      if (kDebugMode) print('Error fetching balance: $e');
     }
-  }
-
-  void _subscribeToWalletChanges() {
-    final user = SupabaseService().getCurrentUser();
-    if (user == null) return;
-
-    final client = SupabaseService.client;
-    _channel = client.channel('public:users:wallet_\${user.id}')
-      .onPostgresChanges(
-        event: PostgresChangeEvent.update,
-        schema: 'public',
-        table: 'users',
-        filter: PostgresChangeFilter(
-          type: PostgresChangeFilterType.eq, 
-          column: 'id', 
-          value: user.id
-        ),
-        callback: (payload) {
-          final newRecord = payload.newRecord;
-          if (newRecord.containsKey('k_coin_balance')) {
-            state = newRecord['k_coin_balance'] as int;
-          }
-        },
-      )
-      .subscribe();
   }
 
   Future<void> purchasePackage(KCoinPackage package) async {
@@ -108,7 +74,7 @@ class WalletBalance extends _$WalletBalance {
           transactionType: 'purchase',
           referenceId: package.id,
         );
-        await _fetchInitialBalance();
+        await refreshBalance();
         return;
       }
 
@@ -129,10 +95,16 @@ class WalletBalance extends _$WalletBalance {
         throw Exception("Purchase was cancelled or failed.");
       }
       
-      // Note: Do NOT manually increment the balance here. 
-      // The Supabase Webhook will securely increment it, and the Realtime _channel listener will automatically update the UI state.
+      // Notify GamificationSystem of the purchase to grant the points
+      final repo = ref.read(kCoinRepositoryProvider);
+      await repo.processTransaction(
+        amount: package.coinAmount, 
+        transactionType: 'purchase',
+        referenceId: package.id,
+      );
+      await refreshBalance();
     } catch (e) {
-      if (kDebugMode) print('Purchase failed: \$e');
+      if (kDebugMode) print('Purchase failed: $e');
       rethrow;
     }
   }
@@ -145,22 +117,25 @@ class WalletBalance extends _$WalletBalance {
         transactionType: 'daily_reward',
         referenceId: 'test_reward',
       );
-      await _fetchInitialBalance();
+      await refreshBalance();
     } catch (e) {
-      if (kDebugMode) print('Reward claim failed: \$e');
+      if (kDebugMode) print('Reward claim failed: $e');
       rethrow;
     }
   }
 
   Future<bool> claimAdReward(int amount) async {
     try {
-      final success = await SupabaseService().rewardUserCoins(amount);
-      if (success) {
-        await _fetchInitialBalance();
-      }
-      return success;
+      final repo = ref.read(kCoinRepositoryProvider);
+      await repo.processTransaction(
+        amount: amount, 
+        transactionType: 'ad_reward',
+        referenceId: 'ad_reward',
+      );
+      await refreshBalance();
+      return true;
     } catch (e) {
-      if (kDebugMode) print('Ad Reward claim failed: \$e');
+      if (kDebugMode) print('Ad Reward claim failed: $e');
       return false;
     }
   }

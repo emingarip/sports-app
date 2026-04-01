@@ -7,7 +7,7 @@ import 'wallet_provider.dart';
 
 /// Provider for the badge repository instance.
 final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
-  return BadgeRepository(SupabaseService.client);
+  return BadgeRepository();
 });
 
 /// State holding both definitions and user progress.
@@ -57,7 +57,7 @@ class BadgeState {
   List<badge_model.Badge> get recentlyUnlocked {
     final unlocked = definitions.where((b) {
       final p = userProgress[b.id];
-      return p != null && p.isUnlocked;
+      return p != null && p.unlockedAt != null;
     }).toList();
 
     unlocked.sort((a, b) {
@@ -73,7 +73,7 @@ class BadgeState {
 
   /// Total unlocked count.
   int get unlockedCount =>
-      userProgress.values.where((p) => p.isUnlocked).length;
+      userProgress.values.where((p) => p.unlockedAt != null).length;
 }
 
 /// Badge notifier using Riverpod's Notifier pattern (v3.x compatible).
@@ -115,6 +115,22 @@ class BadgeNotifier extends Notifier<BadgeState> {
     }
   }
 
+  /// Sends an event to the GamificationSystem and refreshes badges.
+  Future<void> triggerEvent(String eventType, [Map<String, dynamic>? metadata]) async {
+    final user = SupabaseService().getCurrentUser();
+    if (user == null) return;
+    try {
+      await _repo.sendEvent(userId: user.id, eventType: eventType, metadata: metadata);
+      // Wait slightly for rules to process, then refresh
+      await Future.delayed(const Duration(milliseconds: 500));
+      await refresh();
+      // Invalidate WalletBalance to fetch new balance from Gamification API
+      ref.invalidate(walletBalanceProvider);
+    } catch (e) {
+      if (kDebugMode) print('Event trigger error: $e');
+    }
+  }
+
   /// Record a daily login and check streak badges.
   Future<void> recordLogin() async {
     final user = SupabaseService().getCurrentUser();
@@ -124,100 +140,11 @@ class BadgeNotifier extends Notifier<BadgeState> {
       final newStreak = await _repo.recordDailyLogin(user.id);
       state = state.copyWith(streak: newStreak);
 
-      await checkAndUnlock('weekly', newValue: newStreak.currentStreak);
-      await checkAndUnlock('dedicated', incrementBy: 1);
+      // Refresh to fetch newly awarded badges or points
+      await refresh();
+      ref.invalidate(walletBalanceProvider);
     } catch (e) {
       if (kDebugMode) print('Record login error: $e');
-    }
-  }
-
-  /// Check and potentially unlock/upgrade a badge.
-  /// Returns the badge ID if a new tier was unlocked, null otherwise.
-  Future<String?> checkAndUnlock(
-    String badgeId, {
-    int incrementBy = 0,
-    int? newValue,
-  }) async {
-    final user = SupabaseService().getCurrentUser();
-    if (user == null) return null;
-
-    try {
-      final badge = state.definitions.firstWhere(
-        (b) => b.id == badgeId,
-        orElse: () => throw Exception('Badge not found: $badgeId'),
-      );
-
-      var userBadge = await _repo.getOrCreateUserBadge(user.id, badgeId);
-
-      // Already at max tier
-      if (userBadge.currentTier >= badge.maxTier) {
-        state = state.copyWith(
-          userProgress: {...state.userProgress, badgeId: userBadge},
-        );
-        return null;
-      }
-
-      // Calculate new progress
-      int newProgress;
-      if (newValue != null) {
-        newProgress = newValue;
-      } else {
-        newProgress = userBadge.progress + incrementBy;
-      }
-
-      // Determine the target for next tier
-      final nextTier = userBadge.currentTier + 1;
-      final target = badge.targetForTier(nextTier);
-
-      int newTierValue = userBadge.currentTier;
-      DateTime? unlockedAt = userBadge.unlockedAt;
-      DateTime? lastTierUp = userBadge.lastTierUp;
-
-      if (newProgress >= target) {
-        newTierValue = nextTier;
-        final now = DateTime.now();
-        unlockedAt ??= now;
-        lastTierUp = now;
-
-        if (badge.kCoinReward > 0) {
-          _awardKCoins(badge.kCoinReward * nextTier);
-        }
-      }
-
-      final updated = await _repo.updateBadgeProgress(
-        userId: user.id,
-        badgeId: badgeId,
-        newProgress: newProgress,
-        newTier: newTierValue,
-        unlockedAt: unlockedAt,
-        lastTierUp: lastTierUp,
-      );
-
-      state = state.copyWith(
-        userProgress: {...state.userProgress, badgeId: updated},
-      );
-
-      if (newTierValue > userBadge.currentTier) {
-        return badgeId;
-      }
-
-      return null;
-    } catch (e) {
-      if (kDebugMode) print('Badge check error for $badgeId: $e');
-      return null;
-    }
-  }
-
-  void _awardKCoins(int amount) {
-    try {
-      final repo = ref.read(kCoinRepositoryProvider);
-      repo.processTransaction(
-        amount: amount,
-        transactionType: 'badge_reward',
-        referenceId: 'badge_reward_${DateTime.now().millisecondsSinceEpoch}',
-      );
-    } catch (e) {
-      if (kDebugMode) print('K-Coin reward error: $e');
     }
   }
 
@@ -232,3 +159,4 @@ class BadgeNotifier extends Notifier<BadgeState> {
 final badgeProvider = NotifierProvider<BadgeNotifier, BadgeState>(() {
   return BadgeNotifier();
 });
+
