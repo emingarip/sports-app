@@ -39,12 +39,11 @@ class StoreService {
     if (userId == null) throw Exception('Kullanıcı girişi yapılmamış.');
 
     try {
-      final response = await _supabase.rpc('buy_store_item', params: {
-        'p_user_id': userId,
+      final response = await _supabase.functions.invoke('buy-store-item', body: {
         'p_product_code': productCode,
       });
 
-      final data = response as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
       return data['success'] == true;
     } catch (e) {
       if (e.toString().contains('Insufficient K-Coin balance')) {

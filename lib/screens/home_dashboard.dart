@@ -29,6 +29,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/global_announcement_card.dart';
 import 'inbox_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import '../providers/badge_provider.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -56,6 +57,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     _pageController = PageController(initialPage: 0);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(badgeProvider.notifier).recordLogin();
       if (widget.initialDateOverride != null) {
         ref
             .read(matchStateProvider.notifier)
@@ -670,6 +672,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               Share.share(
                 "Velocity Score'a katıl ve anında K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId"
               );
+              ref.read(badgeProvider.notifier).triggerEvent('invite_friend');
             }
           },
         ),

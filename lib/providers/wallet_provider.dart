@@ -124,19 +124,21 @@ class WalletBalance extends _$WalletBalance {
     }
   }
 
-  Future<bool> claimAdReward(int amount) async {
+  /// Claims ad reward and returns the full reward result from Gamification API.
+  /// Returns null if the claim failed.
+  Future<Map<String, dynamic>?> claimAdReward(int amount) async {
     try {
       final repo = ref.read(kCoinRepositoryProvider);
-      await repo.processTransaction(
+      final result = await repo.processTransaction(
         amount: amount, 
         transactionType: 'ad_reward',
         referenceId: 'ad_reward',
       );
       await refreshBalance();
-      return true;
+      return result;
     } catch (e) {
       if (kDebugMode) print('Ad Reward claim failed: $e');
-      return false;
+      return null;
     }
   }
 }

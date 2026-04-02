@@ -254,14 +254,26 @@ class StoreFrontScreen extends ConsumerWidget {
                     context,
                     onEarnedReward: () async {
                       try {
-                        // Attempt to claim 50 coins securely via Supabase RPC
-                        final success = await ref.read(walletBalanceProvider.notifier).claimAdReward(50);
-                        if (success && context.mounted) {
+                        final result = await ref.read(walletBalanceProvider.notifier).claimAdReward(50);
+                        if (result != null && context.mounted) {
+                          final totalPoints = (result['points_awarded'] as num?)?.toInt() ?? 50;
+                          final matchedRules = (result['matched_rules'] as List<dynamic>?)
+                              ?.map((e) => e.toString())
+                              .toList() ?? [];
+                          
+                          // Build a rich message showing all rewards
+                          String message = 'Tebrikler! Reklamdan +$totalPoints K-Coin kazandınız.';
+                          if (matchedRules.length > 1) {
+                            // There's a milestone bonus on top of the base reward
+                            message += '\n🎯 Bonus: ${matchedRules.where((r) => r != 'Ad Watched Reward').join(', ')}';
+                          }
+                          
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Tebrikler! Reklamdan +50 K-Coin kazandınız.'),
-                              backgroundColor: Colors.green,
+                            SnackBar(
+                              content: Text(message),
+                              backgroundColor: matchedRules.length > 1 ? Colors.orange : Colors.green,
                               behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: matchedRules.length > 1 ? 5 : 3),
                             ),
                           );
                         } else if (context.mounted) {

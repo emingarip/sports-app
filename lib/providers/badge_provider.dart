@@ -95,12 +95,27 @@ class BadgeNotifier extends Notifier<BadgeState> {
 
     try {
       final definitions = await _repo.getAllBadges();
-      final userBadges = await _repo.getUserBadges(user.id);
+      final badgesResult = await _repo.getUserBadges(user.id);
+      final userBadges = badgesResult.$1;
+      final statsMap = badgesResult.$2;
       final streak = await _repo.getOrCreateStreak(user.id);
 
       final progressMap = <String, badge_model.UserBadge>{};
       for (final ub in userBadges) {
         progressMap[ub.badgeId] = ub;
+      }
+
+      // Map unearned badges progress using stats
+      for (final def in definitions) {
+        if (!progressMap.containsKey(def.id)) {
+           final currentVal = statsMap[def.triggerType] ?? 0;
+           progressMap[def.id] = badge_model.UserBadge(
+             userId: user.id,
+             badgeId: def.id,
+             progress: currentVal,
+             currentTier: 0,
+           );
+        }
       }
 
       state = BadgeState(

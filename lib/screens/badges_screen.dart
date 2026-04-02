@@ -50,10 +50,6 @@ class BadgesScreen extends ConsumerWidget {
         SliverToBoxAdapter(
           child: _buildSummaryHeader(context, state),
         ),
-        // Streak card
-        SliverToBoxAdapter(
-          child: _buildStreakCard(context, state.streak),
-        ),
         // Badge categories
         ...categories.expand((category) {
           final badges = grouped[category]!;
@@ -74,18 +70,15 @@ class BadgesScreen extends ConsumerWidget {
             ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.78,
-                ),
+              sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final badge = badges[index];
                     final progress = state.progressFor(badge.id);
-                    return _BadgeGridItem(badge: badge, userBadge: progress);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _BadgeListItem(badge: badge, userBadge: progress),
+                    );
                   },
                   childCount: badges.length,
                 ),
@@ -185,85 +178,22 @@ class BadgesScreen extends ConsumerWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStreakCard(BuildContext context, UserStreak streak) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.colors.outline.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF9800).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.local_fire_department,
-                color: Color(0xFFFF9800), size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${streak.currentStreak} Gün Seri',
-                  style: TextStyle(
-                    color: context.colors.textHigh,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'En uzun: ${streak.longestStreak} gün · Toplam: ${streak.totalLogins} giriş',
-                  style: TextStyle(
-                    color: context.colors.textMedium,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // 7-day dots
-          Row(
-            children: List.generate(7, (i) {
-              final active = i < (streak.currentStreak % 7 == 0 && streak.currentStreak > 0 ? 7 : streak.currentStreak % 7);
-              return Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(left: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: active
-                      ? const Color(0xFFFF9800)
-                      : context.colors.outline.withOpacity(0.3),
-                ),
-              );
-            }),
+          Icon(
+            Icons.military_tech_outlined,
+            size: 48,
+            color: context.colors.accent.withOpacity(0.2),
           ),
         ],
       ),
-    );
-  }
+    );  }
 }
 
-/// Individual badge grid item.
-class _BadgeGridItem extends StatelessWidget {
+/// Individual badge list item.
+class _BadgeListItem extends StatelessWidget {
   final Badge badge;
   final UserBadge userBadge;
 
-  const _BadgeGridItem({required this.badge, required this.userBadge});
+  const _BadgeListItem({required this.badge, required this.userBadge});
 
   Color _tierColor(int tier) {
     switch (tier) {
@@ -307,19 +237,22 @@ class _BadgeGridItem extends StatelessWidget {
     // Progress towards next tier
     final nextTier = tier + 1;
     double progressValue = 0;
+    int target = 1;
     if (!isUnlocked) {
-      final target = badge.targetForTier(1);
+      target = badge.targetForTier(1);
       progressValue = target > 0 ? (userBadge.progress / target).clamp(0.0, 1.0) : 0;
     } else if (tier < badge.maxTier) {
-      final target = badge.targetForTier(nextTier);
+      target = badge.targetForTier(nextTier);
       progressValue = target > 0 ? (userBadge.progress / target).clamp(0.0, 1.0) : 0;
     } else {
+      target = badge.targetForTier(tier);
       progressValue = 1.0; // Max tier reached
     }
 
     return GestureDetector(
       onTap: () => _showDetail(context),
       child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: context.colors.surface,
           borderRadius: BorderRadius.circular(20),
@@ -332,20 +265,20 @@ class _BadgeGridItem extends StatelessWidget {
           boxShadow: isUnlocked
               ? [
                   BoxShadow(
-                    color: tierColor.withOpacity(0.15),
+                    color: tierColor.withOpacity(0.12),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )
                 ]
               : null,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Icon
             Container(
-              width: 52,
-              height: 52,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isUnlocked
@@ -354,63 +287,108 @@ class _BadgeGridItem extends StatelessWidget {
               ),
               child: Icon(
                 _resolveIcon(badge.iconName),
-                size: 26,
+                size: 28,
                 color: isUnlocked ? tierColor : Colors.grey.shade500,
               ),
             ),
-            const SizedBox(height: 8),
-            // Name
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                badge.nameTr,
-                style: TextStyle(
-                  color: isUnlocked
-                      ? context.colors.textHigh
-                      : context.colors.textMedium,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 6),
-            // Progress bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progressValue,
-                  minHeight: 4,
-                  backgroundColor: context.colors.outline.withOpacity(0.15),
-                  valueColor: AlwaysStoppedAnimation<Color>(tierColor),
-                ),
-              ),
-            ),
-            // Tier dots
-            if (badge.maxTier > 1) ...[
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(badge.maxTier, (i) {
-                  final filled = i < tier;
-                  return Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: filled
-                          ? _tierColor(i + 1)
-                          : context.colors.outline.withOpacity(0.3),
+            const SizedBox(width: 16),
+            // Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          badge.nameTr,
+                          style: TextStyle(
+                            color: isUnlocked
+                                ? context.colors.textHigh
+                                : context.colors.textMedium,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Points Chip
+                      if (badge.kCoinReward > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: context.colors.accent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: context.colors.accent.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('💰 ', style: TextStyle(fontSize: 10)),
+                              Text(
+                                '+${badge.kCoinReward}',
+                                style: TextStyle(
+                                  color: context.colors.accent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Description
+                  Text(
+                    badge.descriptionTr,
+                    style: TextStyle(
+                      color: context.colors.textMedium,
+                      fontSize: 12,
+                      height: 1.3,
                     ),
-                  );
-                }),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 12),
+                  // Progress Bar & Text
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progressValue,
+                            minHeight: 6,
+                            backgroundColor:
+                                context.colors.outline.withOpacity(0.15),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(tierColor),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        isUnlocked && tier == badge.maxTier
+                            ? 'Tamamlandı'
+                            : '${userBadge.progress}/$target',
+                        style: TextStyle(
+                          color: isUnlocked
+                              ? tierColor
+                              : context.colors.textMedium,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),

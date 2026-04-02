@@ -34,19 +34,19 @@ class Badge {
 
   factory Badge.fromJson(Map<String, dynamic> json) {
     return Badge(
-      id: json['id'] as String,
-      category: json['category'] as String,
-      nameTr: json['name_tr'] as String,
-      nameEn: json['name_en'] as String,
-      descriptionTr: json['description_tr'] as String,
-      descriptionEn: json['description_en'] as String,
-      iconName: json['icon_name'] as String,
-      maxTier: json['max_tier'] as int? ?? 3,
-      triggerType: json['trigger_type'] as String,
-      triggerTarget: json['trigger_target'] as int,
+      id: json['id']?.toString() ?? '',
+      category: json['category']?.toString() ?? json['criteria']?.toString() ?? 'Diğer',
+      nameTr: json['name_tr']?.toString() ?? json['name']?.toString() ?? '',
+      nameEn: json['name_en']?.toString() ?? json['name']?.toString() ?? '',
+      descriptionTr: json['description_tr']?.toString() ?? json['description']?.toString() ?? '',
+      descriptionEn: json['description_en']?.toString() ?? json['description']?.toString() ?? '',
+      iconName: json['icon_name']?.toString() ?? json['icon']?.toString() ?? 'emoji_events',
+      maxTier: json['max_tier'] as int? ?? 1,
+      triggerType: json['metric']?.toString() ?? json['trigger_type']?.toString() ?? 'backend_triggered',
+      triggerTarget: json['target'] as int? ?? json['trigger_target'] as int? ?? 1,
       tier2Target: json['tier2_target'] as int?,
       tier3Target: json['tier3_target'] as int?,
-      kCoinReward: json['k_coin_reward'] as int? ?? 0,
+      kCoinReward: json['k_coin_reward'] as int? ?? json['points'] as int? ?? 0,
       sortOrder: json['sort_order'] as int? ?? 0,
     );
   }
@@ -111,15 +111,15 @@ class UserBadge {
   factory UserBadge.fromJson(Map<String, dynamic> json) {
     return UserBadge(
       id: json['id'] as String?,
-      userId: json['user_id'] as String,
-      badgeId: json['badge_id'] as String,
-      currentTier: json['current_tier'] as int? ?? 0,
-      progress: json['progress'] as int? ?? 0,
-      unlockedAt: json['unlocked_at'] != null
-          ? DateTime.parse(json['unlocked_at'] as String)
-          : null,
+      userId: json['user_id']?.toString() ?? 'me',
+      badgeId: json['badge_id']?.toString() ?? json['id']?.toString() ?? '',
+      currentTier: json['current_tier'] as int? ?? 1,
+      progress: json['progress'] as int? ?? json['points'] as int? ?? 1,
+      unlockedAt: (json['unlocked_at'] != null)
+          ? DateTime.tryParse(json['unlocked_at'].toString())
+          : (json['earned_at'] != null ? DateTime.tryParse(json['earned_at'].toString()) : null),
       lastTierUp: json['last_tier_up'] != null
-          ? DateTime.parse(json['last_tier_up'] as String)
+          ? DateTime.tryParse(json['last_tier_up'].toString())
           : null,
     );
   }
