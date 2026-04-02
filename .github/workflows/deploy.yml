@@ -1,4 +1,4 @@
-name: Flutter Web Deploy to GitHub Pages
+name: Deploy Flutter Web to VPS
 
 on:
   push:
@@ -8,9 +8,6 @@ on:
       - 'feature/**'
       - 'bugfix/**'
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build_and_deploy:
@@ -33,10 +30,55 @@ jobs:
         run: flutter test
 
       - name: Build Web
-        run: flutter build web --wasm --base-href "/sports-app/" --release
+        run: flutter build web --wasm --base-href "/" --release
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "build/web/*"
+          target: "/var/www/sportsapp-web"
+          strip_components: 2
+
+      - name: Deploy and Configure HTTPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "Starting deployment to VPS..."
+            
+            mkdir -p /var/www/sportsapp-web
+            chown -R www-data:www-data /var/www/sportsapp-web
+            
+            if [ ! -f /etc/nginx/sites-available/sportsapp ]; then
+                echo "Creating initial Nginx configuration..."
+                cat << 'EOF' > /etc/nginx/sites-available/sportsapp
+            server {
+                listen 80;
+                server_name www.boskale.com boskale.com;
+                root /var/www/sportsapp-web;
+                index index.html index.htm;
+                
+                location / {
+                    try_files $uri $uri/ /index.html;
+                }
+            }
+            EOF
+                
+                ln -sf /etc/nginx/sites-available/sportsapp /etc/nginx/sites-enabled/
+                nginx -t && systemctl reload nginx
+            fi
+            
+            echo "Checking SSL..."
+            if ! grep -q "ssl_certificate" /etc/nginx/sites-available/sportsapp; then
+                echo "Running Certbot..."
+                apt-get update && apt-get install -y certbot python3-certbot-nginx
+                certbot --nginx -d www.boskale.com -d boskale.com --non-interactive --agree-tos -m admin@boskale.com --redirect
+            fi
+            
+            systemctl reload nginx
+            echo "Deployment successful."
