@@ -1,1 +1,0 @@
-import 'dart:io'; import 'dart:convert'; void main() { var lines = File('test_machine.json').readAsLinesSync(); for(var line in lines) { try{ var j=jsonDecode(line); if(j['error']!=null) print(j['error']); }catch(e){} } }

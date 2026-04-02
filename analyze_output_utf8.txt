@@ -1,5 +1,0 @@
-﻿Analyzing home_dashboard.dart...                                
-
-   info - Use 'const' with the constructor to improve performance - lib\screens\home_dashboard.dart:495:14 - prefer_const_constructors
-   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\home_dashboard.dart:496:18 - prefer_const_literals_to_create_immutables
-
