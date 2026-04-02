@@ -12,6 +12,7 @@ import 'package:sports_app/providers/knowledge_graph_provider.dart';
 import 'package:sports_app/theme/app_theme.dart';
 import 'package:sports_app/services/announcement_service.dart';
 import 'package:sports_app/models/announcement.dart';
+import 'package:sports_app/providers/badge_provider.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';
 
@@ -41,6 +42,17 @@ class MockFavoritesNotifier extends FavoritesNotifier {
   Future<void> toggleFavorite(String matchId) async {}
 }
 
+class MockBadgeNotifier extends BadgeNotifier {
+  @override
+  BadgeState build() => const BadgeState(isLoading: false);
+
+  @override
+  Future<void> recordLogin() async {}
+  
+  @override
+  Future<void> refresh() async {}
+}
+
 void main() {
   group('HomeDashboard Integration Tests', () {
     late MockMatchRepository mockRepository;
@@ -57,6 +69,7 @@ void main() {
           notificationProvider.overrideWith(() => MockNotificationNotifier()),
           announcementProvider.overrideWith(() => MockAnnouncementNotifier()),
           personalizedMatchesProvider.overrideWith((ref) => <model.Match>[]),
+          badgeProvider.overrideWith(() => MockBadgeNotifier()),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
