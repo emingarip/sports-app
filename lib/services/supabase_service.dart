@@ -30,12 +30,12 @@ class SupabaseService {
     try {
       var supabaseUrl = dotenv.isInitialized ? dotenv.env['SUPABASE_URL'] : null;
       if (supabaseUrl == null || supabaseUrl.isEmpty) {
-        supabaseUrl = 'https://nigatikzsnxdqdwwqewr.supabase.co';
+        throw Exception('Missing SUPABASE_URL in .env file');
       }
 
       var supabaseAnonKey = dotenv.isInitialized ? dotenv.env['SUPABASE_ANON_KEY'] : null;
       if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
-        supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pZ2F0aWt6c254ZHFkd3dxZXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjM2MjEsImV4cCI6MjA4OTUzOTYyMX0.smjivrwy8D8I5rRs49mXRkHSyOAJcti2VwCbm2Oas6Q';
+        throw Exception('Missing SUPABASE_ANON_KEY in .env file');
       }
 
       await Supabase.initialize(
