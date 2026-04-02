@@ -8,7 +8,7 @@ class BadgeRepository {
   final String _baseUrl;
 
   BadgeRepository({String? baseUrl})
-      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://10.0.2.2:3000/api/v1';
+      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://gamification.boskale.com/api/v1';
 
   /// Fetches all badge definitions.
   Future<List<Badge>> getAllBadges() async {
@@ -21,16 +21,21 @@ class BadgeRepository {
     throw Exception('Failed to load badges');
   }
 
-  /// Fetches all badge progress for a user.
-  Future<List<UserBadge>> getUserBadges(String userId) async {
+  /// Fetches all badge progress for a user, as well as their stats.
+  Future<(List<UserBadge>, Map<String, int>)> getUserBadges(String userId) async {
     final response = await http.get(Uri.parse('$_baseUrl/users/$userId'));
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);
-      final List<dynamic> badges = json['rich_badges'] ?? [];
-      return badges.map((e) => UserBadge.fromJson(e as Map<String, dynamic>)).toList();
+      final List<dynamic> badges = json['rich_badge_info'] ?? json['rich_badges'] ?? [];
+      final parsedBadges = badges.map((e) => UserBadge.fromJson(e as Map<String, dynamic>)).toList();
+      
+      final Map<String, dynamic> statsRaw = json['stats'] ?? {};
+      final Map<String, int> stats = statsRaw.map((k, v) => MapEntry(k, v as int));
+      
+      return (parsedBadges, stats);
     }
     if (response.statusCode == 404) {
-      return [];
+      return (<UserBadge>[], <String, int>{});
     }
     throw Exception('Failed to load user badges');
   }
@@ -38,7 +43,8 @@ class BadgeRepository {
   /// Gets or creates a user badge progress row.
   /// GamificationSystem handles this automatically, but we provide a fallback for local state.
   Future<UserBadge> getOrCreateUserBadge(String userId, String badgeId) async {
-    final badges = await getUserBadges(userId);
+    final badgesResult = await getUserBadges(userId);
+    final badges = badgesResult.$1;
     try {
       return badges.firstWhere((b) => b.badgeId == badgeId);
     } catch (_) {
@@ -83,11 +89,11 @@ class BadgeRepository {
   /// Gets or creates the user's streak data.
   Future<UserStreak> getOrCreateStreak(String userId) async {
     // Fallback or read from stats if available
-    final response = await http.get(Uri.parse('$_baseUrl/users/$userId/stats'));
+    final response = await http.get(Uri.parse('$_baseUrl/users/$userId'));
     if (response.statusCode == 200) {
        final json = jsonDecode(response.body);
-       // Extract streak if returned in stats
-       return UserStreak(userId: userId, currentStreak: json['current_streak'] ?? 0);
+       final stats = json['stats'] ?? {};
+       return UserStreak(userId: userId, currentStreak: stats['daily_streak'] ?? 0);
     }
     return UserStreak(userId: userId);
   }

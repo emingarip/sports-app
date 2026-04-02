@@ -9,7 +9,7 @@ class KCoinRepository {
   final String _baseUrl;
 
   KCoinRepository(this._client, {String? baseUrl})
-      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://10.0.2.2:3000/api/v1';
+      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://gamification.boskale.com/api/v1';
 
   Future<int> getUserBalance(String userId) async {
     try {
@@ -32,7 +32,9 @@ class KCoinRepository {
     return (response as List).map((e) => KCoinPackage.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<void> sendEvent(String userId, String eventType, Map<String, dynamic> metadata) async {
+  /// Sends an event to the Gamification API and returns the reward result.
+  /// Response includes: points_awarded, matched_rules, badges_awarded.
+  Future<Map<String, dynamic>> sendEvent(String userId, String eventType, Map<String, dynamic> metadata) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/events'),
       headers: {'Content-Type': 'application/json'},
@@ -45,9 +47,15 @@ class KCoinRepository {
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to send event to gamification system');
     }
+    try {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      return {'points_awarded': 0, 'matched_rules': <String>[], 'badges_awarded': <String>[]};
+    }
   }
 
-  Future<void> processTransaction({
+  /// Sends a transaction event and returns the reward result from the Gamification API.
+  Future<Map<String, dynamic>> processTransaction({
     required int amount,
     required String transactionType,
     String? referenceId,
@@ -56,7 +64,7 @@ class KCoinRepository {
     if (userId == null) throw Exception('User not logged in');
 
     // Send Gamification Event for the transaction
-    await sendEvent(userId, transactionType, {
+    return await sendEvent(userId, transactionType, {
       'amount': amount,
       'reference_id': referenceId,
     });
