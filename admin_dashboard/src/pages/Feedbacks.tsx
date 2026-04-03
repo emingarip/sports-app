@@ -30,6 +30,7 @@ export default function Feedbacks() {
   // Modal states
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<{id: string, name: string} | null>(null);
+  const [signedScreenshotUrls, setSignedScreenshotUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchFeedbacks();
@@ -49,6 +50,52 @@ export default function Feedbacks() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    const screenshotEntries = feedbacks.filter((feedback) => feedback.screenshot_url);
+    if (screenshotEntries.length === 0) {
+      setSignedScreenshotUrls({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSignedUrls = async () => {
+      const resolvedEntries = await Promise.all(
+        screenshotEntries.map(async (feedback) => {
+          const rawValue = feedback.screenshot_url!;
+
+          if (rawValue.startsWith('http://') || rawValue.startsWith('https://')) {
+            return [feedback.id, rawValue] as const;
+          }
+
+          const { data, error } = await supabase
+            .storage
+            .from('feedback-screenshots')
+            .createSignedUrl(rawValue, 60 * 30);
+
+          if (error || !data?.signedUrl) {
+            console.error('Error creating signed screenshot URL:', error);
+            return [feedback.id, ''] as const;
+          }
+
+          return [feedback.id, data.signedUrl] as const;
+        })
+      );
+
+      if (!cancelled) {
+        setSignedScreenshotUrls(
+          Object.fromEntries(resolvedEntries.filter(([, url]) => Boolean(url)))
+        );
+      }
+    };
+
+    void loadSignedUrls();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [feedbacks]);
 
   const fetchFeedbacks = async () => {
     try {
@@ -262,9 +309,9 @@ export default function Feedbacks() {
                            type="button"
                            aria-label="Resmi büyüt"
                            className="w-16 h-10 bg-muted rounded border border-border cursor-pointer relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-primary"
-                           onClick={() => setViewingImage(f.screenshot_url)}
+                          onClick={() => setViewingImage(signedScreenshotUrls[f.id] || f.screenshot_url)}
                          >
-                           <img src={f.screenshot_url} alt="screenshot" className="w-full h-full object-cover" />
+                          <img src={signedScreenshotUrls[f.id] || f.screenshot_url} alt="screenshot" className="w-full h-full object-cover" />
                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                              <Fullscreen className="w-4 h-4 text-white" />
                            </div>

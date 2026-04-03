@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/store_provider.dart';
@@ -6,6 +7,7 @@ import '../models/k_coin_package.dart';
 import '../models/store_product.dart';
 import '../theme/app_theme.dart';
 import '../services/admob_service.dart';
+import '../services/revenuecat_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/shimmer_loading.dart';
 
@@ -17,7 +19,7 @@ class StoreFrontScreen extends ConsumerWidget {
     final balance = ref.watch(walletBalanceProvider);
     final packagesAsync = ref.watch(kCoinPackagesProvider);
     final storeProductsAsync = ref.watch(storeProductsProvider);
-    
+
     // Watch entitlements to trigger rebuilds when they change
     ref.watch(entitlementsProvider);
 
@@ -37,6 +39,33 @@ class StoreFrontScreen extends ConsumerWidget {
       ),
       body: CustomScrollView(
         slivers: [
+          if (kIsWeb || !RevenueCatService.isConfiguredForCurrentPlatform)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color:
+                        context.colors.primaryContainer.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: context.colors.primaryContainer
+                          .withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Text(
+                    kIsWeb
+                        ? 'Web üzerinden K-Coin satın alma geçici olarak kapatıldı. Doğrulanmış web ödeme akışı tamamlanınca yeniden açılacak.'
+                        : 'Satın alma sistemi bu build içinde yapılandırılmamış. RevenueCat anahtarlarını ekledikten sonra paketler açılacak.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: context.colors.textHigh,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+            ),
           SliverToBoxAdapter(
             child: _buildBalanceCard(context, ref, balance),
           ),
@@ -90,11 +119,12 @@ class StoreFrontScreen extends ConsumerWidget {
             ),
             error: (e, st) => SliverToBoxAdapter(
               child: Center(
-                child: Text('Error loading packages', style: TextStyle(color: context.colors.error)),
+                child: Text('Error loading packages',
+                    style: TextStyle(color: context.colors.error)),
               ),
             ),
           ),
-          
+
           // Premium Store Items Section
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16.0, 32.0, 16.0, 16.0),
@@ -140,7 +170,8 @@ class StoreFrontScreen extends ConsumerWidget {
             ),
             error: (e, st) => SliverToBoxAdapter(
               child: Center(
-                child: Text('Error loading store items', style: TextStyle(color: context.colors.error)),
+                child: Text('Error loading store items',
+                    style: TextStyle(color: context.colors.error)),
               ),
             ),
           ),
@@ -177,7 +208,8 @@ class StoreFrontScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.monetization_on, color: context.colors.primaryContainer, size: 48),
+              Icon(Icons.monetization_on,
+                  color: context.colors.primaryContainer, size: 48),
               const SizedBox(width: 12),
               Text(
                 balance.toString(),
@@ -192,7 +224,9 @@ class StoreFrontScreen extends ConsumerWidget {
           ElevatedButton.icon(
             onPressed: () async {
               try {
-                await ref.read(walletBalanceProvider.notifier).claimTestReward();
+                await ref
+                    .read(walletBalanceProvider.notifier)
+                    .claimTestReward();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Claimed 50 K-Coins!')),
@@ -201,13 +235,17 @@ class StoreFrontScreen extends ConsumerWidget {
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to claim reward: \$e')),
+                    const SnackBar(
+                        content: Text('Failed to claim reward: \$e')),
                   );
                 }
               }
             },
             icon: Icon(Icons.card_giftcard, color: context.colors.background),
-            label: Text('Claim Test Reward', style: TextStyle(color: context.colors.background, fontWeight: FontWeight.bold)),
+            label: Text('Claim Test Reward',
+                style: TextStyle(
+                    color: context.colors.background,
+                    fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: context.colors.primaryContainer,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -218,91 +256,113 @@ class StoreFrontScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           // ADMOB REWARDED VIDEO BUTTON
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (ctx) => const Center(child: CircularProgressIndicator()),
-                  );
-                  
-                  final eligibility = await SupabaseService().checkAdEligibility();
-                  
-                  if (!context.mounted) return;
-                  Navigator.of(context).pop(); // Dismiss loader
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (ctx) =>
+                      const Center(child: CircularProgressIndicator()),
+                );
 
-                  if (eligibility['eligible'] != true) {
-                    final reason = eligibility['reason'];
-                    String message = 'Reklamlar şu an yüklenemedi. Lütfen daha sonra deneyin.';
-                    if (reason == 'daily_limit_reached') {
-                      message = 'Günlük reklam sınırına ulaştınız. Lütfen yarın tekrar deneyin.';
-                    } else if (reason == 'cooling_down') {
-                      message = 'Biraz beklemelisiniz! Sıradaki reklam için süreniz henüz dolmadı.';
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      backgroundColor: context.colors.error,
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                    return;
+                final eligibility =
+                    await SupabaseService().checkAdEligibility();
+
+                if (!context.mounted) return;
+                Navigator.of(context).pop(); // Dismiss loader
+
+                if (eligibility['eligible'] != true) {
+                  final reason = eligibility['reason'];
+                  String message =
+                      'Reklamlar şu an yüklenemedi. Lütfen daha sonra deneyin.';
+                  if (reason == 'daily_limit_reached') {
+                    message =
+                        'Günlük reklam sınırına ulaştınız. Lütfen yarın tekrar deneyin.';
+                  } else if (reason == 'cooling_down') {
+                    message =
+                        'Biraz beklemelisiniz! Sıradaki reklam için süreniz henüz dolmadı.';
                   }
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(message,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    backgroundColor: context.colors.error,
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                  return;
+                }
 
-                  // Show AdMob Rewarded Ad or Web Interstitial
-                  AdMobService().showRewardedAd(
-                    context,
-                    onEarnedReward: () async {
-                      try {
-                        final result = await ref.read(walletBalanceProvider.notifier).claimAdReward(50);
-                        if (result != null && context.mounted) {
-                          final totalPoints = (result['points_awarded'] as num?)?.toInt() ?? 50;
-                          final matchedRules = (result['matched_rules'] as List<dynamic>?)
-                              ?.map((e) => e.toString())
-                              .toList() ?? [];
-                          
-                          // Build a rich message showing all rewards
-                          String message = 'Tebrikler! Reklamdan +$totalPoints K-Coin kazandınız.';
-                          if (matchedRules.length > 1) {
-                            // There's a milestone bonus on top of the base reward
-                            message += '\n🎯 Bonus: ${matchedRules.where((r) => r != 'Ad Watched Reward').join(', ')}';
-                          }
-                          
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(message),
-                              backgroundColor: matchedRules.length > 1 ? Colors.orange : Colors.green,
-                              behavior: SnackBarBehavior.floating,
-                              duration: Duration(seconds: matchedRules.length > 1 ? 5 : 3),
-                            ),
-                          );
-                        } else if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('K-Coin yüklenemedi. Günlük limite veya bekleme süresine takılmış olabilirsiniz.'),
-                              backgroundColor: context.colors.error,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                // Show AdMob Rewarded Ad or Web Interstitial
+                AdMobService().showRewardedAd(
+                  context,
+                  onEarnedReward: () async {
+                    try {
+                      final result = await ref
+                          .read(walletBalanceProvider.notifier)
+                          .claimAdReward(50);
+                      if (result != null && context.mounted) {
+                        final totalPoints =
+                            (result['points_awarded'] as num?)?.toInt() ?? 50;
+                        final matchedRules =
+                            (result['matched_rules'] as List<dynamic>?)
+                                    ?.map((e) => e.toString())
+                                    .toList() ??
+                                [];
+
+                        // Build a rich message showing all rewards
+                        String message =
+                            'Tebrikler! Reklamdan +$totalPoints K-Coin kazandınız.';
+                        if (matchedRules.length > 1) {
+                          // There's a milestone bonus on top of the base reward
+                          message +=
+                              '\n🎯 Bonus: ${matchedRules.where((r) => r != 'Ad Watched Reward').join(', ')}';
                         }
-                      } catch (e) {
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(message),
+                            backgroundColor: matchedRules.length > 1
+                                ? Colors.orange
+                                : Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                            duration: Duration(
+                                seconds: matchedRules.length > 1 ? 5 : 3),
+                          ),
+                        );
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                                'K-Coin yüklenemedi. Günlük limite veya bekleme süresine takılmış olabilirsiniz.'),
+                            backgroundColor: context.colors.error,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } catch (e) {
                       debugPrint('Error handling ad reward UI: \$e');
                     }
                   },
                 );
               },
-              icon: Icon(Icons.play_circle_fill, color: context.colors.primaryContainer, size: 28),
-              label: Text(
-                'Watch Ad (+50 K-Coins)', 
-                style: TextStyle(color: context.colors.textHigh, fontWeight: FontWeight.bold, fontSize: 16)
-              ),
+              icon: Icon(Icons.play_circle_fill,
+                  color: context.colors.primaryContainer, size: 28),
+              label: Text('Watch Ad (+50 K-Coins)',
+                  style: TextStyle(
+                      color: context.colors.textHigh,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16)),
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: context.colors.primaryContainer, width: 2),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                side: BorderSide(
+                    color: context.colors.primaryContainer, width: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                backgroundColor: context.colors.primaryContainer.withValues(alpha: 0.1),
+                backgroundColor:
+                    context.colors.primaryContainer.withValues(alpha: 0.1),
               ),
             ),
           ),
@@ -311,18 +371,24 @@ class StoreFrontScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPackageCard(BuildContext context, WidgetRef ref, KCoinPackage package) {
+  Widget _buildPackageCard(
+      BuildContext context, WidgetRef ref, KCoinPackage package) {
+    final canPurchase =
+        !kIsWeb && RevenueCatService.isConfiguredForCurrentPlatform;
+
     return Container(
       decoration: BoxDecoration(
         color: context.colors.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.outline.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: context.colors.outline.withValues(alpha: 0.1)),
       ),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.monetization_on, color: context.colors.primaryContainer, size: 40),
+          Icon(Icons.monetization_on,
+              color: context.colors.primaryContainer, size: 40),
           const SizedBox(height: 12),
           Text(
             '${package.coinAmount} Coins',
@@ -345,51 +411,67 @@ class StoreFrontScreen extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () async {
-                try {
-                  await ref.read(walletBalanceProvider.notifier).purchasePackage(package);
-                  if (context.mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: context.colors.surfaceContainer,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                        icon: const Icon(Icons.check_circle, color: Colors.green, size: 64),
-                        title: Text('Purchase Successful!', style: TextStyle(color: context.colors.textHigh)),
-                        content: Text(
-                          'You have successfully purchased ${package.coinAmount} K-Coins. They have been added to your wallet.',
-                          style: TextStyle(color: context.colors.textMedium),
-                          textAlign: TextAlign.center,
-                        ),
-                        actionsAlignment: MainAxisAlignment.center,
-                        actions: [
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: context.colors.primaryContainer,
-                              foregroundColor: context.colors.background,
+              onPressed: canPurchase
+                  ? () async {
+                      try {
+                        await ref
+                            .read(walletBalanceProvider.notifier)
+                            .purchasePackage(package);
+                        if (context.mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: context.colors.surfaceContainer,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24)),
+                              icon: const Icon(Icons.check_circle,
+                                  color: Colors.green, size: 64),
+                              title: Text('Purchase Successful!',
+                                  style: TextStyle(
+                                      color: context.colors.textHigh)),
+                              content: Text(
+                                'You have successfully purchased ${package.coinAmount} K-Coins. They have been added to your wallet.',
+                                style:
+                                    TextStyle(color: context.colors.textMedium),
+                                textAlign: TextAlign.center,
+                              ),
+                              actionsAlignment: MainAxisAlignment.center,
+                              actions: [
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor:
+                                        context.colors.primaryContainer,
+                                    foregroundColor: context.colors.background,
+                                  ),
+                                  child: const Text('Awesome!'),
+                                )
+                              ],
                             ),
-                            child: const Text('Awesome!'),
-                          )
-                        ],
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Purchase failed: $e')),
-                    );
-                  }
-                }
-              },
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Purchase failed: $e')),
+                          );
+                        }
+                      }
+                    }
+                  : null,
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: context.colors.primaryContainer),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(
-                package.displayPrice ?? '\$${package.priceUsd.toStringAsFixed(2)}',
-                style: TextStyle(color: context.colors.primaryContainer, fontWeight: FontWeight.bold),
+                canPurchase
+                    ? (package.displayPrice ??
+                        '\$${package.priceUsd.toStringAsFixed(2)}')
+                    : 'Yakında',
+                style: TextStyle(
+                    color: context.colors.primaryContainer,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -398,15 +480,23 @@ class StoreFrontScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStoreItemCard(BuildContext context, WidgetRef ref, StoreProduct product) {
+  Widget _buildStoreItemCard(
+      BuildContext context, WidgetRef ref, StoreProduct product) {
     // Check if user already owns it
-    final hasAccess = ref.watch(entitlementsProvider.notifier).hasAccess(product.productCode);
-    
+    final hasAccess =
+        ref.watch(entitlementsProvider.notifier).hasAccess(product.productCode);
+
     // Determine the icon based on product type
     IconData typeIcon = Icons.shopping_bag;
-    if (product.productType == 'subscription') typeIcon = Icons.access_time_filled;
-    if (product.productType == 'lifetime') typeIcon = Icons.all_inclusive;
-    if (product.productType == 'consumable') typeIcon = Icons.offline_bolt;
+    if (product.productType == 'subscription') {
+      typeIcon = Icons.access_time_filled;
+    }
+    if (product.productType == 'lifetime') {
+      typeIcon = Icons.all_inclusive;
+    }
+    if (product.productType == 'consumable') {
+      typeIcon = Icons.offline_bolt;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
@@ -414,7 +504,9 @@ class StoreFrontScreen extends ConsumerWidget {
         color: context.colors.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasAccess ? context.colors.primaryContainer.withValues(alpha: 0.5) : context.colors.outline.withValues(alpha: 0.1),
+          color: hasAccess
+              ? context.colors.primaryContainer.withValues(alpha: 0.5)
+              : context.colors.outline.withValues(alpha: 0.1),
           width: hasAccess ? 2.0 : 1.0,
         ),
       ),
@@ -431,7 +523,8 @@ class StoreFrontScreen extends ConsumerWidget {
                   color: context.colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(typeIcon, color: context.colors.primaryContainer, size: 28),
+                child: Icon(typeIcon,
+                    color: context.colors.primaryContainer, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -443,7 +536,10 @@ class StoreFrontScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             product.title,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   color: context.colors.textHigh,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -451,22 +547,32 @@ class StoreFrontScreen extends ConsumerWidget {
                         ),
                         if (hasAccess)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.green.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+                              border: Border.all(
+                                  color: Colors.green.withValues(alpha: 0.5)),
                             ),
-                            child: const Text('OWNED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                            child: const Text('OWNED',
+                                style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold)),
                           )
                         else
                           Row(
                             children: [
-                              const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                              const Icon(Icons.monetization_on,
+                                  color: Colors.amber, size: 16),
                               const SizedBox(width: 4),
                               Text(
                                 '${product.price}',
-                                style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
+                                style: const TextStyle(
+                                    color: Colors.amber,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14),
                               ),
                             ],
                           ),
@@ -484,7 +590,10 @@ class StoreFrontScreen extends ConsumerWidget {
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
                           'Duration: ${product.durationDays} Days',
-                          style: TextStyle(color: context.colors.primaryContainer, fontSize: 12, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              color: context.colors.primaryContainer,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
                         ),
                       ),
                   ],
@@ -498,13 +607,16 @@ class StoreFrontScreen extends ConsumerWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => _handlePurchaseProduct(context, ref, product),
+                  onPressed: () =>
+                      _handlePurchaseProduct(context, ref, product),
                   style: FilledButton.styleFrom(
                     backgroundColor: context.colors.primaryContainer,
                     foregroundColor: context.colors.background,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Purchase with K-Coins', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text('Purchase with K-Coins',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ),
@@ -513,13 +625,15 @@ class StoreFrontScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handlePurchaseProduct(BuildContext context, WidgetRef ref, StoreProduct product) async {
+  Future<void> _handlePurchaseProduct(
+      BuildContext context, WidgetRef ref, StoreProduct product) async {
     // Show confirm dialog
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.colors.surfaceContainerHighest,
-        title: Text('Confirm Purchase', style: TextStyle(color: context.colors.textHigh)),
+        title: Text('Confirm Purchase',
+            style: TextStyle(color: context.colors.textHigh)),
         content: Text(
           'Are you sure you want to spend ${product.price} K-Coins for "${product.title}"?',
           style: TextStyle(color: context.colors.textMedium),
@@ -527,12 +641,15 @@ class StoreFrontScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel', style: TextStyle(color: context.colors.textMedium)),
+            child: Text('Cancel',
+                style: TextStyle(color: context.colors.textMedium)),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: context.colors.primaryContainer),
-            child: Text('Purchase', style: TextStyle(color: context.colors.background)),
+            style: FilledButton.styleFrom(
+                backgroundColor: context.colors.primaryContainer),
+            child: Text('Purchase',
+                style: TextStyle(color: context.colors.background)),
           ),
         ],
       ),
@@ -545,10 +662,10 @@ class StoreFrontScreen extends ConsumerWidget {
     try {
       // Execute transaction
       await ref.read(storeServiceProvider).buyStoreItem(product.productCode);
-      
+
       // Refresh local state
       await ref.read(entitlementsProvider.notifier).refresh();
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

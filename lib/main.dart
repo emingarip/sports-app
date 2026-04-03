@@ -19,6 +19,18 @@ import 'services/deep_link_service.dart';
 import 'services/navigation_service.dart';
 import 'services/support_navigator_observer.dart';
 
+const String _firebaseWebApiKey =
+    String.fromEnvironment('FIREBASE_WEB_API_KEY');
+const String _firebaseWebAppId = String.fromEnvironment('FIREBASE_WEB_APP_ID');
+const String _firebaseWebMessagingSenderId = String.fromEnvironment(
+  'FIREBASE_WEB_MESSAGING_SENDER_ID',
+  defaultValue: '858669470500',
+);
+const String _firebaseWebProjectId = String.fromEnvironment(
+  'FIREBASE_WEB_PROJECT_ID',
+  defaultValue: 'boskale-d00cc',
+);
+
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -27,16 +39,25 @@ void main() {
     await rive.RiveNative.init();
 
     try {
-      await Firebase.initializeApp(
-        options: kIsWeb ? const FirebaseOptions(
-          apiKey: "AIzaSyDLTwqiaptfxY0zwj2VUUjHZ_KaVPZ5xMo",
-          appId: "1:858669470500:web:abcdef1234567890", // Placeholder for web app ID
-          messagingSenderId: "858669470500",
-          projectId: "boskale-d00cc",
-        ) : null,
-      );
-      if (!kIsWeb) {
-        FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      if (!kIsWeb ||
+          (_firebaseWebApiKey.isNotEmpty && _firebaseWebAppId.isNotEmpty)) {
+        await Firebase.initializeApp(
+          options: kIsWeb
+              ? const FirebaseOptions(
+                  apiKey: _firebaseWebApiKey,
+                  appId: _firebaseWebAppId,
+                  messagingSenderId: _firebaseWebMessagingSenderId,
+                  projectId: _firebaseWebProjectId,
+                )
+              : null,
+        );
+      } else {
+        debugPrint(
+            'Web Firebase disabled: FIREBASE_WEB_API_KEY or FIREBASE_WEB_APP_ID is missing.');
+      }
+      if (!kIsWeb && Firebase.apps.isNotEmpty) {
+        FlutterError.onError =
+            FirebaseCrashlytics.instance.recordFlutterFatalError;
         PlatformDispatcher.instance.onError = (error, stack) {
           FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
           return true;
@@ -59,84 +80,29 @@ void main() {
     if (!kIsWeb && Firebase.apps.isNotEmpty) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     }
-    debugPrint('Zoned error: $error\n$stack');
   });
 }
 
-class MyApp extends ConsumerStatefulWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  ConsumerState<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkAndRefreshSession();
-    }
-  }
-
-  Future<void> _checkAndRefreshSession() async {
-    try {
-      final session = SupabaseService.client.auth.currentSession;
-      if (session != null && session.expiresAt != null) {
-        final expiresAt = DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
-        // Refresh token if it expires in less than 5 minutes
-        if (DateTime.now().add(const Duration(minutes: 5)).isAfter(expiresAt)) {
-          debugPrint('App resumed: Supabase session is close to expiry. Refreshing token globally...');
-          await SupabaseService.client.auth.refreshSession();
-        }
-      }
-    } catch (e) {
-      debugPrint('App resumed: Failed to refresh session globally: $e');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeNotifierProvider);
-    
+
     return MaterialApp(
-      navigatorKey: NavigationService.navigatorKey, // Set the global key
-      navigatorObservers: [
-        SupportNavigatorObserver(ref), // Register the observer
-      ],
+      title: 'Sports App',
       debugShowCheckedModeBanner: false,
-      title: 'Sports App MVP',
+      navigatorKey: NavigationService.navigatorKey,
+      navigatorObservers: [
+        SupportNavigatorObserver(ref),
+      ],
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      builder: (context, child) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bgColor = isDark ? AppTheme.darkColors.background : AppTheme.lightColors.background;
-
-        return Scaffold(
-          backgroundColor: bgColor,
-          body: GlobalSupportButton(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: child!,
-              ),
-            ),
-          ),
-        );
-      },
-      home: const SplashScreen(),
+      home: const GlobalSupportButton(
+        child: SplashScreen(),
+      ),
     );
   }
 }

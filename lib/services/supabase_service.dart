@@ -4,6 +4,18 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class SupabaseService {
+  static const String _devSupabaseUrl =
+      'https://nigatikzsnxdqdwwqewr.supabase.co';
+  static const String _devSupabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pZ2F0aWt6c254ZHFkd3dxZXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjM2MjEsImV4cCI6MjA4OTUzOTYyMX0.smjivrwy8D8I5rRs49mXRkHSyOAJcti2VwCbm2Oas6Q';
+  static const String projectUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: kReleaseMode ? '' : _devSupabaseUrl,
+  );
+  static const String _supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: kReleaseMode ? '' : _devSupabaseAnonKey,
+  );
   static final SupabaseService _instance = SupabaseService._internal();
   static Future<void>? _initializeFuture;
 
@@ -21,19 +33,15 @@ class SupabaseService {
 
   static Future<void> _initializeOnce() async {
     try {
-      const supabaseUrl = String.fromEnvironment(
-        'SUPABASE_URL',
-        defaultValue: 'https://nigatikzsnxdqdwwqewr.supabase.co',
-      );
-
-      const supabaseAnonKey = String.fromEnvironment(
-        'SUPABASE_ANON_KEY',
-        defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pZ2F0aWt6c254ZHFkd3dxZXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjM2MjEsImV4cCI6MjA4OTUzOTYyMX0.smjivrwy8D8I5rRs49mXRkHSyOAJcti2VwCbm2Oas6Q',
-      );
+      if (projectUrl.isEmpty || _supabaseAnonKey.isEmpty) {
+        throw StateError(
+          'Missing SUPABASE_URL or SUPABASE_ANON_KEY. Provide them via --dart-define or --dart-define-from-file.',
+        );
+      }
 
       await Supabase.initialize(
-        url: supabaseUrl,
-        anonKey: supabaseAnonKey,
+        url: projectUrl,
+        anonKey: _supabaseAnonKey,
       );
       debugPrint('Supabase initialized successfully.');
     } catch (e) {
@@ -42,7 +50,7 @@ class SupabaseService {
   }
 
   // --- Auth Methods ---
-  
+
   Future<void> signInWithOtp(String email) async {
     await client.auth.signInWithOtp(email: email);
   }
@@ -55,7 +63,10 @@ class SupabaseService {
     );
   }
 
-  Future<AuthResponse> signUp({required String email, required String password, required String username}) async {
+  Future<AuthResponse> signUp(
+      {required String email,
+      required String password,
+      required String username}) async {
     return await client.auth.signUp(
       email: email,
       password: password,
@@ -69,7 +80,8 @@ class SupabaseService {
     );
   }
 
-  Future<AuthResponse> signIn({required String email, required String password}) async {
+  Future<AuthResponse> signIn(
+      {required String email, required String password}) async {
     return await client.auth.signInWithPassword(
       email: email,
       password: password,
@@ -79,20 +91,17 @@ class SupabaseService {
   Future<void> signOut() async {
     await client.auth.signOut();
   }
-  
+
   User? getCurrentUser() {
     return client.auth.currentUser;
   }
 
   // --- Profile Methods ---
-  
+
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-      final response = await client
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
+      final response =
+          await client.from('users').select().eq('id', userId).maybeSingle();
       return response;
     } catch (e) {
       debugPrint('Error fetching user profile: $e');
@@ -100,16 +109,17 @@ class SupabaseService {
     }
   }
 
-  Future<bool> updateUserProfile(String userId, {String? username, String? avatarUrl}) async {
+  Future<bool> updateUserProfile(String userId,
+      {String? username, String? avatarUrl}) async {
     try {
       final updates = <String, dynamic>{};
       if (username != null) updates['username'] = username;
       if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
-      
+
       if (updates.isEmpty) return true;
 
       await client.from('users').update(updates).eq('id', userId);
-      
+
       // Also sync username to auth metadata for future consistency
       if (username != null) {
         await client.auth.updateUser(
@@ -123,15 +133,20 @@ class SupabaseService {
     }
   }
 
-  Future<String?> uploadAvatar(String userId, Uint8List imageBytes, String fileExt) async {
+  Future<String?> uploadAvatar(
+      String userId, Uint8List imageBytes, String fileExt) async {
     try {
-      final fileName = '$userId.${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-      
-      // We use raw HTTP POST here instead of client.storage.from(...).uploadBinary(...) 
-      // because the Supabase Dart SDK forces an 'x-upsert' header which triggers 
+      final fileName =
+          '$userId.${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+      // We use raw HTTP POST here instead of client.storage.from(...).uploadBinary(...)
+      // because the Supabase Dart SDK forces an 'x-upsert' header which triggers
       // strict CORS preflight rejections (Failed to fetch) natively on Flutter Web.
-      final url = Uri.parse('https://nigatikzsnxdqdwwqewr.supabase.co/storage/v1/object/avatars/$fileName');
-      
+      if (projectUrl.isEmpty) {
+        throw StateError('SUPABASE_URL is not configured.');
+      }
+      final url = Uri.parse('$projectUrl/storage/v1/object/avatars/$fileName');
+
       final response = await http.post(
         url,
         headers: {
@@ -142,13 +157,15 @@ class SupabaseService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Storage upload failed with code: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Storage upload failed with code: ${response.statusCode} - ${response.body}');
       }
-      
-      // Bypass the bugged client.storage.from('avatars').getPublicUrl(fileName) 
+
+      // Bypass the bugged client.storage.from('avatars').getPublicUrl(fileName)
       // which creates an invalid Edge URL (.storage.supabase.co/v1/object/public) throwing 404s.
       // We manually construct the guaranteed public URL pointing to the core proxy.
-      final publicUrl = 'https://nigatikzsnxdqdwwqewr.supabase.co/storage/v1/object/public/avatars/$fileName';
+      final publicUrl =
+          '$projectUrl/storage/v1/object/public/avatars/$fileName';
       return publicUrl;
     } catch (e) {
       debugPrint('Error uploading avatar: $e');
@@ -163,22 +180,26 @@ class SupabaseService {
       // We bypass client.storage.from('avatars').remove() because the Dart SDK
       // automatically constructs the malformed .storage.supabase.co/v1 Edge route
       // which results in silent CORS/404 failures just like the upload endpoint.
-      final url = Uri.parse('https://nigatikzsnxdqdwwqewr.supabase.co/storage/v1/object/avatars');
-      
+      if (projectUrl.isEmpty) {
+        throw StateError('SUPABASE_URL is not configured.');
+      }
+      final url = Uri.parse('$projectUrl/storage/v1/object/avatars');
+
       final request = http.Request('DELETE', url)
         ..headers.addAll({
           'Authorization': 'Bearer ${client.auth.currentSession?.accessToken}',
           'Content-Type': 'application/json',
         })
         ..body = '{"prefixes": ["$fileName"]}';
-        
+
       final response = await http.Client().send(request);
 
       if (response.statusCode == 200) {
         debugPrint('Old avatar deleted successfully via HTTP: $fileName');
       } else {
         final responseBody = await response.stream.bytesToString();
-        debugPrint('Failed to delete old avatar via HTTP: ${response.statusCode} - $responseBody');
+        debugPrint(
+            'Failed to delete old avatar via HTTP: ${response.statusCode} - $responseBody');
       }
     } catch (e) {
       debugPrint('Error deleting old avatar: $e');
@@ -204,7 +225,8 @@ class SupabaseService {
         'p_amount': amount,
       });
       if (response != null && response is Map && response['success'] == true) {
-        debugPrint("K-Coins rewarded successfully! New balance: \${response['new_balance']}");
+        debugPrint(
+            "K-Coins rewarded successfully! New balance: \${response['new_balance']}");
         return true;
       }
       return false;
@@ -217,17 +239,17 @@ class SupabaseService {
   Future<bool> isUsernameAvailable(String username) async {
     try {
       if (username.trim().isEmpty) return false;
-      
+
       final response = await client
           .from('users')
           .select('id')
           .eq('username', username.trim())
           .maybeSingle();
-          
+
       return response == null; // Available if no existing row is found
     } catch (e) {
       debugPrint('Error checking username availability: $e');
-      return false; 
+      return false;
     }
   }
 
@@ -249,7 +271,7 @@ class SupabaseService {
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .limit(10);
-      
+
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error fetching user bets: $e');
@@ -260,7 +282,11 @@ class SupabaseService {
   // Retrieves a dynamic app configuration string from the public.app_settings table
   Future<String?> getAppSetting(String key) async {
     try {
-      final response = await client.from('app_settings').select('value').eq('key', key).maybeSingle();
+      final response = await client
+          .from('app_settings')
+          .select('value')
+          .eq('key', key)
+          .maybeSingle();
       if (response != null) {
         return response['value'] as String;
       }
@@ -281,4 +307,3 @@ class SupabaseService {
     }
   }
 }
-

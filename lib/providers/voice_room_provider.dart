@@ -82,16 +82,22 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     return const VoiceRoomState();
   }
 
-  Future<void> joinRoom(String roomName, {bool forceIsHost = false, bool isPrivate = false, String? pinCode}) async {
+  Future<void> joinRoom(String roomName,
+      {bool forceIsHost = false,
+      bool isPrivate = false,
+      String? pinCode}) async {
     state = state.copyWith(isConnecting: true, error: null);
-    
+
     try {
       final user = SupabaseService.client.auth.currentUser;
-      final participantName = user?.userMetadata?['username'] ?? user?.email ?? 'Anonymous';
+      final participantName =
+          user?.userMetadata?['username'] ?? user?.email ?? 'Anonymous';
 
       bool isHost = forceIsHost;
       bool roomIsPrivate = isPrivate;
       String? roomPinCode = pinCode;
+      final hasExplicitPrivateJoin =
+          (pinCode?.isNotEmpty ?? false) || isPrivate;
 
       if (!isHost && user != null) {
         final roomData = await SupabaseService.client
@@ -99,13 +105,18 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
             .select('host_id, is_private, pin_code')
             .eq('room_name', roomName)
             .maybeSingle();
-            
+
         if (roomData != null) {
           if (roomData['host_id'] == user.id) {
             isHost = true;
           }
           roomIsPrivate = roomData['is_private'] ?? false;
           roomPinCode = roomData['pin_code'];
+        } else if (hasExplicitPrivateJoin) {
+          // Private rooms are intentionally hidden by RLS from non-hosts.
+          // If the user joined with a PIN/deep-link, let the edge function
+          // validate room existence and PIN instead of creating a duplicate row.
+          roomIsPrivate = true;
         } else {
           // Room does not exist in our database. The user is implicitly creating it.
           await SupabaseService.client.from('audio_rooms').insert({
@@ -118,12 +129,13 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         }
       }
 
-      await _liveKitService.connect(roomName, participantName, userId: user?.id, isHost: isHost, pinCode: roomPinCode);
-      
+      await _liveKitService.connect(roomName, participantName,
+          userId: user?.id, isHost: isHost, pinCode: roomPinCode);
+
       final room = _liveKitService.room;
       if (room != null) {
         _listenToRoomEvents(room);
-        
+
         final currentParticipants = _getParticipants(room);
 
         // Initial state
@@ -159,13 +171,15 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         .eq('room_name', roomName)
         // Fire and forget
         .catchError((e) {
-      debugPrint('Failed to sync listener count: $e');
-    });
+          debugPrint('Failed to sync listener count: $e');
+        });
   }
 
-  Future<void> createAndJoinRoom(String matchId, String baseRoomName, {bool isPrivate = false, String? pinCode}) async {
-    final uniqueRoomName = '${baseRoomName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-    
+  Future<void> createAndJoinRoom(String matchId, String baseRoomName,
+      {bool isPrivate = false, String? pinCode}) async {
+    final uniqueRoomName =
+        '${baseRoomName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+
     state = state.copyWith(isConnecting: true, error: null);
     try {
       final user = SupabaseService.client.auth.currentUser;
@@ -180,8 +194,9 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
           if (isPrivate && pinCode != null) 'pin_code': pinCode,
         });
       }
-      
-      await joinRoom(uniqueRoomName, forceIsHost: true, isPrivate: isPrivate, pinCode: pinCode);
+
+      await joinRoom(uniqueRoomName,
+          forceIsHost: true, isPrivate: isPrivate, pinCode: pinCode);
     } catch (e) {
       state = state.copyWith(
         isConnecting: false,
@@ -233,11 +248,12 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     return list;
   }
 
-  void _handleDataReceived(List<int> data, RemoteParticipant? participant) async {
+  void _handleDataReceived(
+      List<int> data, RemoteParticipant? participant) async {
     try {
       final jsonStr = utf8.decode(data);
       final payload = jsonDecode(jsonStr);
-      
+
       if (payload['type'] == 'raise_hand' && state.isHost) {
         if (participant != null) {
           final newHands = Set<String>.from(state.raisedHands);
@@ -245,7 +261,9 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
           state = state.copyWith(raisedHands: newHands);
           debugPrint('User ${participant.identity} raised hand!');
         }
-      } else if (payload['type'] == 'hand_approved' && payload['targetIdentity'] == _liveKitService.room?.localParticipant?.identity) {
+      } else if (payload['type'] == 'hand_approved' &&
+          payload['targetIdentity'] ==
+              _liveKitService.room?.localParticipant?.identity) {
         // We were approved!
         debugPrint('Hand approved! Reconnecting as speaker.');
         becomeSpeaker();
@@ -258,16 +276,19 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         state = state.copyWith(chatMessages: [...state.chatMessages, message]);
       } else if (payload['type'] == 'emoji') {
         final reaction = EmojiReaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString() + payload['sender'],
+          id: DateTime.now().millisecondsSinceEpoch.toString() +
+              payload['sender'],
           emoji: payload['emoji'] ?? '🔥',
           sender: payload['sender'] ?? 'Unknown',
         );
-        state = state.copyWith(emojiReactions: [...state.emojiReactions, reaction]);
-        
+        state =
+            state.copyWith(emojiReactions: [...state.emojiReactions, reaction]);
+
         // Remove emoji after a short delay so it doesn't pile up in state indefinitely
         Future.delayed(const Duration(seconds: 3), () {
           try {
-            final newReactions = List<EmojiReaction>.from(state.emojiReactions)..removeWhere((e) => e.id == reaction.id);
+            final newReactions = List<EmojiReaction>.from(state.emojiReactions)
+              ..removeWhere((e) => e.id == reaction.id);
             state = state.copyWith(emojiReactions: newReactions);
           } catch (_) {
             // Notifier might be disposed
@@ -289,16 +310,19 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     final room = _liveKitService.room;
     if (room != null && room.localParticipant != null) {
       final payload = jsonEncode({'type': 'raise_hand'});
-      await room.localParticipant!.publishData(utf8.encode(payload), reliable: true);
+      await room.localParticipant!
+          .publishData(utf8.encode(payload), reliable: true);
     }
   }
 
   Future<void> approveHand(String targetIdentity) async {
     final room = _liveKitService.room;
     if (room != null && room.localParticipant != null && state.isHost) {
-      final payload = jsonEncode({'type': 'hand_approved', 'targetIdentity': targetIdentity});
-      await room.localParticipant!.publishData(utf8.encode(payload), reliable: true);
-      
+      final payload = jsonEncode(
+          {'type': 'hand_approved', 'targetIdentity': targetIdentity});
+      await room.localParticipant!
+          .publishData(utf8.encode(payload), reliable: true);
+
       final newHands = Set<String>.from(state.raisedHands);
       newHands.remove(targetIdentity);
       state = state.copyWith(raisedHands: newHands);
@@ -314,8 +338,9 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         'text': text,
         'sender': senderName,
       });
-      await room.localParticipant!.publishData(utf8.encode(payload), reliable: true);
-      
+      await room.localParticipant!
+          .publishData(utf8.encode(payload), reliable: true);
+
       // Add local echo
       final message = ChatMessage(
         sender: senderName,
@@ -336,19 +361,22 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         'sender': senderName,
       });
       // Use reliable: false for emojis as they are transient
-      await room.localParticipant!.publishData(utf8.encode(payload), reliable: false);
-      
+      await room.localParticipant!
+          .publishData(utf8.encode(payload), reliable: false);
+
       // Add local echo
       final reaction = EmojiReaction(
         id: DateTime.now().millisecondsSinceEpoch.toString() + senderName,
         emoji: emoji,
         sender: senderName,
       );
-      state = state.copyWith(emojiReactions: [...state.emojiReactions, reaction]);
-      
+      state =
+          state.copyWith(emojiReactions: [...state.emojiReactions, reaction]);
+
       Future.delayed(const Duration(seconds: 3), () {
         try {
-          final newReactions = List<EmojiReaction>.from(state.emojiReactions)..removeWhere((e) => e.id == reaction.id);
+          final newReactions = List<EmojiReaction>.from(state.emojiReactions)
+            ..removeWhere((e) => e.id == reaction.id);
           state = state.copyWith(emojiReactions: newReactions);
         } catch (_) {
           // Notifier might be disposed
@@ -361,13 +389,15 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     final currentRoom = state.currentRoomName;
     if (currentRoom != null) {
       await leaveRoom();
-      
+
       final user = SupabaseService.client.auth.currentUser;
-      final participantName = user?.userMetadata?['username'] ?? user?.email ?? 'Anonymous';
-      
+      final participantName =
+          user?.userMetadata?['username'] ?? user?.email ?? 'Anonymous';
+
       state = state.copyWith(isConnecting: true, error: null);
       try {
-        await _liveKitService.connect(currentRoom, participantName, userId: user?.id, isHost: false, canPublish: true);
+        await _liveKitService.connect(currentRoom, participantName,
+            userId: user?.id, isHost: false, canPublish: true);
         final room = _liveKitService.room;
         if (room != null) {
           _listenToRoomEvents(room);
@@ -384,7 +414,8 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
           await room.localParticipant?.setMicrophoneEnabled(true);
         }
       } catch (e) {
-        state = state.copyWith(isConnecting: false, error: 'Failed to reconnect as speaker: $e');
+        state = state.copyWith(
+            isConnecting: false, error: 'Failed to reconnect as speaker: $e');
       }
     }
   }
@@ -392,14 +423,15 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
   Future<void> leaveRoom() async {
     final currentRoomName = state.currentRoomName;
     final isHost = state.isHost;
-    
+
     // Broadcast termination signal to listeners before disconnecting
     if (isHost) {
       final room = _liveKitService.room;
       if (room != null && room.localParticipant != null) {
         try {
           final payload = jsonEncode({'type': 'room_ended'});
-          await room.localParticipant!.publishData(utf8.encode(payload), reliable: true);
+          await room.localParticipant!
+              .publishData(utf8.encode(payload), reliable: true);
           // Give the DataChannel time to flush the packet before destroying the socket
           await Future.delayed(const Duration(milliseconds: 500));
         } catch (e) {
@@ -412,7 +444,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     _listener = null;
     await _liveKitService.disconnect();
     state = const VoiceRoomState(); // Reset state
-    
+
     if (isHost && currentRoomName != null) {
       try {
         await SupabaseService.client
@@ -429,10 +461,12 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
     final room = _liveKitService.room;
     if (room != null && room.localParticipant != null) {
       final isCurrentlyMuted = !(room.localParticipant!.isMicrophoneEnabled());
-      await room.localParticipant!.setMicrophoneEnabled(isCurrentlyMuted); // Toggle
+      await room.localParticipant!
+          .setMicrophoneEnabled(isCurrentlyMuted); // Toggle
       state = state.copyWith(isMuted: !isCurrentlyMuted);
     }
   }
 }
 
-final voiceRoomProvider = NotifierProvider<VoiceRoomNotifier, VoiceRoomState>(VoiceRoomNotifier.new);
+final voiceRoomProvider =
+    NotifierProvider<VoiceRoomNotifier, VoiceRoomState>(VoiceRoomNotifier.new);

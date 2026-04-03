@@ -1,15 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { postMessageToHost } from '../lib/bridge';
 import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
-
-// Declaration for the injected Flutter bridge
-declare global {
-  interface Window {
-    MiniGameBridge?: {
-      postMessage: (message: string) => void;
-    };
-  }
-}
 
 interface KeepyUppyProps {
   roomId: string;
@@ -349,14 +341,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
         roomId: roomId,
         gameId: gameId,
       });
-      // Try both bridge and parent postMessage to ensure Flutter catches it on Web
-      if (window.MiniGameBridge) {
-        window.MiniGameBridge.postMessage(payload);
-      }
-      window.parent.postMessage(payload, '*');
-      if (window.top && window.top !== window) {
-        window.top.postMessage(payload, '*');
-      }
+      postMessageToHost(payload);
     } catch (err) {
       console.error("Failed to exit:", err);
     }

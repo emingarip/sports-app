@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { postMessageToHost } from '../lib/bridge';
 import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
-
-declare global {
-  interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
-}
 
 interface Ball {
   id: number;
@@ -306,8 +303,7 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
     // Ensure last score is saved
     autoSaveScore(scoreRef.current).then(() => {
       setTimeout(() => {
-        if (globalThis.window?.MiniGameBridge) globalThis.window.MiniGameBridge.postMessage(payload);
-        globalThis.window?.parent?.postMessage(payload, '*');
+        postMessageToHost(payload);
       }, 800);
     });
   };

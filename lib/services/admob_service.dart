@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 
-import 'ads/ad_helper_stub.dart' if (dart.library.io) 'ads/ad_helper_mobile.dart';
+import 'ads/ad_helper_stub.dart'
+    if (dart.library.io) 'ads/ad_helper_mobile.dart';
 
 import '../services/supabase_service.dart';
 
@@ -13,26 +14,24 @@ class AdMobService {
   factory AdMobService() => _instance;
   AdMobService._internal();
 
-  /// Returns the ad unit ID for rewarded video. 
-  /// ALWAYS use test ads during development to prevent account suspension.
+  /// Returns empty when rewarded ads are not configured for this build.
   String get rewardedAdUnitId {
     if (defaultTargetPlatform == TargetPlatform.android) {
-      // Android Test Rewarded Ad Unit ID
-      return const String.fromEnvironment('ADMOB_ANDROID_REWARDED_ID', defaultValue: 'ca-app-pub-3940256099942544/5224354917');
+      return const String.fromEnvironment('ADMOB_ANDROID_REWARDED_ID');
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      // iOS Test Rewarded Ad Unit ID
-      return const String.fromEnvironment('ADMOB_IOS_REWARDED_ID', defaultValue: 'ca-app-pub-3940256099942544/1712485313');
+      return const String.fromEnvironment('ADMOB_IOS_REWARDED_ID');
     }
-    return ''; // Web or unsupported
+    return '';
   }
 
   Future<void> initialize() async {
-    if (!kIsWeb) {
+    if (!kIsWeb && rewardedAdUnitId.isNotEmpty) {
       await NativeAdHelper.initialize();
+    } else {
+      debugPrint('Rewarded ads disabled for this build.');
     }
   }
 
-  /// Pre-loads a rewarded ad so it's ready to explicitly display instantly when requested.
   void loadRewardedAd() {
     if (kIsWeb) {
       debugPrint('AdMob Web fallback strictly activated.');
@@ -44,51 +43,58 @@ class AdMobService {
     }
   }
 
-  /// Displays the ad and triggers the callback if the user finishes watching.
-  void showRewardedAd(BuildContext context, {required Function onEarnedReward}) {
+  void showRewardedAd(BuildContext context,
+      {required Function onEarnedReward}) {
     if (kIsWeb) {
       _showWebDirectLinkAd(context, onEarnedReward: onEarnedReward);
+      return;
+    }
+    if (rewardedAdUnitId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Rewarded ads are not configured for this build.')),
+      );
       return;
     }
 
     NativeAdHelper.showRewardedAd(context, onEarnedReward: () {
       onEarnedReward();
-      // Preload next
       loadRewardedAd();
     });
   }
 
-  void _showWebDirectLinkAd(BuildContext context, {required Function onEarnedReward}) async {
-    // Show a quick loader while fetching the dynamic URL from Supabase
+  void _showWebDirectLinkAd(BuildContext context,
+      {required Function onEarnedReward}) async {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
 
-    // 1. Fetch live admin configuration
-    final String? configuredLink = await SupabaseService().getAppSetting('adsterra_direct_link');
-    
+    final String? configuredLink =
+        await SupabaseService().getAppSetting('adsterra_direct_link');
+
     if (context.mounted) {
-      Navigator.of(context).pop(); // Dismiss loader
+      Navigator.of(context).pop();
     }
 
-    // Fallback to safety default if network/config fails
-    const String defaultLink = 'https://www.highcpmgate.com/example-adsterra-link';
+    const String defaultLink =
+        'https://www.highcpmgate.com/example-adsterra-link';
     final url = Uri.parse(configuredLink ?? defaultLink);
-    
+
     if (!await launchUrl(url, webOnlyWindowName: '_blank')) {
       if (context.mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Failed to load sponsor video. Please check popup blockers.')),
-         );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Failed to load sponsor video. Please check popup blockers.')),
+        );
       }
       return;
     }
 
-    // 2. Show the countdown dialog
     if (!context.mounted) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -106,7 +112,7 @@ class _WebAdTimerDialog extends StatefulWidget {
 }
 
 class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
-  int _timeLeft = 15; // Set back to 15 in prod
+  int _timeLeft = 15;
   Timer? _timer;
 
   @override
@@ -122,8 +128,8 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
       } else {
         _timer?.cancel();
         if (mounted) {
-          Navigator.of(context).pop(); // Auto-close dialog
-          widget.onEarnedReward(); // Give the coins!
+          Navigator.of(context).pop();
+          widget.onEarnedReward();
         }
       }
     });
@@ -145,7 +151,9 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
         decoration: BoxDecoration(
           color: context.colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.colors.primaryContainer.withValues(alpha: 0.5), width: 2),
+          border: Border.all(
+              color: context.colors.primaryContainer.withValues(alpha: 0.5),
+              width: 2),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.3),
@@ -157,7 +165,8 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.ondemand_video_rounded, color: context.colors.primaryContainer, size: 48),
+            Icon(Icons.ondemand_video_rounded,
+                color: context.colors.primaryContainer, size: 48),
             const SizedBox(height: 16),
             Text(
               'Sponsor Message',
@@ -168,7 +177,7 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Lütfen Sponsor bağlantısını kapatmadan $_timeLeft saniye açık tutun!',
+              'Lütfen sponsor bağlantısını kapatmadan $_timeLeft saniye açık tutun.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: context.colors.textMedium,
                   ),
@@ -182,9 +191,10 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
                 fit: StackFit.expand,
                 children: [
                   CircularProgressIndicator(
-                    value: _timeLeft / 15, // 1.0 -> 0.0
+                    value: _timeLeft / 15,
                     strokeWidth: 6,
-                    backgroundColor: context.colors.outline.withValues(alpha: 0.2),
+                    backgroundColor:
+                        context.colors.outline.withValues(alpha: 0.2),
                     color: context.colors.primaryContainer,
                   ),
                   Center(
@@ -208,11 +218,16 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
                   Navigator.of(context).pop();
                 },
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: context.colors.error.withValues(alpha: 0.5)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: BorderSide(
+                      color: context.colors.error.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                child: Text('Cancel & Lose Reward', style: TextStyle(color: context.colors.error, fontWeight: FontWeight.bold)),
+                child: Text('Cancel & Lose Reward',
+                    style: TextStyle(
+                        color: context.colors.error,
+                        fontWeight: FontWeight.bold)),
               ),
             ),
           ],

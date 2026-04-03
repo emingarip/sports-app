@@ -22,7 +22,7 @@ struct Provider: TimelineProvider {
     func getEntryFromUserDefaults() -> SimpleEntry {
         // Find the user defaults group matching the app bundle identifier + .homeWidget
         // Note: You must ensure an App Group is configured in Xcode for passing data if necessary.
-        let userDefaults = UserDefaults(suiteName: "group.com.emingarip.sportsapp") ?? UserDefaults.standard
+        let userDefaults = UserDefaults(suiteName: "group.com.boskale.sportsapp") ?? UserDefaults.standard
         let homeTeam = userDefaults.string(forKey: "widget_home_team") ?? "Home"
         let awayTeam = userDefaults.string(forKey: "widget_away_team") ?? "Away"
         let homeScore = userDefaults.integer(forKey: "widget_home_score")

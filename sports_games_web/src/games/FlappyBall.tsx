@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { postMessageToHost } from '../lib/bridge';
 import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
-
-declare global {
-  interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
-}
 
 interface FlappyBallProps { readonly roomId: string; readonly gameId: string; }
 
@@ -296,8 +293,7 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     } finally {
       setIsSubmitting(false);
       const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(finalScore, myHighScore), roomId, gameId });
-      if (globalThis.window.MiniGameBridge) globalThis.window.MiniGameBridge.postMessage(payload);
-      globalThis.window.parent.postMessage(payload, globalThis.window.location.origin);
+      postMessageToHost(payload);
     }
   };
 

@@ -3,6 +3,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:live_activities/live_activities.dart';
 
 class WidgetService {
+  static const String _appGroupId = 'group.com.boskale.sportsapp';
   static final WidgetService _instance = WidgetService._internal();
   factory WidgetService() => _instance;
   WidgetService._internal();
@@ -12,12 +13,12 @@ class WidgetService {
 
   Future<void> initialize() async {
     if (kIsWeb) return;
-    
+
     // Initialize Home Widget
-    await HomeWidget.setAppGroupId('group.com.emingarip.sportsapp');
+    await HomeWidget.setAppGroupId(_appGroupId);
 
     // Initialize Live Activities
-    await _liveActivitiesPlugin.init(appGroupId: 'group.com.emingarip.sportsapp');
+    await _liveActivitiesPlugin.init(appGroupId: _appGroupId);
   }
 
   /// Updates the Android/iOS Home Screen Widget with match data
@@ -33,7 +34,7 @@ class WidgetService {
     await HomeWidget.saveWidgetData<String>('widget_away_team', awayTeam);
     await HomeWidget.saveWidgetData<int>('widget_home_score', homeScore);
     await HomeWidget.saveWidgetData<int>('widget_away_score', awayScore);
-    
+
     // WatchOS Complication Keys (AppGroup exported)
     await HomeWidget.saveWidgetData<int>('watch_home_score', homeScore);
     await HomeWidget.saveWidgetData<int>('watch_away_score', awayScore);

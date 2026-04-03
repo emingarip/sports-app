@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { postMessageToHost } from '../lib/bridge';
 import { DifficultyScaler, ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer } from '../lib/gameUtils';
-
-declare global {
-  interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
-}
 
 interface GoalCelebrationRhythmProps { readonly roomId: string; readonly gameId: string; }
 
@@ -350,8 +347,7 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
     } finally {
       setIsSubmitting(false);
       const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(finalScore, myHighScore), roomId, gameId });
-      if (globalThis.window.MiniGameBridge) globalThis.window.MiniGameBridge.postMessage(payload);
-      globalThis.window.parent.postMessage(payload, globalThis.window.location.origin);
+      postMessageToHost(payload);
     }
   };
 
@@ -364,8 +360,7 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
   const exitGame = () => {
     setIsSubmitting(true);
     const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(score, myHighScore), roomId, gameId });
-    if (globalThis.window?.MiniGameBridge) globalThis.window.MiniGameBridge.postMessage(payload);
-    globalThis.window?.parent?.postMessage(payload, '*');
+    postMessageToHost(payload);
   };
 
   const handleTap = () => {

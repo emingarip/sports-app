@@ -1,14 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { postMessageToHost } from '../lib/bridge';
 import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
-
-declare global {
-  interface Window {
-    MiniGameBridge?: {
-      postMessage: (message: string) => void;
-    };
-  }
-}
 
 interface PenaltyShootoutProps {
   roomId: string;
@@ -482,8 +475,7 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
     setIsSubmitting(true);
     try {
       const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(score, myHighScore), roomId: roomId, gameId: gameId });
-      if (window.MiniGameBridge) window.MiniGameBridge.postMessage(payload);
-      window.parent.postMessage(payload, '*');
+      postMessageToHost(payload);
     } catch (err) {}
   };
 

@@ -30,7 +30,7 @@ jobs:
         run: flutter test
 
       - name: Build Web
-        run: flutter build web --wasm --base-href "/" --release
+        run: flutter build web --wasm --base-href "/" --release --dart-define-from-file=.env
 
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
+import { isTrustedHostOrigin } from './lib/bridge';
 import KeepyUppy from './games/KeepyUppy';
 import PenaltyShootout from './games/PenaltyShootout';
 import GoalkeeperReflex from './games/GoalkeeperReflex';
@@ -19,44 +20,57 @@ function App() {
     const roomIdFromUrl = urlParams.get('roomId');
     const gameIdFromUrl = urlParams.get('gameId');
     const gameTypeFromUrl = urlParams.get('gameType');
-    
+
     if (gameTypeFromUrl) setGameType(gameTypeFromUrl);
 
-    const authenticate = async (token: string, room: string, game: string) => {
+    const authenticate = async (
+      accessToken: string,
+      refreshToken: string,
+      room: string,
+      game: string,
+    ) => {
       try {
         const { data, error } = await supabase.auth.setSession({
-           access_token: token,
-           refresh_token: token, 
+          access_token: accessToken,
+          refresh_token: refreshToken,
         });
-        
+
         if (!error && data.session) {
           setIsAuthenticated(true);
           setRoomId(room);
           setGameId(game);
         } else {
-           console.error("Auth error:", error);
+          console.error('Auth error:', error);
         }
       } catch (err) {
-        console.error("Auth Exception:", err);
+        console.error('Auth exception:', err);
       }
     };
 
     const handleMessage = (event: MessageEvent) => {
+      if (!isTrustedHostOrigin(event.origin)) {
+        return;
+      }
+
       let data = event.data;
       if (typeof data === 'string') {
         try {
           data = JSON.parse(data);
         } catch (_) {}
       }
-      
-      if (data && data.type === 'INIT_AUTH' && data.token) {
-        authenticate(data.token, roomIdFromUrl || '', gameIdFromUrl || '');
+
+      if (data && data.type === 'INIT_AUTH' && data.accessToken && data.refreshToken) {
+        authenticate(
+          data.accessToken,
+          data.refreshToken,
+          roomIdFromUrl || '',
+          gameIdFromUrl || '',
+        );
       }
     };
 
     window.addEventListener('message', handleMessage);
 
-    // DEVELOPMENT OVERRIDE: 
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       if (urlParams.get('dev') === 'true') {
         setIsAuthenticated(true);
@@ -64,7 +78,7 @@ function App() {
         setGameId('test_game_123');
       }
     }
-    
+
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
@@ -103,10 +117,10 @@ function App() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold mb-2">Oyun Bulunamadı</h2>
+            <h2 className="text-xl font-bold mb-2">Oyun bulunamadı</h2>
             <p className="text-neutral-400 max-w-sm">
-              Başlatılmak istenen oyun "{gameType}" şu an bulunamadı veya uygulamanız eski bir sürümde kalmış olabilir. 
-              Devam etmek için uygulamanızı yeniden başlatmayı veya daha sonra tekrar denemeyi unutmayın.
+              Başlatılmak istenen oyun "{gameType}" şu an bulunamadı veya uygulamanız eski bir sürümde kalmış olabilir.
+              Devam etmek için uygulamanızı yeniden başlatın veya daha sonra tekrar deneyin.
             </p>
           </div>
         );
@@ -115,7 +129,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans overflow-hidden">
-       {renderGame()}
+      {renderGame()}
     </div>
   );
 }

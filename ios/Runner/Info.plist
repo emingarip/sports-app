@@ -71,12 +71,12 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Profil fotoğrafınızı seçebilmek veya güncelleyebilmek için galerinize erişim gerekmektedir.</string>
+	<string>Profil fotoğrafınızı seçebilmek veya güncelleyebilmek için galerinize erişim gerekiyor.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Profil fotoğrafı çekebilmeniz için kameranıza erişim gerekmektedir.</string>
-	
-	<!-- Google Mobile Ads App ID (Test ID) -->
+	<string>Profil fotoğrafı çekebilmeniz için kameranıza erişim gerekiyor.</string>
+
+	<!-- Google Mobile Ads App ID -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>$(ADMOB_APPLICATION_ID)</string>
 </dict>
 </plist>

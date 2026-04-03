@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { postMessageToHost } from '../lib/bridge';
 import { Trophy, Activity, Users } from 'lucide-react';
 
 interface TestGameProps {
@@ -74,14 +75,7 @@ const TestGame: React.FC<TestGameProps> = ({ roomId }) => {
                roomId: roomId
              });
 
-             // @ts-ignore
-             if (window.MiniGameBridge) {
-                // @ts-ignore
-                window.MiniGameBridge.postMessage(msg);
-             }
-             
-             // For Flutter Web iframe communication
-             window.parent.postMessage(msg, '*');
+             postMessageToHost(msg);
            } catch(e) {
              console.error("Flutter bridge error", e);
            }

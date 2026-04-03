@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { postMessageToHost } from '../lib/bridge';
 import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
-
-declare global {
-  interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
-}
 
 interface GameObject {
   id: number;
@@ -400,8 +397,7 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
   const exitGame = () => {
     setIsSubmitting(true);
     const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(score, myHighScore), roomId, gameId });
-    if (globalThis.window?.MiniGameBridge) globalThis.window.MiniGameBridge.postMessage(payload);
-    globalThis.window?.parent?.postMessage(payload, '*');
+    postMessageToHost(payload);
   };
 
   const handleTap = () => {

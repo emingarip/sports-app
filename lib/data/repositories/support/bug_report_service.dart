@@ -1,13 +1,13 @@
-import 'dart:typed_data';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io' show Platform;
+import 'dart:typed_data';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:http/http.dart' as http;
-
 import 'package:flutter/material.dart' show debugPrint;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:sports_app/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 final bugReportServiceProvider = Provider((ref) => BugReportService());
 
@@ -19,13 +19,16 @@ class BugReportService {
       String? screenshotUrl;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final userId = _client.auth.currentUser?.id ?? 'anonymous';
-      
-      // Upload screenshot if provided
+
       if (screenshot != null) {
         final path = '$userId/feedback_$timestamp.png';
-        const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://nigatikzsnxdqdwwqewr.supabase.co');
-        final url = Uri.parse('$supabaseUrl/storage/v1/object/feedback-screenshots/$path');
-        
+        const supabaseUrl = SupabaseService.projectUrl;
+        if (supabaseUrl.isEmpty) {
+          throw StateError('SUPABASE_URL is not configured.');
+        }
+
+        final url = Uri.parse(
+            '$supabaseUrl/storage/v1/object/feedback-screenshots/$path');
         final accessToken = _client.auth.currentSession?.accessToken;
         final headers = {
           'Content-Type': 'image/png',
@@ -39,9 +42,10 @@ class BugReportService {
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-          screenshotUrl = '$supabaseUrl/storage/v1/object/public/feedback-screenshots/$path';
+          screenshotUrl = path;
         } else {
-          debugPrint('Screenshot upload failed: ${response.statusCode} - ${response.body}');
+          debugPrint(
+              'Screenshot upload failed: ${response.statusCode} - ${response.body}');
         }
       }
 
@@ -49,17 +53,15 @@ class BugReportService {
       String deviceModel = 'Unknown';
       String appVersion = 'Unknown';
 
-      // Get App Version
       try {
         final packageInfo = await PackageInfo.fromPlatform();
         appVersion = packageInfo.version;
       } catch (_) {}
 
-      // Get Device Info
       try {
         final deviceInfo = DeviceInfoPlugin();
         if (kIsWeb) {
-           osVersion = 'Web';
+          osVersion = 'Web';
         } else if (Platform.isAndroid) {
           final androidInfo = await deviceInfo.androidInfo;
           osVersion = 'Android ${androidInfo.version.release}';
@@ -71,7 +73,6 @@ class BugReportService {
         }
       } catch (_) {}
 
-      // Save to Supabase
       await _client.from('feedbacks').insert({
         'user_id': _client.auth.currentUser?.id,
         'feedback_type': 'feedback',

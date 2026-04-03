@@ -14,13 +14,24 @@ class LiveKitService {
 
   Room? room;
 
-  Future<String> _fetchToken(String roomName, String participantName, {String? userId, bool isHost = false, bool canPublish = false, String? pinCode}) async {
+  Future<String> _fetchToken(String roomName, String participantName,
+      {String? userId,
+      bool isHost = false,
+      bool canPublish = false,
+      String? pinCode}) async {
     try {
       final response = await SupabaseService.client.functions.invoke(
         'livekit-token',
-        body: {'roomName': roomName, 'participantName': participantName, 'userId': userId, 'isHost': isHost, 'canPublish': canPublish, if (pinCode != null) 'pinCode': pinCode},
+        body: {
+          'roomName': roomName,
+          'participantName': participantName,
+          'userId': userId,
+          'isHost': isHost,
+          'canPublish': canPublish,
+          if (pinCode != null) 'pinCode': pinCode
+        },
       );
-      
+
       if (response.status != 200) {
         throw Exception('Failed to fetch token: ${response.data}');
       }
@@ -31,14 +42,24 @@ class LiveKitService {
     }
   }
 
-  Future<void> connect(String roomName, String participantName, {String? userId, bool isHost = false, bool canPublish = false, String? pinCode}) async {
+  Future<void> connect(String roomName, String participantName,
+      {String? userId,
+      bool isHost = false,
+      bool canPublish = false,
+      String? pinCode}) async {
     try {
-      final token = await _fetchToken(roomName, participantName, userId: userId, isHost: isHost, canPublish: canPublish, pinCode: pinCode);
-      
-      const url = String.fromEnvironment('LIVEKIT_URL', defaultValue: 'wss://boskalecom-2zi7gj0y.livekit.cloud');
+      final token = await _fetchToken(roomName, participantName,
+          userId: userId,
+          isHost: isHost,
+          canPublish: canPublish,
+          pinCode: pinCode);
+
+      const url = String.fromEnvironment('LIVEKIT_URL',
+          defaultValue: 'wss://boskalecom-2zi7gj0y.livekit.cloud');
 
       if (url.contains('your-livekit-project')) {
-          debugPrint('WARNING: LIVEKIT_URL is not set via dart-define. Using placeholder.');
+        debugPrint(
+            'WARNING: LIVEKIT_URL is not set via dart-define. Using placeholder.');
       }
 
       const roomOptions = RoomOptions(
@@ -46,9 +67,9 @@ class LiveKitService {
         dynacast: true,
       );
 
-      room = Room();
-      await room!.connect(url, token, roomOptions: roomOptions);
-      
+      room = Room(roomOptions: roomOptions);
+      await room!.connect(url, token);
+
       debugPrint('Connected to LiveKit room: $roomName');
     } catch (e) {
       debugPrint('Error connecting to LiveKit room: $e');

@@ -18,19 +18,25 @@ KCoinRepository kCoinRepository(Ref ref) {
 Future<List<KCoinPackage>> kCoinPackages(Ref ref) async {
   final repo = ref.watch(kCoinRepositoryProvider);
   final supabasePackages = await repo.getActivePackages();
-  
+  if (!RevenueCatService.isConfiguredForCurrentPlatform) {
+    return supabasePackages
+        .map((pkg) => pkg.copyWith(displayPrice: '\$${pkg.priceUsd}'))
+        .toList();
+  }
+
   try {
     final offerings = await Purchases.getOfferings();
-    if (offerings.current != null && offerings.current!.availablePackages.isNotEmpty) {
+    if (offerings.current != null &&
+        offerings.current!.availablePackages.isNotEmpty) {
       final rcPackages = offerings.current!.availablePackages;
-      
+
       return supabasePackages.map((pkg) {
         if (pkg.storeProductId != null) {
           try {
             final rcPackage = rcPackages.firstWhere(
-              (p) => p.storeProduct.identifier == pkg.storeProductId
-            );
-            return pkg.copyWith(displayPrice: rcPackage.storeProduct.priceString);
+                (p) => p.storeProduct.identifier == pkg.storeProductId);
+            return pkg.copyWith(
+                displayPrice: rcPackage.storeProduct.priceString);
           } catch (_) {}
         }
         return pkg.copyWith(displayPrice: '\$${pkg.priceUsd}');
@@ -40,7 +46,9 @@ Future<List<KCoinPackage>> kCoinPackages(Ref ref) async {
     if (kDebugMode) print('RevenueCat offerings fetch failed: $e');
   }
 
-  return supabasePackages.map((pkg) => pkg.copyWith(displayPrice: '\$${pkg.priceUsd}')).toList();
+  return supabasePackages
+      .map((pkg) => pkg.copyWith(displayPrice: '\$${pkg.priceUsd}'))
+      .toList();
 }
 
 @Riverpod(keepAlive: true)
@@ -54,7 +62,7 @@ class WalletBalance extends _$WalletBalance {
   Future<void> refreshBalance() async {
     final user = SupabaseService().getCurrentUser();
     if (user == null) return;
-    
+
     try {
       final repo = ref.read(kCoinRepositoryProvider);
       final balance = await repo.getUserBalance(user.id);
@@ -67,30 +75,30 @@ class WalletBalance extends _$WalletBalance {
   Future<void> purchasePackage(KCoinPackage package) async {
     try {
       if (kIsWeb) {
-        // Fallback for Web/Testing where Apple/Google IAP is absent
-        // We simulate the webhook's action directly by giving coins in Postgres
-        await SupabaseService().rewardUserCoins(package.coinAmount);
-        await refreshBalance();
-        return;
+        throw UnsupportedError(
+          'Web K-Coin purchases are disabled until a verified web checkout is integrated.',
+        );
       }
 
       final rcPackages = await RevenueCatService.getKCoinPackages();
       final productId = package.storeProductId ?? '';
-      
+
       Package? rcPackage;
       try {
-        rcPackage = rcPackages.firstWhere((p) => p.storeProduct.identifier == productId);
+        rcPackage = rcPackages
+            .firstWhere((p) => p.storeProduct.identifier == productId);
       } catch (_) {}
 
       if (rcPackage == null) {
-        throw Exception("Product not found in Apple/Google Store yet. Please configure RevenueCat dashboard.");
+        throw Exception(
+            "Product not found in Apple/Google Store yet. Please configure RevenueCat dashboard.");
       }
 
       final success = await RevenueCatService.purchasePackage(rcPackage);
       if (!success) {
         throw Exception("Purchase was cancelled or failed.");
       }
-      
+
       // The RevenueCat webhook will asynchronously grant K-Coins to this user.
       // Wait a moment for the webhook to complete, then refresh.
       // (In a more robust setup, we'd listen to Realtime changes on the users table)
@@ -106,7 +114,7 @@ class WalletBalance extends _$WalletBalance {
     try {
       final repo = ref.read(kCoinRepositoryProvider);
       await repo.processTransaction(
-        amount: 50, 
+        amount: 50,
         transactionType: 'daily_reward',
         referenceId: 'test_reward',
       );
@@ -123,7 +131,7 @@ class WalletBalance extends _$WalletBalance {
     try {
       final repo = ref.read(kCoinRepositoryProvider);
       final result = await repo.processTransaction(
-        amount: amount, 
+        amount: amount,
         transactionType: 'ad_reward',
         referenceId: 'ad_reward',
       );
