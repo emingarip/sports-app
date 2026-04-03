@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
 
 declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
@@ -33,6 +34,17 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
   const lastSpawn = useRef(0);
   const spawnRate = useRef(1500); // gets faster
   const idCounter = useRef(0);
+
+  // Juice systems
+  const particles = useRef(new ParticleSystem());
+  const shake = useRef(new ScreenShake());
+  const floatingText = useRef(new FloatingTextSystem());
+  const audio = useRef<AudioSynthesizer | null>(null);
+  const hitStop = useRef(0);
+
+  useEffect(() => {
+    audio.current = new AudioSynthesizer();
+  }, []);
 
   useEffect(() => {
     if (!gameId) return;
@@ -113,7 +125,11 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
     if (!ctx) return;
 
     const render = (time: number) => {
-      ctx.clearRect(0, 0, screenWidth, screenHeight);
+      ctx.save();
+      shake.current.apply(ctx);
+      
+      // Clear with offset to handle screen shake correctly
+      ctx.clearRect(-50, -50, screenWidth + 100, screenHeight + 100);
 
       // Draw background goal net
       ctx.strokeStyle = 'rgba(255,255,255,0.1)';
@@ -121,55 +137,64 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
       for (let i = 0; i < screenWidth; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, screenHeight); ctx.stroke(); }
       for (let i = 0; i < screenHeight; i += 30) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(screenWidth, i); ctx.stroke(); }
 
-      // Spawn new balls
-      if (time - lastSpawn.current > spawnRate.current) {
-         lastSpawn.current = time;
-         balls.current.push({
-           id: idCounter.current++,
-           x: Math.random() * (screenWidth - 100) + 50,
-           y: Math.random() * (screenHeight - 200) + 100,
-           size: 5,
-           max_size: 60,
-           speed: 0.5 + Math.random() * 0.5
-         });
-         // Increase difficulty
-         spawnRate.current = Math.max(400, spawnRate.current - 20);
+      let shouldUpdateGameLogic = true;
+      if (hitStop.current > 0) {
+        hitStop.current--;
+        shouldUpdateGameLogic = false;
+      }
+
+      if (shouldUpdateGameLogic) {
+        // Spawn new balls
+        if (time - lastSpawn.current > spawnRate.current) {
+           lastSpawn.current = time;
+           balls.current.push({
+             id: idCounter.current++,
+             x: Math.random() * (screenWidth - 100) + 50,
+             y: Math.random() * (screenHeight - 200) + 100,
+             size: 5,
+             max_size: 60,
+             speed: 0.5 + Math.random() * 0.5
+           });
+           // Increase difficulty
+           spawnRate.current = Math.max(400, spawnRate.current - 20);
+        }
       }
 
       // Update and draw balls
       for (let i = balls.current.length - 1; i >= 0; i--) {
         const b = balls.current[i];
-        b.size += b.speed;
-        
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
-        ctx.fillStyle = b.size > b.max_size - 10 ? 'rgba(255,100,100,0.9)' : 'white';
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#333';
-        ctx.stroke();
-
-        // Soccer pattern
-        ctx.fillStyle = '#222';
-        ctx.beginPath();
-        for (let j = 0; j < 5; j++) {
-          ctx.lineTo(b.x + Math.cos((18 + j * 72) * Math.PI / 180) * (b.size * 0.4), b.y - Math.sin((18 + j * 72) * Math.PI / 180) * (b.size * 0.4));
+        if (shouldUpdateGameLogic) {
+          b.size += b.speed;
         }
-        ctx.closePath();
-        ctx.fill();
+        
+        drawSoccerBall(ctx, b.x, b.y, b.size, time * 0.005);
+        
+        if (b.size > b.max_size - 15) {
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255,0,0,0.4)';
+          ctx.fill();
+        }
 
-        if (b.size >= b.max_size) {
+        if (b.size >= b.max_size && shouldUpdateGameLogic) {
            // Conceded a goal!
-           // Deduct score or end game. Let's deduct score by 1 for arcade feel.
            setScore(s => Math.max(0, s - 1));
            balls.current.splice(i, 1);
            
+           audio.current?.playCrash();
+           shake.current.trigger(15);
+           floatingText.current.add(b.x, b.y, "-1", "rgba(255, 50, 50, 1)");
+           
            // Screen flash red
            ctx.fillStyle = 'rgba(255,0,0,0.3)';
-           ctx.fillRect(0,0,screenWidth, screenHeight);
+           ctx.fillRect(-50, -50, screenWidth + 100, screenHeight + 100);
         }
       }
 
+      particles.current.updateAndDraw(ctx);
+      floatingText.current.updateAndDraw(ctx);
+
+      ctx.restore();
       requestRef.current = requestAnimationFrame(render);
     };
 
@@ -219,8 +244,15 @@ export default function GoalkeeperReflex({ roomId, gameId }: GoalkeeperReflexPro
     }
 
     if (tappedIndex !== -1) {
+       const b = balls.current[tappedIndex];
        balls.current.splice(tappedIndex, 1);
        setScore(s => s + 1);
+       
+       audio.current?.playBounce();
+       shake.current.trigger(8);
+       particles.current.emit(b.x, b.y, '#ffffff', 15, 6);
+       floatingText.current.add(b.x, b.y, "+1", "rgba(50, 255, 50, 1)");
+       hitStop.current = 4; // 4 frames of freeze
     }
   };
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
 
 declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
@@ -40,6 +41,17 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
 
   const objects = useRef<Array<{ id: number; type: 'ball' | 'boot'; x: number; y: number; dx: number; dy: number; gravity: number; active: boolean }>>([]);
   const spawnRate = useRef(2000); // 2 seconds
+
+  // Juice systems
+  const particles = useRef(new ParticleSystem());
+  const shake = useRef(new ScreenShake());
+  const floatingText = useRef(new FloatingTextSystem());
+  const audio = useRef<AudioSynthesizer | null>(null);
+  const impactFrame = useRef(0);
+
+  useEffect(() => {
+    audio.current = new AudioSynthesizer();
+  }, []);
 
   useEffect(() => {
     if (!gameId) return;
@@ -120,25 +132,43 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
     let frames = 0;
 
     const render = () => {
-      ctx.clearRect(0, 0, screenWidth, screenHeight);
+      ctx.save();
+      shake.current.apply(ctx);
+
+      // Impact Frame (flashing background)
+      if (impactFrame.current > 0) {
+        impactFrame.current--;
+        ctx.fillStyle = impactFrame.current % 2 === 0 ? 'white' : 'black';
+        ctx.fillRect(-50, -50, screenWidth + 100, screenHeight + 100);
+      } else {
+        ctx.clearRect(-50, -50, screenWidth + 100, screenHeight + 100);
+      }
 
       // Player jump logic
       let currentY = player.current.y;
       if (player.current.isJumping) {
-         player.current.jumpProgress += 0.1;
+         player.current.jumpProgress += 0.15; // slightly faster jump
          if (player.current.jumpProgress >= Math.PI) {
             player.current.isJumping = false;
             player.current.jumpProgress = 0;
+            // particles when landing
+            particles.current.emit(player.current.x, player.current.y, 'rgba(255,255,255,0.3)', 5, 2);
          } else {
-            currentY = player.current.y - Math.sin(player.current.jumpProgress) * 100; // Jump height 100
+            currentY = player.current.y - Math.sin(player.current.jumpProgress) * 120; // Jump height 120
          }
       }
 
-      // Draw player (simple person shape)
-      ctx.fillStyle = '#fca5a5'; // skin
-      ctx.beginPath(); ctx.arc(player.current.x, currentY - 20, 15, 0, Math.PI*2); ctx.fill(); // Head
-      ctx.fillStyle = '#ef4444'; // shirt
-      ctx.fillRect(player.current.x - 15, currentY, 30, 40);
+      // Draw player (simple person shape) - if impact frame is active, invert player color for stark contrast
+      if (impactFrame.current > 0) {
+         ctx.fillStyle = 'black';
+         ctx.beginPath(); ctx.arc(player.current.x, currentY - 20, 15, 0, Math.PI*2); ctx.fill(); // Head
+         ctx.fillRect(player.current.x - 15, currentY, 30, 40);
+      } else {
+         ctx.fillStyle = '#fca5a5'; // skin
+         ctx.beginPath(); ctx.arc(player.current.x, currentY - 20, 15, 0, Math.PI*2); ctx.fill(); // Head
+         ctx.fillStyle = '#ef4444'; // shirt
+         ctx.fillRect(player.current.x - 15, currentY, 30, 40);
+      }
 
       // Spawn objects
       if (frames % Math.floor(spawnRate.current / 16) === 0) {
@@ -167,37 +197,54 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
 
         ctx.beginPath();
         if (obj.type === 'ball') {
-           ctx.arc(obj.x, obj.y, 15, 0, Math.PI*2);
-           ctx.fillStyle = 'white'; ctx.fill(); 
-           ctx.strokeStyle = '#333'; ctx.stroke();
-           ctx.fillStyle = '#222'; ctx.beginPath();
-           for (let j = 0; j < 5; j++) {
-             ctx.lineTo(obj.x + Math.cos((18 + j * 72) * Math.PI / 180) * 6, obj.y - Math.sin((18 + j * 72) * Math.PI / 180) * 6);
-           }
-           ctx.fill();
+           drawSoccerBall(ctx, obj.x, obj.y, 15, frames * 0.1);
         } else {
-           // draw boot (brown rect)
+           // draw boot (brown rect) with rotation
+           ctx.save();
+           ctx.translate(obj.x, obj.y);
+           ctx.rotate(frames * 0.08 * Math.sign(obj.dx));
            ctx.fillStyle = '#8B4513';
-           ctx.fillRect(obj.x - 10, obj.y - 5, 20, 10);
+           ctx.fillRect(-12, -8, 24, 16);
+           ctx.fillStyle = '#5A2A0C';
+           ctx.fillRect(-12, -8, 6, 16);
+           ctx.restore();
         }
 
         // Collision with player HEAD
         const dist = Math.sqrt(Math.pow(obj.x - player.current.x, 2) + Math.pow(obj.y - (currentY - 20), 2));
-        if (dist < 30) {
+        if (dist < 32) {
            obj.active = false;
            if (obj.type === 'ball') {
               setScore(s => s + 1);
-              // Flash green background
-              ctx.fillStyle = 'rgba(0,255,0,0.3)'; ctx.fillRect(0,0,screenWidth, screenHeight);
+              impactFrame.current = 3;
+              shake.current.trigger(12);
+              particles.current.emit(obj.x, obj.y, '#FFD700', 20, 8);
+              
+              const catchphrases = ["BANG!", "SMASH!", "BOOM!", "GG!"];
+              const phrase = catchphrases[Math.floor(Math.random() * catchphrases.length)];
+              floatingText.current.add(obj.x, obj.y - 30, phrase, "rgba(255, 255, 0, 1)");
+              
+              audio.current?.playBounce();
            } else {
               setScore(s => Math.max(0, s - 2));
+              shake.current.trigger(25);
+              particles.current.emit(obj.x, obj.y, '#FF0000', 30, 10);
+              floatingText.current.add(obj.x, obj.y - 30, "-2", "rgba(255, 0, 0, 1)");
+              audio.current?.playCrash();
+              
               // Flash red background
-              ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,screenWidth, screenHeight);
+              ctx.fillStyle = 'rgba(255,0,0,0.5)'; 
+              ctx.fillRect(-50,-50,screenWidth + 100, screenHeight + 100);
            }
         }
 
         if (obj.y > screenHeight) objects.current.splice(i, 1);
       }
+
+      particles.current.updateAndDraw(ctx);
+      floatingText.current.updateAndDraw(ctx);
+
+      ctx.restore();
 
       frames++;
       requestRef.current = requestAnimationFrame(render);

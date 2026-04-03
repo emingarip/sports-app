@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
 
 // Declaration for the injected Flutter bridge
 declare global {
@@ -45,6 +46,14 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     bounce: -10,
     rotation: 0,
     rotationSpeed: 0,
+    scaleY: 1,
+  });
+
+  const engineRef = useRef({
+    particles: new ParticleSystem(),
+    shake: new ScreenShake(),
+    texts: new FloatingTextSystem(),
+    audio: new AudioSynthesizer(),
   });
 
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
@@ -196,11 +205,15 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       // Clear canvas
       ctx.clearRect(0, 0, screenWidth, screenHeight);
 
+      ctx.save();
+      engineRef.current.shake.apply(ctx);
+
       // Update physics
       ball.current.dy += ball.current.gravity;
       ball.current.y += ball.current.dy;
       ball.current.x += ball.current.dx;
       ball.current.rotation += ball.current.rotationSpeed;
+      ball.current.scaleY += (1 - ball.current.scaleY) * 0.15;
 
       // Wall collisions (bounce off left and right walls)
       if (ball.current.x + ball.current.radius > screenWidth) {
@@ -229,50 +242,17 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       ctx.closePath();
 
       // Draw pentagon soccer ball
-      ctx.save();
-      ctx.translate(ball.current.x, ball.current.y);
-      ctx.rotate(ball.current.rotation);
+      drawSoccerBall(ctx, ball.current.x, ball.current.y, ball.current.radius, ball.current.rotation, ball.current.scaleY);
+
+      // Engine Update
+      engineRef.current.particles.updateAndDraw(ctx);
+      engineRef.current.texts.updateAndDraw(ctx);
       
-      // Soccer ball base
-      ctx.beginPath();
-      ctx.arc(0, 0, ball.current.radius, 0, Math.PI * 2);
-      ctx.fillStyle = 'white';
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#333';
-      ctx.stroke();
-      ctx.closePath();
-
-      // Draw simple soccer pattern (just one black pentagon in center for simplicity + lines)
-      ctx.beginPath();
-      for (let i = 0; i < 5; i++) {
-        ctx.lineTo(
-          Math.cos((18 + i * 72) * Math.PI / 180) * (ball.current.radius * 0.4),
-          -Math.sin((18 + i * 72) * Math.PI / 180) * (ball.current.radius * 0.4)
-        );
-      }
-      ctx.closePath();
-      ctx.fillStyle = '#222';
-      ctx.fill();
-
-      // Draw lines from pentagon corners to edge
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        const startX = Math.cos((18 + i * 72) * Math.PI / 180) * (ball.current.radius * 0.4);
-        const startY = -Math.sin((18 + i * 72) * Math.PI / 180) * (ball.current.radius * 0.4);
-        const endX = Math.cos((18 + i * 72) * Math.PI / 180) * ball.current.radius;
-        const endY = -Math.sin((18 + i * 72) * Math.PI / 180) * ball.current.radius;
-        
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
       ctx.restore();
 
       // Check Game Over (Ball hits bottom)
       if (ball.current.y + ball.current.radius >= screenHeight) {
+        engineRef.current.audio.playCrash();
         handleGameOver(false);
         return;
       }
@@ -327,7 +307,10 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       bounce: -10,
       rotation: 0,
       rotationSpeed: 0,
+      scaleY: 1,
     };
+    engineRef.current.particles.particles = [];
+    engineRef.current.texts.texts = [];
   };
 
   const exitGame = () => {
@@ -379,6 +362,11 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       ball.current.rotationSpeed = (xOffset * 0.01);
       
       ball.current.gravity += 0.005;
+      
+      engineRef.current.audio.playBounce();
+      engineRef.current.particles.emit(ball.current.x, ball.current.y + ball.current.radius, '#ffffff', 10, 2);
+      engineRef.current.texts.add(ball.current.x, ball.current.y - ball.current.radius - 10, '+1', '#FDB022');
+      ball.current.scaleY = 0.6; // trigger stretch logic
     }
   };
 
