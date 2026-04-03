@@ -84,11 +84,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       });
     }
 
-    // Determine URL based on platform or use the Vercel production URL
-    String gameUrl = 'https://sports-app-psi.vercel.app/';
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-       gameUrl = 'http://10.0.2.2:5175/';
-    }
+    String gameUrl = 'https://games.boskale.com/';
     
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
