@@ -7,7 +7,6 @@ class AudioRoom {
   final String status;
   final int listenerCount;
   final bool isPrivate;
-  final String? pinCode;
 
   AudioRoom({
     required this.id,
@@ -18,7 +17,6 @@ class AudioRoom {
     required this.status,
     required this.listenerCount,
     this.isPrivate = false,
-    this.pinCode,
   });
 
   factory AudioRoom.fromJson(Map<String, dynamic> json) {
@@ -31,7 +29,6 @@ class AudioRoom {
       status: json['status'] as String,
       listenerCount: json['listener_count'] as int? ?? 0,
       isPrivate: json['is_private'] as bool? ?? false,
-      pinCode: json['pin_code'] as String?,
     );
   }
 
@@ -45,7 +42,6 @@ class AudioRoom {
       'status': status,
       'listener_count': listenerCount,
       'is_private': isPrivate,
-      'pin_code': pinCode,
     };
   }
 }

@@ -507,8 +507,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     final personalizedList = ref.watch(personalizedMatchesProvider);
 
     if (personalizedList.isEmpty) {
-      return CustomScrollView(slivers: [
-        const SliverPadding(
+      return const CustomScrollView(slivers: [
+        SliverPadding(
           padding: EdgeInsets.only(top: 40),
           sliver: EmptyState(
               message:

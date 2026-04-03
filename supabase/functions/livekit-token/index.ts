@@ -21,7 +21,7 @@ serve(async (req) => {
       });
     }
 
-    const { roomName, participantName, userId } = await req.json();
+    const { roomName, participantName, userId, pinCode } = await req.json();
 
     if (!roomName || !participantName) {
       return new Response(
@@ -35,7 +35,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Verify user JWT (Optional for Listeners, Mandatory for Hosts)
+    // Verify user JWT
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
@@ -43,14 +43,12 @@ serve(async (req) => {
     let isHost = false;
     let canPublish = false;
 
-    // If a valid user exists, check ownership
     if (user) {
       console.log(`[AUTH SUCCESS] User identified: ${user.id}`);
-      // We only verify ownership for audio rooms. 
-      // If the room name matches the unique audio_room name format, we check the DB.
+
       const { data: roomData, error: roomError } = await supabaseAdmin
         .from("audio_rooms")
-        .select("host_id, is_private")
+        .select("host_id, is_private, pin_code")
         .eq("room_name", roomName)
         .maybeSingle();
 
@@ -58,16 +56,27 @@ serve(async (req) => {
         console.error(`[DB ERROR] Failed to fetch room: ${roomError.message}`);
       }
 
-      console.log(`[DB SUCCESS] Room data fetched for ${roomName}:`, roomData);
-
       if (roomData) {
+        // =====================================================
+        // SECURITY: PIN enforcement for private rooms
+        // =====================================================
+        if (roomData.is_private && roomData.host_id !== user.id) {
+          // User is NOT the host of a private room — require PIN
+          if (!pinCode || pinCode !== roomData.pin_code) {
+            return new Response(
+              JSON.stringify({ error: "Invalid or missing PIN code for this private room." }),
+              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          console.log(`[PIN VERIFIED] User ${user.id} provided correct PIN for private room ${roomName}`);
+        }
+        // =====================================================
+
         if (roomData.host_id === user.id) {
           isHost = true;
-          canPublish = true; // Host obviously can publish
+          canPublish = true;
           console.log(`[PERMISSIONS] User is HOST and CAN PUBLISH.`);
         } else {
-          // Here we could implement "approved_speakers" logic if added to the DB.
-          // For now, only the host can publish initially securely.
           canPublish = false; 
           console.log(`[PERMISSIONS] User is NOT host. Host is ${roomData.host_id}, user is ${user.id}`);
         }
@@ -88,7 +97,7 @@ serve(async (req) => {
       );
     }
 
-    // Ensure identity is globally unique even for anonymous users to prevent collision kicks
+    // Ensure identity is globally unique even for anonymous users
     let finalIdentity = userId || user?.id;
     if (!finalIdentity) {
       if (participantName && participantName !== "Anonymous") {

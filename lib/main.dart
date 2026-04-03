@@ -49,8 +49,8 @@ void main() {
     await RevenueCatService.initialize();
     await DeepLinkService().initialize();
     runApp(
-      ProviderScope(
-        child: const BetterFeedback(
+      const ProviderScope(
+        child: BetterFeedback(
           child: MyApp(),
         ),
       ),

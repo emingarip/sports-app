@@ -281,7 +281,7 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen> {
                 Text(
                   _formatTime(msg['created_at']),
                   style: TextStyle(
-                    color: isMe ? Colors.white.withOpacity(0.5) : context.colors.textLow,
+                    color: isMe ? Colors.white.withValues(alpha: 0.5) : context.colors.textLow,
                     fontSize: 10,
                   ),
                 ),
@@ -290,7 +290,7 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen> {
                   Icon(
                     msg['is_read'] == true ? Icons.done_all : Icons.check,
                     size: 12,
-                    color: msg['is_read'] == true ? Colors.blue : (isMe ? Colors.white.withOpacity(0.5) : context.colors.textLow),
+                    color: msg['is_read'] == true ? Colors.blue : (isMe ? Colors.white.withValues(alpha: 0.5) : context.colors.textLow),
                   ),
                 ]
               ],

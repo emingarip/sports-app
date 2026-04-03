@@ -18,10 +18,10 @@ class AdMobService {
   String get rewardedAdUnitId {
     if (defaultTargetPlatform == TargetPlatform.android) {
       // Android Test Rewarded Ad Unit ID
-      return 'ca-app-pub-3940256099942544/5224354917';
+      return const String.fromEnvironment('ADMOB_ANDROID_REWARDED_ID', defaultValue: 'ca-app-pub-3940256099942544/5224354917');
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       // iOS Test Rewarded Ad Unit ID
-      return 'ca-app-pub-3940256099942544/1712485313';
+      return const String.fromEnvironment('ADMOB_IOS_REWARDED_ID', defaultValue: 'ca-app-pub-3940256099942544/1712485313');
     }
     return ''; // Web or unsupported
   }
@@ -145,10 +145,10 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
         decoration: BoxDecoration(
           color: context.colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.colors.primaryContainer.withOpacity(0.5), width: 2),
+          border: Border.all(color: context.colors.primaryContainer.withValues(alpha: 0.5), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
@@ -184,7 +184,7 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
                   CircularProgressIndicator(
                     value: _timeLeft / 15, // 1.0 -> 0.0
                     strokeWidth: 6,
-                    backgroundColor: context.colors.outline.withOpacity(0.2),
+                    backgroundColor: context.colors.outline.withValues(alpha: 0.2),
                     color: context.colors.primaryContainer,
                   ),
                   Center(
@@ -208,7 +208,7 @@ class _WebAdTimerDialogState extends State<_WebAdTimerDialog> {
                   Navigator.of(context).pop();
                 },
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: context.colors.error.withOpacity(0.5)),
+                  side: BorderSide(color: context.colors.error.withValues(alpha: 0.5)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),

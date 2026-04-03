@@ -159,7 +159,7 @@ class StoreFrontScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -302,7 +302,7 @@ class StoreFrontScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                backgroundColor: context.colors.primaryContainer.withOpacity(0.1),
+                backgroundColor: context.colors.primaryContainer.withValues(alpha: 0.1),
               ),
             ),
           ),
@@ -316,7 +316,7 @@ class StoreFrontScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: context.colors.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.outline.withOpacity(0.1)),
+        border: Border.all(color: context.colors.outline.withValues(alpha: 0.1)),
       ),
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -414,7 +414,7 @@ class StoreFrontScreen extends ConsumerWidget {
         color: context.colors.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasAccess ? context.colors.primaryContainer.withOpacity(0.5) : context.colors.outline.withOpacity(0.1),
+          color: hasAccess ? context.colors.primaryContainer.withValues(alpha: 0.5) : context.colors.outline.withValues(alpha: 0.1),
           width: hasAccess ? 2.0 : 1.0,
         ),
       ),
@@ -453,16 +453,16 @@ class StoreFrontScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.2),
+                              color: Colors.green.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green.withOpacity(0.5)),
+                              border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
                             ),
                             child: const Text('OWNED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
                           )
                         else
                           Row(
                             children: [
-                              Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                              const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
                               const SizedBox(width: 4),
                               Text(
                                 '${product.price}',

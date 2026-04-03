@@ -1,31 +1,39 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/badge.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Repository handling all HTTP interactions for the badge system via GamificationSystem.
 class BadgeRepository {
-  final String _baseUrl;
+  final SupabaseClient _supabase;
 
-  BadgeRepository({String? baseUrl})
-      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://gamification.boskale.com/api/v1';
+  BadgeRepository({SupabaseClient? supabase})
+      : _supabase = supabase ?? Supabase.instance.client;
 
   /// Fetches all badge definitions.
   Future<List<Badge>> getAllBadges() async {
-    final response = await http.get(Uri.parse('$_baseUrl/badges'));
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
+    final response = await _supabase.functions.invoke(
+      'gamification-api-bridge',
+      body: {'action': 'get_badges'},
+    );
+    if (response.status == 200) {
+      final json = response.data as Map<String, dynamic>;
       final List<dynamic> rules = json['badges'] ?? [];
       return rules.map((e) => Badge.fromJson(e as Map<String, dynamic>)).toList();
     }
-    throw Exception('Failed to load badges');
+    throw Exception('Failed to load badges: ${response.data}');
   }
 
   /// Fetches all badge progress for a user, as well as their stats.
   Future<(List<UserBadge>, Map<String, int>)> getUserBadges(String userId) async {
-    final response = await http.get(Uri.parse('$_baseUrl/users/$userId'));
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
+    final response = await _supabase.functions.invoke(
+      'gamification-api-bridge',
+      body: {
+        'action': 'get_user_badges',
+        'payload': {'user_id': userId},
+      },
+    );
+    // 404 is handled inside the bridge or returns 404
+    if (response.status == 200) {
+      final json = response.data as Map<String, dynamic>;
       final List<dynamic> badges = json['rich_badge_info'] ?? json['rich_badges'] ?? [];
       final parsedBadges = badges.map((e) => UserBadge.fromJson(e as Map<String, dynamic>)).toList();
       
@@ -34,10 +42,10 @@ class BadgeRepository {
       
       return (parsedBadges, stats);
     }
-    if (response.statusCode == 404) {
+    if (response.status == 404) {
       return (<UserBadge>[], <String, int>{});
     }
-    throw Exception('Failed to load user badges');
+    throw Exception('Failed to load user badges: ${response.data}');
   }
 
   /// Gets or creates a user badge progress row.
@@ -58,17 +66,19 @@ class BadgeRepository {
     required String eventType,
     Map<String, dynamic>? metadata,
   }) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/events'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'user_id': userId,
-        'event_type': eventType,
-        'metadata': metadata ?? {},
-      }),
+    final response = await _supabase.functions.invoke(
+      'gamification-api-bridge',
+      body: {
+        'action': 'send_event',
+        'payload': {
+          'user_id': userId,
+          'event_type': eventType,
+          'metadata': metadata ?? {},
+        },
+      },
     );
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to send event to gamification system');
+    if (response.status != 200 && response.status != 201) {
+      throw Exception('Failed to send event to gamification system: ${response.data}');
     }
   }
 
@@ -88,12 +98,17 @@ class BadgeRepository {
 
   /// Gets or creates the user's streak data.
   Future<UserStreak> getOrCreateStreak(String userId) async {
-    // Fallback or read from stats if available
-    final response = await http.get(Uri.parse('$_baseUrl/users/$userId'));
-    if (response.statusCode == 200) {
-       final json = jsonDecode(response.body);
-       final stats = json['stats'] ?? {};
-       return UserStreak(userId: userId, currentStreak: stats['daily_streak'] ?? 0);
+    final response = await _supabase.functions.invoke(
+      'gamification-api-bridge',
+      body: {
+        'action': 'get_user_badges',
+        'payload': {'user_id': userId},
+      },
+    );
+    if (response.status == 200) {
+      final json = response.data as Map<String, dynamic>;
+      final stats = json['stats'] ?? {};
+      return UserStreak(userId: userId, currentStreak: stats['daily_streak'] ?? 0);
     }
     return UserStreak(userId: userId);
   }

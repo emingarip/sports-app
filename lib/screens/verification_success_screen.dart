@@ -65,7 +65,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                 height: 320,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: context.colors.primaryContainer.withOpacity(0.2),
+                  color: context.colors.primaryContainer.withValues(alpha: 0.2),
                 ),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
@@ -81,7 +81,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                 height: 256,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: context.colors.secondaryContainer.withOpacity(0.1),
+                  color: context.colors.secondaryContainer.withValues(alpha: 0.1),
                 ),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
@@ -103,7 +103,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                     fontFamily: 'Lexend',
                     fontSize: 64,
                     fontWeight: FontWeight.w900,
-                    color: context.colors.textHigh.withOpacity(0.05),
+                    color: context.colors.textHigh.withValues(alpha: 0.05),
                     letterSpacing: 2,
                   ),
                 ),
@@ -172,7 +172,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                         height: 128,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: context.colors.primaryContainer.withOpacity(0.2),
+                                          color: context.colors.primaryContainer.withValues(alpha: 0.2),
                                         ),
                                       ),
                                     );
@@ -185,7 +185,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                     shape: BoxShape.circle,
                                     color: context.colors.primaryContainer,
                                     boxShadow: [
-                                      BoxShadow(color: context.colors.primary.withOpacity(0.15), blurRadius: 40, offset: const Offset(0, 20)),
+                                      BoxShadow(color: context.colors.primary.withValues(alpha: 0.15), blurRadius: 40, offset: const Offset(0, 20)),
                                     ],
                                   ),
                                   child: Center(
@@ -234,7 +234,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                         fontFamily: 'Lexend',
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: context.colors.primary.withOpacity(0.6),
+                                        color: context.colors.primary.withValues(alpha: 0.6),
                                         letterSpacing: 2,
                                       ),
                                     ),
@@ -267,7 +267,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
                                         color: context.colors.primaryContainer,
                                         borderRadius: BorderRadius.circular(3),
                                         boxShadow: [
-                                          BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 12),
+                                          BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.4), blurRadius: 12),
                                         ],
                                       ),
                                     ),

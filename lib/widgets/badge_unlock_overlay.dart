@@ -196,10 +196,10 @@ class _BadgeUnlockOverlayState extends State<BadgeUnlockOverlay>
               decoration: BoxDecoration(
                 color: context.colors.surface,
                 borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: tierColor.withOpacity(0.5), width: 2),
+                border: Border.all(color: tierColor.withValues(alpha: 0.5), width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: tierColor.withOpacity(0.3),
+                    color: tierColor.withValues(alpha: 0.3),
                     blurRadius: 40,
                     spreadRadius: 5,
                   ),
@@ -234,9 +234,9 @@ class _BadgeUnlockOverlayState extends State<BadgeUnlockOverlay>
                             endAngle: pi * 2,
                             transform: GradientRotation(_shimmerController.value * pi * 2),
                             colors: [
-                              tierColor.withOpacity(0.1),
-                              tierColor.withOpacity(0.4),
-                              tierColor.withOpacity(0.1),
+                              tierColor.withValues(alpha: 0.1),
+                              tierColor.withValues(alpha: 0.4),
+                              tierColor.withValues(alpha: 0.1),
                             ],
                           ),
                           border: Border.all(color: tierColor, width: 3),
@@ -267,9 +267,9 @@ class _BadgeUnlockOverlayState extends State<BadgeUnlockOverlay>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: tierColor.withOpacity(0.15),
+                      color: tierColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: tierColor.withOpacity(0.3)),
+                      border: Border.all(color: tierColor.withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       _tierLabel(widget.tier),
@@ -299,7 +299,7 @@ class _BadgeUnlockOverlayState extends State<BadgeUnlockOverlay>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
-                        color: context.colors.accent.withOpacity(0.1),
+                        color: context.colors.accent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(

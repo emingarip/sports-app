@@ -5,9 +5,10 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:sports_app/services/supabase_service.dart';
 
 class RevenueCatService {
-  // TODO: Replace these with your actual RevenueCat public API keys from the dashboard
-  static const String _appleApiKey = 'appl_YOUR_APPLE_API_KEY_HERE';
-  static const String _googleApiKey = 'goog_YOUR_GOOGLE_API_KEY_HERE';
+  // Keys are injected via --dart-define at build time for production
+  // Defaults to test keys for local development
+  static const String _appleApiKey = String.fromEnvironment('REVENUECAT_APPLE_KEY', defaultValue: 'appl_YOUR_APPLE_API_KEY_HERE');
+  static const String _googleApiKey = String.fromEnvironment('REVENUECAT_GOOGLE_KEY', defaultValue: 'goog_YOUR_GOOGLE_API_KEY_HERE');
 
   static Future<void> initialize() async {
     // RevenueCat only works on iOS, Android, and macOS.

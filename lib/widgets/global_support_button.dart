@@ -81,7 +81,7 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
     if (session == null) return widget.child;
 
     final Size screenSize = MediaQuery.of(context).size;
-    final double padding = 16.0;
+    const double padding = 16.0;
 
     // Initialize position if null
     position ??= Offset(
@@ -138,12 +138,12 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: const Color(0xFFFFD700).withOpacity(0.5),
+            color: const Color(0xFFFFD700).withValues(alpha: 0.5),
             blurRadius: 20,
             spreadRadius: -5,
           ),

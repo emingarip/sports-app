@@ -11,12 +11,19 @@ const KCOIN_PACKAGES: Record<string, number> = {
 
 serve(async (req) => {
   try {
-    // 1. Validate the Webhook Secret (Security measure)
+    // 1. SECURITY: Fail-closed — Always require webhook secret
     const authToken = req.headers.get('Authorization')
     const expectedToken = Deno.env.get('REVENUECAT_WEBHOOK_SECRET')
     
-    // Fallback or debug mode checking (in production, always enforce the secret)
-    if (expectedToken && authToken !== `Bearer ${expectedToken}`) {
+    if (!expectedToken) {
+      console.error('CRITICAL: REVENUECAT_WEBHOOK_SECRET is not configured. Rejecting all requests.')
+      return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (authToken !== `Bearer ${expectedToken}`) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -47,8 +54,7 @@ serve(async (req) => {
       })
     }
 
-    // 3. Initialize Supabase Admin Client
-    // We need service_role key to bypass RLS and securely update user balances
+    // 3. Initialize Supabase Admin Client (service_role bypasses RLS)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -60,30 +66,18 @@ serve(async (req) => {
       }
     )
 
-    // 4. Update the User's K-Coin balance
-    // Get current balance first (though doing it atomically via RPC is better, we can also use direct update if safe, or call our process transaction RPC)
-    
-    // We will call the database to securely add the coins:
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('k_coin_balance')
-      .eq('id', userId)
-      .single()
+    // 4. SECURITY: Atomic balance update via server-side RPC
+    // Uses SELECT ... FOR UPDATE to prevent race conditions
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('grant_k_coins_server', {
+      p_user_id: userId,
+      p_amount: coinAmount,
+    })
 
-    if (userError || !userData) {
-      throw new Error(`User not found: ${userId}`)
+    if (rpcError) {
+      throw new Error(`Failed to grant coins: ${rpcError.message}`)
     }
 
-    const newBalance = (userData.k_coin_balance || 0) + coinAmount
-
-    const { error: updateError } = await supabaseAdmin
-      .from('users')
-      .update({ k_coin_balance: newBalance })
-      .eq('id', userId)
-
-    if (updateError) throw updateError
-
-    // 5. Log the transaction (for user history)
+    // 5. Log the transaction (idempotent via unique constraint on rc_transaction_id)
     const transactionId = event.transaction_id || `txn_${Date.now()}`;
     const { error: logError } = await supabaseAdmin
       .from('k_coin_purchasing_history')
@@ -96,12 +90,14 @@ serve(async (req) => {
       })
 
     if (logError && logError.code !== '23505') { 
-      // Ignored if it's a unique constraint violation (duplicate webhook)
+      // Ignore unique constraint violations (duplicate webhook delivery)
       console.error('Failed to log history', logError)
     }
 
+    console.log(`Granted ${coinAmount} K-Coins to ${userId} (tx: ${transactionId})`)
+
     return new Response(
-      JSON.stringify({ success: true, message: `Granted ${coinAmount} K-Coins to ${userId}` }),
+      JSON.stringify({ success: true, message: `Granted ${coinAmount} K-Coins to ${userId}`, ...rpcResult }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     )
   } catch (error: any) {

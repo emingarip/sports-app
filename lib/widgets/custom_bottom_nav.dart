@@ -132,10 +132,10 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                     padding:
                         const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E).withOpacity(0.95),
+                      color: const Color(0xFF1E1E1E).withValues(alpha: 0.95),
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                             offset: const Offset(0, 5))
@@ -187,12 +187,12 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
           child: Container(
             height: 64,
             decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E).withOpacity(0.85),
+                color: const Color(0xFF1E1E1E).withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 10,
                       offset: const Offset(0, -4)),
                 ]),
@@ -314,7 +314,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                           : FontWeight.w700,
                                       color: isSelected
                                           ? const Color(0xFFFACC15)
-                                          : Colors.white.withOpacity(0.5),
+                                          : Colors.white.withValues(alpha: 0.5),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -325,7 +325,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                       fontWeight: FontWeight.w900,
                                       color: isSelected
                                           ? const Color(0xFFFACC15)
-                                          : Colors.white.withOpacity(0.9),
+                                          : Colors.white.withValues(alpha: 0.9),
                                     ),
                                   ),
                                 ],
@@ -342,10 +342,10 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                     width: 56,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFACC15).withOpacity(0.15),
+                      color: const Color(0xFFFACC15).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: const Color(0xFFFACC15).withOpacity(0.5),
+                          color: const Color(0xFFFACC15).withValues(alpha: 0.5),
                           width: 1.5),
                     ),
                   ),
@@ -460,14 +460,14 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFACC15).withOpacity(fillOpacity),
+                  color: const Color(0xFFFACC15).withValues(alpha: fillOpacity),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: const Color(0xFFFACC15).withOpacity(borderOpacity),
+                    color: const Color(0xFFFACC15).withValues(alpha: borderOpacity),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFACC15).withOpacity(glowOpacity),
+                      color: const Color(0xFFFACC15).withValues(alpha: glowOpacity),
                       blurRadius: lerpDouble(10, 18, hintProgress)!,
                       spreadRadius: lerpDouble(0.0, 1.0, hintProgress)!,
                       offset: const Offset(0, 8),
@@ -604,7 +604,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFFACC15).withOpacity(0.15)
+              ? const Color(0xFFFACC15).withValues(alpha: 0.15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(30),
         ),
@@ -614,7 +614,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
             Icon(icon,
                 color: isSelected
                     ? const Color(0xFFFACC15)
-                    : Colors.white.withOpacity(0.6),
+                    : Colors.white.withValues(alpha: 0.6),
                 size: isSelected ? 22 : 20),
             const SizedBox(height: 4),
             Text(
@@ -626,7 +626,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                 letterSpacing: 0.5,
                 color: isSelected
                     ? const Color(0xFFFACC15)
-                    : Colors.white.withOpacity(0.6),
+                    : Colors.white.withValues(alpha: 0.6),
               ),
               overflow: TextOverflow.ellipsis,
             ),

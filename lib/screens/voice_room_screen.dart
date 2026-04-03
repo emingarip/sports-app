@@ -11,7 +11,7 @@ import 'package:sports_app/providers/follow_provider.dart';
 import 'package:sports_app/services/supabase_service.dart';
 
 class VoiceRoomScreen extends ConsumerWidget {
-  const VoiceRoomScreen({Key? key}) : super(key: key);
+  const VoiceRoomScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,7 +62,7 @@ class VoiceRoomScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.amber, width: 1),
                   ),

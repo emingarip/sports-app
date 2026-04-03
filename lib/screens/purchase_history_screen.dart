@@ -114,7 +114,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
                       child: Row(
@@ -123,7 +123,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              color: iconColor.withOpacity(0.15),
+                              color: iconColor.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(iconData, color: iconColor, size: 26),
@@ -166,11 +166,11 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                                     ),
                               ),
                               const SizedBox(height: 6),
-                              Row(
+                              const Row(
                                 children: [
-                                  const Icon(Icons.check_circle, size: 14, color: Color(0xFF00685B)),
-                                  const SizedBox(width: 4),
-                                  const Text(
+                                  Icon(Icons.check_circle, size: 14, color: Color(0xFF00685B)),
+                                  SizedBox(width: 4),
+                                  Text(
                                     'BAŞARILI',
                                     style: TextStyle(
                                       color: Color(0xFF00685B),
@@ -211,7 +211,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
             "When you buy K-Coins, your receipts will appear here.",
             style: TextStyle(
               fontSize: 14,
-              color: context.colors.textMedium.withOpacity(0.8),
+              color: context.colors.textMedium.withValues(alpha: 0.8),
             ),
             textAlign: TextAlign.center,
           ),

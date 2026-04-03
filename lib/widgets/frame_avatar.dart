@@ -9,12 +9,12 @@ class FrameAvatar extends StatefulWidget {
   final VoidCallback? onTap;
 
   const FrameAvatar({
-    Key? key,
+    super.key,
     this.avatarUrl,
     this.activeFrame,
     this.radius = 24.0,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<FrameAvatar> createState() => _FrameAvatarState();

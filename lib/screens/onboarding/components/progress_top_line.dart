@@ -20,7 +20,7 @@ class ProgressTopLine extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               boxShadow: [
-                BoxShadow(color: context.colors.primaryContainer.withOpacity(0.5), blurRadius: 4, offset: const Offset(0, 2)),
+                BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.5), blurRadius: 4, offset: const Offset(0, 2)),
               ],
             ),
           ),

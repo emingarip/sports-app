@@ -134,7 +134,7 @@ class NotificationBell extends ConsumerWidget {
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: iconColor.withOpacity(0.1),
+                          backgroundColor: iconColor.withValues(alpha: 0.1),
                           child: Icon(iconData, color: iconColor, size: 20),
                         ),
                         title: Text(

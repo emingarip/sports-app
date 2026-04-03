@@ -72,7 +72,7 @@ class LeagueGroup extends StatelessWidget {
                   color: context.colors.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: context.colors.surfaceContainerLow),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   children: List.generate(matches.length, (index) {

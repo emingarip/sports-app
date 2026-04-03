@@ -139,10 +139,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           decoration: BoxDecoration(
             color: context.colors.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            border: Border.all(color: color.withOpacity(0.5), width: isFirst ? 2 : 1),
+            border: Border.all(color: color.withValues(alpha: 0.5), width: isFirst ? 2 : 1),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, -5),
               )
@@ -205,7 +205,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       decoration: BoxDecoration(
         color: context.colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.outline.withOpacity(0.3)),
+        border: Border.all(color: context.colors.outline.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -241,7 +241,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: context.colors.accent.withOpacity(0.15),
+              color: context.colors.accent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(

@@ -25,7 +25,7 @@ class NotificationPermissionDialog extends ConsumerWidget {
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 24,
               offset: const Offset(0, 12),
             )
@@ -44,7 +44,7 @@ class NotificationPermissionDialog extends ConsumerWidget {
                   gradient: LinearGradient(
                     colors: [
                       context.colors.primary,
-                      context.colors.primary.withOpacity(0.6),
+                      context.colors.primary.withValues(alpha: 0.6),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -62,7 +62,7 @@ class NotificationPermissionDialog extends ConsumerWidget {
                         height: 100,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -74,7 +74,7 @@ class NotificationPermissionDialog extends ConsumerWidget {
                         height: 140,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -83,8 +83,8 @@ class NotificationPermissionDialog extends ConsumerWidget {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
-                        border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                        color: Colors.white.withValues(alpha: 0.2),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
                       ),
                       child: const Icon(
                         Icons.notifications_active_rounded,
@@ -131,7 +131,7 @@ class NotificationPermissionDialog extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: context.colors.surfaceContainerHighest.withOpacity(0.5),
+                      color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: context.colors.surfaceContainer),
                     ),

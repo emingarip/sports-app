@@ -157,7 +157,7 @@ class HelpCenterScreen extends ConsumerWidget {
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
                       );

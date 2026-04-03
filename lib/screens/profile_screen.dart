@@ -19,7 +19,7 @@ import '../widgets/frame_avatar.dart';
 import '../providers/leaderboard_provider.dart';
 import '../widgets/shimmer_loading.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:feedback/feedback.dart';
 import '../data/repositories/support/bug_report_service.dart';
 
@@ -90,8 +90,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             slivers: [
               _buildAppBar(),
               if (_isLoading)
-                SliverFillRemaining(
-                  child: const ProfileHeaderShimmer(),
+                const SliverFillRemaining(
+                  child: ProfileHeaderShimmer(),
                 )
               else if (_profile == null)
                 const SliverFillRemaining(
@@ -123,7 +123,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   SliverAppBar _buildAppBar() {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: context.colors.background.withOpacity(0.8),
+      backgroundColor: context.colors.background.withValues(alpha: 0.8),
       elevation: 0,
       centerTitle: true,
       flexibleSpace: ClipRect(
@@ -209,7 +209,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: context.colors.surfaceContainerHigh.withOpacity(0.5),
+                color: context.colors.surfaceContainerHigh.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -241,10 +241,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     title: 'K-COINS',
                     value: balance.toString(),
                     icon: Icons.monetization_on,
-                    bgColor: context.colors.primaryContainer.withOpacity(0.15),
+                    bgColor: context.colors.primaryContainer.withValues(alpha: 0.15),
                     iconColor: context.colors.primaryContainer,
                     textColor: context.colors.textHigh,
-                    borderColor: context.colors.primaryContainer.withOpacity(0.3),
+                    borderColor: context.colors.primaryContainer.withValues(alpha: 0.3),
                   );
                 },
               ),
@@ -255,10 +255,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 title: 'REPUTATION',
                 value: _profile!.reputationScore.toString(),
                 icon: Icons.star,
-                bgColor: context.colors.surfaceContainerHigh.withOpacity(0.5),
+                bgColor: context.colors.surfaceContainerHigh.withValues(alpha: 0.5),
                 iconColor: Colors.amber,
                 textColor: context.colors.textHigh,
-                borderColor: context.colors.outline.withOpacity(0.1),
+                borderColor: context.colors.outline.withValues(alpha: 0.1),
               ),
             ),
           ],
@@ -289,7 +289,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.2),
+              color: iconColor.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: iconColor, size: 20),
@@ -326,7 +326,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: [
@@ -337,7 +337,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 subtitle: 'Buy K-Coins & Premium items',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StoreFrontScreen())),
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.receipt_long,
                 iconColor: Colors.greenAccent,
@@ -360,7 +360,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: [
@@ -373,21 +373,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   if (didUpdate == true) _fetchProfile();
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.notifications_active,
                 iconColor: Colors.pinkAccent,
                 title: 'Notification Settings',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen())),
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.dark_mode,
                 iconColor: Colors.indigoAccent,
                 title: 'Theme Settings',
                 trailing: _buildThemeToggle(),
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.logout,
                 iconColor: Colors.redAccent,
@@ -410,7 +410,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,7 +444,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.help_outline,
                 iconColor: Colors.orangeAccent,
@@ -456,7 +456,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.bug_report_outlined,
                 iconColor: Colors.redAccent,
@@ -483,7 +483,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   });
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.contact_mail_outlined,
                 iconColor: Colors.green,
@@ -511,14 +511,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
              mainAxisSize: MainAxisSize.min,
              children: [
                const SizedBox(height: 12),
-               Container(width: 40, height: 4, decoration: BoxDecoration(color: context.colors.outline.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+               Container(width: 40, height: 4, decoration: BoxDecoration(color: context.colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
                const SizedBox(height: 24),
                Text('Bize Ulaşın', style: TextStyle(color: context.colors.textHigh, fontSize: 20, fontWeight: FontWeight.bold)),
                const SizedBox(height: 16),
-               _buildContactOption(Icons.message, 'WhatsApp', Colors.green, () => _launchSocialUrl(dotenv.env['WHATSAPP_URL'])),
-               _buildContactOption(Icons.send, 'Telegram', Colors.blue, () => _launchSocialUrl(dotenv.env['TELEGRAM_URL'])),
-               _buildContactOption(Icons.email, 'E-Posta', Colors.redAccent, () => _launchSocialUrl('mailto:${dotenv.env['SUPPORT_EMAIL']}')),
-               _buildContactOption(Icons.camera_alt, 'Instagram', Colors.purpleAccent, () => _launchSocialUrl(dotenv.env['INSTAGRAM_URL'])),
+               _buildContactOption(Icons.message, 'WhatsApp', Colors.green, () => _launchSocialUrl(const String.fromEnvironment('WHATSAPP_URL'))),
+               _buildContactOption(Icons.send, 'Telegram', Colors.blue, () => _launchSocialUrl(const String.fromEnvironment('TELEGRAM_URL'))),
+               _buildContactOption(Icons.email, 'E-Posta', Colors.redAccent, () => _launchSocialUrl('mailto:${const String.fromEnvironment('SUPPORT_EMAIL')}')),
+               _buildContactOption(Icons.camera_alt, 'Instagram', Colors.purpleAccent, () => _launchSocialUrl(const String.fromEnvironment('INSTAGRAM_URL'))),
                const SizedBox(height: 24),
              ],
            ),
@@ -531,7 +531,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
         child: Icon(icon, color: color, size: 24),
       ),
       title: Text(title, style: TextStyle(color: context.colors.textHigh)),
@@ -598,7 +598,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.15),
+                color: iconColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: iconColor, size: 20),
@@ -666,7 +666,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Center(
             child: Column(
@@ -730,14 +730,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               decoration: BoxDecoration(
                 color: context.colors.surfaceContainer,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+                border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(statusIcon, color: statusColor, size: 20),
@@ -838,7 +838,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: context.colors.accent.withOpacity(0.1),
+                        color: context.colors.accent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -880,7 +880,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: context.colors.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.colors.outline.withOpacity(0.2)),
+                  border: Border.all(color: context.colors.outline.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -918,7 +918,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             height: 52,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: tierColor.withOpacity(0.15),
+                              color: tierColor.withValues(alpha: 0.15),
                               border: Border.all(color: tierColor, width: 2),
                             ),
                             child: Icon(

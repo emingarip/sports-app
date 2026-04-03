@@ -180,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             backgroundColor: context.colors.primaryContainer,
                             foregroundColor: context.colors.onPrimaryContainer,
                             elevation: 8,
-                            shadowColor: context.colors.primaryContainer.withOpacity(0.4),
+                            shadowColor: context.colors.primaryContainer.withValues(alpha: 0.4),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                           ),
                           child: _isLoading

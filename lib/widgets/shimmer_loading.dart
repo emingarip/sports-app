@@ -101,16 +101,16 @@ class MatchCardShimmer extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white.withAlpha(26)),
           ),
-          child: Row(
+          child: const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const ShimmerBlock(width: 40, height: 40, borderRadius: 20),
+              ShimmerBlock(width: 40, height: 40, borderRadius: 20),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    children: const [
+                    children: [
                       ShimmerBlock(width: 80, height: 12),
                       SizedBox(height: 8),
                       ShimmerBlock(width: 60, height: 24),
@@ -120,7 +120,7 @@ class MatchCardShimmer extends StatelessWidget {
                   ),
                 ),
               ),
-              const ShimmerBlock(width: 40, height: 40, borderRadius: 20),
+              ShimmerBlock(width: 40, height: 40, borderRadius: 20),
             ],
           ),
         ),
@@ -140,18 +140,18 @@ class ListShimmer extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemCount,
-        itemBuilder: (_, __) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const ShimmerBlock(width: 48, height: 48, borderRadius: 24),
-              const SizedBox(width: 16),
+              ShimmerBlock(width: 48, height: 48, borderRadius: 24),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    const SizedBox(height: 4),
+                  children: [
+                    SizedBox(height: 4),
                     ShimmerBlock(width: double.infinity, height: 16),
                     SizedBox(height: 8),
                     ShimmerBlock(width: 100, height: 12),

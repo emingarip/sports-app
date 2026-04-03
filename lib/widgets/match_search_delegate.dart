@@ -133,8 +133,8 @@ class _DebouncedSearchDelegateWidgetState extends ConsumerState<_DebouncedSearch
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
-          baseColor: Colors.white.withOpacity(0.05),
-          highlightColor: Colors.white.withOpacity(0.15),
+          baseColor: Colors.white.withValues(alpha: 0.05),
+          highlightColor: Colors.white.withValues(alpha: 0.15),
           child: Container(
             height: 120, // MatchCard height
             decoration: BoxDecoration(

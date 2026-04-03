@@ -6,7 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:flutter/material.dart' show debugPrint;
 
 final bugReportServiceProvider = Provider((ref) => BugReportService());
@@ -23,7 +23,7 @@ class BugReportService {
       // Upload screenshot if provided
       if (screenshot != null) {
         final path = '$userId/feedback_$timestamp.png';
-        final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? 'https://nigatikzsnxdqdwwqewr.supabase.co';
+        const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://nigatikzsnxdqdwwqewr.supabase.co');
         final url = Uri.parse('$supabaseUrl/storage/v1/object/feedback-screenshots/$path');
         
         final accessToken = _client.auth.currentSession?.accessToken;

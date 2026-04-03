@@ -68,7 +68,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
               ProfileScreen(),
             ],
           ),
-          Positioned(
+          const Positioned(
             bottom: 80,
             left: 0,
             right: 0,

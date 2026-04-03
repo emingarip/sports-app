@@ -36,6 +36,41 @@ serve(async (req: Request) => {
       throw new Error("room_name is required in the JSON payload");
     }
 
+    // =====================================================
+    // SECURITY: Verify user is HOST or ADMIN before allowing deletion
+    // =====================================================
+    const { data: roomData, error: roomError } = await supabaseClient
+      .from('audio_rooms')
+      .select('host_id')
+      .eq('room_name', room_name)
+      .maybeSingle();
+
+    if (roomError) {
+      throw new Error(`Failed to fetch room data: ${roomError.message}`);
+    }
+
+    if (!roomData) {
+      throw new Error("Room not found");
+    }
+
+    // Check if user is admin
+    const { data: userData } = await supabaseClient
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    const isHost = roomData.host_id === user.id;
+    const isAdmin = userData?.is_admin === true;
+
+    if (!isHost && !isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden: Only the room host or an admin can delete this room.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+    // =====================================================
+
     const livekitUrl = Deno.env.get("LIVEKIT_URL") ?? "wss://boskalecom-2zi7gj0y.livekit.cloud";
     const livekitApiKey = Deno.env.get("LIVEKIT_API_KEY");
     const livekitApiSecret = Deno.env.get("LIVEKIT_API_SECRET");
@@ -49,13 +84,12 @@ serve(async (req: Request) => {
     
     try {
         await roomService.deleteRoom(room_name);
-        console.log(`LiveKit room '${room_name}' forcefully deleted by admin: ${user.email}`);
+        console.log(`LiveKit room '${room_name}' deleted by ${isAdmin ? 'admin' : 'host'}: ${user.email}`);
     } catch (lkErr) {
         console.warn(`LiveKit deletion failed (perhaps the room was already empty/closed):`, lkErr);
-        // We do not throw here! Even if the room vanished from LiveKit, we must clear it from our DB.
     }
 
-    // 2. Remove the room record from our database so the UI clears it
+    // 2. Remove the room record from our database
     const { error: dbError } = await supabaseClient
       .from('audio_rooms')
       .delete()

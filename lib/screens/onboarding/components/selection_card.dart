@@ -25,15 +25,15 @@ class SelectionCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? context.colors.primaryContainer.withOpacity(0.1) : context.colors.surfaceContainerLowest,
+          color: isSelected ? context.colors.primaryContainer.withValues(alpha: 0.1) : context.colors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isSelected ? context.colors.primaryContainer : context.colors.surfaceContainerHighest,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected 
-            ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))]
-            : [BoxShadow(color: context.colors.textHigh.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
+            ? [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))]
+            : [BoxShadow(color: context.colors.textHigh.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Row(
           children: [

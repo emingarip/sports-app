@@ -68,12 +68,8 @@ class WalletBalance extends _$WalletBalance {
     try {
       if (kIsWeb) {
         // Fallback for Web/Testing where Apple/Google IAP is absent
-        final repo = ref.read(kCoinRepositoryProvider);
-        await repo.processTransaction(
-          amount: package.coinAmount, 
-          transactionType: 'purchase',
-          referenceId: package.id,
-        );
+        // We simulate the webhook's action directly by giving coins in Postgres
+        await SupabaseService().rewardUserCoins(package.coinAmount);
         await refreshBalance();
         return;
       }
@@ -95,13 +91,10 @@ class WalletBalance extends _$WalletBalance {
         throw Exception("Purchase was cancelled or failed.");
       }
       
-      // Notify GamificationSystem of the purchase to grant the points
-      final repo = ref.read(kCoinRepositoryProvider);
-      await repo.processTransaction(
-        amount: package.coinAmount, 
-        transactionType: 'purchase',
-        referenceId: package.id,
-      );
+      // The RevenueCat webhook will asynchronously grant K-Coins to this user.
+      // Wait a moment for the webhook to complete, then refresh.
+      // (In a more robust setup, we'd listen to Realtime changes on the users table)
+      await Future.delayed(const Duration(seconds: 2));
       await refreshBalance();
     } catch (e) {
       if (kDebugMode) print('Purchase failed: $e');

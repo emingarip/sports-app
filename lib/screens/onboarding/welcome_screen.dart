@@ -29,7 +29,7 @@ class WelcomeScreen extends StatelessWidget {
                       height: 250,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: context.colors.primaryContainer.withOpacity(0.15),
+                        color: context.colors.primaryContainer.withValues(alpha: 0.15),
                       ),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),

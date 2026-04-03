@@ -1023,8 +1023,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                 _groupedMessages[actualIdx - 1].type == msg.type &&
                 _groupedMessages[actualIdx - 1].username == msg.username;
 
-            if (msg.type == MessageType.systemEvent)
+            if (msg.type == MessageType.systemEvent) {
               return _buildSystemEvent(msg);
+            }
             return _buildMessage(msg, isNextSameUser, isPrevSameUser);
           },
         ),
@@ -1902,7 +1903,7 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text("${match.homeScore ?? '-'}",
+                                  Text(match.homeScore ?? '-',
                                       style: TextStyle(
                                           fontFamily: 'Lexend',
                                           fontSize: 28,
@@ -1953,7 +1954,7 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                                         );
                                       }),
                                   const SizedBox(width: 4),
-                                  Text("${match.awayScore ?? '-'}",
+                                  Text(match.awayScore ?? '-',
                                       style: TextStyle(
                                           fontFamily: 'Lexend',
                                           fontSize: 28,

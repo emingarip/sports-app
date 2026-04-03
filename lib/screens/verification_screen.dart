@@ -287,7 +287,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                           decoration: BoxDecoration(
                             color: _isFilled ? context.colors.primaryContainer : context.colors.surfaceContainerHigh,
                             borderRadius: BorderRadius.circular(32),
-                            boxShadow: _isFilled ? [BoxShadow(color: context.colors.primaryContainer.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                            boxShadow: _isFilled ? [BoxShadow(color: context.colors.primaryContainer.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))] : [],
                           ),
                           child: Material(
                             color: Colors.transparent,
@@ -304,7 +304,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                                           fontSize: 18,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 2,
-                                          color: _isFilled ? context.colors.onPrimaryContainer : context.colors.textMedium.withOpacity(0.5),
+                                          color: _isFilled ? context.colors.onPrimaryContainer : context.colors.textMedium.withValues(alpha: 0.5),
                                         ),
                                       ),
                               ),

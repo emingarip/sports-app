@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
@@ -115,7 +114,7 @@ class _UsernameSetupDialogState extends State<UsernameSetupDialog> {
               border: Border.all(color: context.colors.surfaceContainerLow),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 )
@@ -127,7 +126,7 @@ class _UsernameSetupDialogState extends State<UsernameSetupDialog> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: context.colors.primaryContainer.withOpacity(0.2),
+                    color: context.colors.primaryContainer.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.badge, size: 48, color: context.colors.primary),

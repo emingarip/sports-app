@@ -40,6 +40,13 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             setState(() {
               _isLoading = false;
             });
+            // Native postMessage after load
+            if (!kIsWeb) {
+              final session = Supabase.instance.client.auth.currentSession;
+              if (session != null) {
+                _controller.runJavaScript("window.postMessage('{\"type\":\"INIT_AUTH\",\"token\":\"${session.accessToken}\"}', '*');");
+              }
+            }
           },
         ),
       );
@@ -82,16 +89,27 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
           debugPrint("Failed to parse web message: \$e");
         }
       });
+      
+      // On web, we cannot use runJavaScript on the iframe directly via WebViewController 
+      // when it's cross origin. We send it continuously until picked up or just after delay.
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        Future.delayed(const Duration(seconds: 2), () {
+          sendToWebGame('INIT_AUTH', session.accessToken);
+        });
+        // Try again just in case it takes longer to load
+        Future.delayed(const Duration(seconds: 4), () {
+          sendToWebGame('INIT_AUTH', session.accessToken);
+        });
+      }
     }
 
     String gameUrl = 'https://games.boskale.com/';
     
-    final session = Supabase.instance.client.auth.currentSession;
-    if (session != null) {
-      gameUrl = '$gameUrl?token=${session.accessToken}&roomId=${widget.roomId}&gameId=${widget.gameId}';
-      if (widget.gameType != null) {
-        gameUrl += '&gameType=${widget.gameType}';
-      }
+    // Pass roomId and gameId in URL, NO SECRETS
+    gameUrl = '$gameUrl?roomId=${widget.roomId}&gameId=${widget.gameId}';
+    if (widget.gameType != null) {
+      gameUrl += '&gameType=${widget.gameType}';
     }
 
     // Use cleartext HTTP for local dev
@@ -129,7 +147,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white24, width: 1),
                 ),

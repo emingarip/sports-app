@@ -68,7 +68,7 @@ class PushNotificationService {
       String? token;
       if (kIsWeb) {
         token = await _fcm.getToken(
-          vapidKey: 'BC-j7AHpqkk3VruJBUG71vzIODZCKyOmfkC7MNy2UBbo0fvgtBgnw5ocmRFjX2gz_NWMwnqVzyCCN_T0Gm0i_ds',
+          vapidKey: const String.fromEnvironment('FIREBASE_VAPID_KEY', defaultValue: 'BC-j7AHpqkk3VruJBUG71vzIODZCKyOmfkC7MNy2UBbo0fvgtBgnw5ocmRFjX2gz_NWMwnqVzyCCN_T0Gm0i_ds'),
         );
       } else {
         token = await _fcm.getToken();

@@ -103,7 +103,7 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: AppBar(
-              backgroundColor: context.colors.background.withOpacity(0.8),
+              backgroundColor: context.colors.background.withValues(alpha: 0.8),
               elevation: 0,
               scrolledUnderElevation: 0,
               leading: IconButton(
@@ -183,9 +183,9 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
                                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
                                    padding: const EdgeInsets.all(24),
                                    decoration: BoxDecoration(
-                                     color: context.colors.surfaceContainerHighest.withOpacity(0.95),
+                                     color: context.colors.surfaceContainerHighest.withValues(alpha: 0.95),
                                      borderRadius: BorderRadius.circular(24),
-                                     border: Border.all(color: context.colors.primaryContainer.withOpacity(0.5), width: 2),
+                                     border: Border.all(color: context.colors.primaryContainer.withValues(alpha: 0.5), width: 2),
                                    ),
                                    child: Column(
                                      mainAxisSize: MainAxisSize.min,
@@ -286,7 +286,7 @@ class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Kilit Açıldı! Premium ayrıcalıkların keyfini çıkarın.', style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
@@ -384,10 +384,10 @@ class MatchSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.surfaceContainerHighest.withOpacity(0.5)),
+        border: Border.all(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 32,
             offset: const Offset(0, 12),
           ),
@@ -501,7 +501,7 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
         color: context.colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _isDisagree ? context.colors.error.withOpacity(0.3) : context.colors.surfaceContainerHighest.withOpacity(0.3),
+          color: _isDisagree ? context.colors.error.withValues(alpha: 0.3) : context.colors.surfaceContainerHighest.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -515,7 +515,7 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: context.colors.primaryContainer.withOpacity(0.2),
+                      color: context.colors.primaryContainer.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text('AI INSIGHT', style: TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1, color: context.colors.primary)),
@@ -525,7 +525,7 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: context.colors.secondaryContainer.withOpacity(0.3),
+                        color: context.colors.secondaryContainer.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
@@ -642,7 +642,7 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
                           decoration: BoxDecoration(
                             color: isSelected ? context.colors.errorContainer : context.colors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: isSelected ? context.colors.error.withOpacity(0.3) : context.colors.outline.withOpacity(0.3)),
+                            border: Border.all(color: isSelected ? context.colors.error.withValues(alpha: 0.3) : context.colors.outline.withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             r, 

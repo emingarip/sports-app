@@ -133,7 +133,7 @@ class _InboxScreenState extends State<InboxScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 80, color: context.colors.textMedium.withOpacity(0.2)),
+          Icon(Icons.chat_bubble_outline, size: 80, color: context.colors.textMedium.withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           Text(
             'Henüz hiç mesajınız yok.',

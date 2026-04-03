@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:livekit_client/livekit_client.dart';
 import 'package:sports_app/services/supabase_service.dart';
 
@@ -14,11 +14,11 @@ class LiveKitService {
 
   Room? room;
 
-  Future<String> _fetchToken(String roomName, String participantName, {String? userId, bool isHost = false, bool canPublish = false}) async {
+  Future<String> _fetchToken(String roomName, String participantName, {String? userId, bool isHost = false, bool canPublish = false, String? pinCode}) async {
     try {
       final response = await SupabaseService.client.functions.invoke(
         'livekit-token',
-        body: {'roomName': roomName, 'participantName': participantName, 'userId': userId, 'isHost': isHost, 'canPublish': canPublish},
+        body: {'roomName': roomName, 'participantName': participantName, 'userId': userId, 'isHost': isHost, 'canPublish': canPublish, if (pinCode != null) 'pinCode': pinCode},
       );
       
       if (response.status != 200) {
@@ -31,17 +31,17 @@ class LiveKitService {
     }
   }
 
-  Future<void> connect(String roomName, String participantName, {String? userId, bool isHost = false, bool canPublish = false}) async {
+  Future<void> connect(String roomName, String participantName, {String? userId, bool isHost = false, bool canPublish = false, String? pinCode}) async {
     try {
-      final token = await _fetchToken(roomName, participantName, userId: userId, isHost: isHost, canPublish: canPublish);
+      final token = await _fetchToken(roomName, participantName, userId: userId, isHost: isHost, canPublish: canPublish, pinCode: pinCode);
       
-      var url = dotenv.env['LIVEKIT_URL'] ?? 'wss://boskalecom-2zi7gj0y.livekit.cloud';
+      const url = String.fromEnvironment('LIVEKIT_URL', defaultValue: 'wss://boskalecom-2zi7gj0y.livekit.cloud');
 
       if (url.contains('your-livekit-project')) {
-          debugPrint('WARNING: LIVEKIT_URL is not set in .env. Using placeholder.');
+          debugPrint('WARNING: LIVEKIT_URL is not set via dart-define. Using placeholder.');
       }
 
-      final roomOptions = const RoomOptions(
+      const roomOptions = RoomOptions(
         adaptiveStream: true,
         dynacast: true,
       );

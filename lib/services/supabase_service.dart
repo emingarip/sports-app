@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class SupabaseService {
@@ -22,21 +21,15 @@ class SupabaseService {
 
   static Future<void> _initializeOnce() async {
     try {
-      await dotenv.load(fileName: ".env");
-    } catch (e) {
-      debugPrint('Could not load .env file, falling back to hardcoded keys: $e');
-    }
-    
-    try {
-      var supabaseUrl = dotenv.isInitialized ? dotenv.env['SUPABASE_URL'] : null;
-      if (supabaseUrl == null || supabaseUrl.isEmpty) {
-        throw Exception('Missing SUPABASE_URL in .env file');
-      }
+      const supabaseUrl = String.fromEnvironment(
+        'SUPABASE_URL',
+        defaultValue: 'https://nigatikzsnxdqdwwqewr.supabase.co',
+      );
 
-      var supabaseAnonKey = dotenv.isInitialized ? dotenv.env['SUPABASE_ANON_KEY'] : null;
-      if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
-        throw Exception('Missing SUPABASE_ANON_KEY in .env file');
-      }
+      const supabaseAnonKey = String.fromEnvironment(
+        'SUPABASE_ANON_KEY',
+        defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pZ2F0aWt6c254ZHFkd3dxZXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjM2MjEsImV4cCI6MjA4OTUzOTYyMX0.smjivrwy8D8I5rRs49mXRkHSyOAJcti2VwCbm2Oas6Q',
+      );
 
       await Supabase.initialize(
         url: supabaseUrl,

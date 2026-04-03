@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:live_activities/live_activities.dart';
-import 'package:live_activities/models/live_activity_state.dart';
 
 class WidgetService {
   static final WidgetService _instance = WidgetService._internal();

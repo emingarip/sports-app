@@ -118,7 +118,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
         }
       }
 
-      await _liveKitService.connect(roomName, participantName, userId: user?.id, isHost: isHost);
+      await _liveKitService.connect(roomName, participantName, userId: user?.id, isHost: isHost, pinCode: roomPinCode);
       
       final room = _liveKitService.room;
       if (room != null) {

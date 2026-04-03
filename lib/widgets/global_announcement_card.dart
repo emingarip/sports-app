@@ -8,7 +8,7 @@ import '../services/announcement_service.dart';
 import '../theme/app_theme.dart';
 
 class GlobalAnnouncementList extends ConsumerWidget {
-  const GlobalAnnouncementList({Key? key}) : super(key: key);
+  const GlobalAnnouncementList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +32,7 @@ class GlobalAnnouncementList extends ConsumerWidget {
 class GlobalAnnouncementCard extends ConsumerWidget {
   final Announcement announcement;
 
-  const GlobalAnnouncementCard({Key? key, required this.announcement}) : super(key: key);
+  const GlobalAnnouncementCard({super.key, required this.announcement});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,15 +76,15 @@ class GlobalAnnouncementCard extends ConsumerWidget {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             decoration: BoxDecoration(
-              color: context.colors.surface.withOpacity(0.6),
+              color: context.colors.surface.withValues(alpha: 0.6),
               border: Border.all(
-                color: accentColor.withOpacity(0.3),
+                color: accentColor.withValues(alpha: 0.3),
                 width: 1,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: accentColor.withOpacity(0.05),
+                  color: accentColor.withValues(alpha: 0.05),
                   blurRadius: 10,
                   spreadRadius: 2,
                 ),
@@ -102,8 +102,8 @@ class GlobalAnnouncementCard extends ConsumerWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          accentColor.withOpacity(0.8),
-                          accentColor.withOpacity(0.2),
+                          accentColor.withValues(alpha: 0.8),
+                          accentColor.withValues(alpha: 0.2),
                         ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -120,7 +120,7 @@ class GlobalAnnouncementCard extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: accentColor.withOpacity(0.1),
+                          color: accentColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -147,7 +147,7 @@ class GlobalAnnouncementCard extends ConsumerWidget {
                             Text(
                               announcement.message,
                               style: TextStyle(
-                                color: context.colors.textHigh.withOpacity(0.8),
+                                color: context.colors.textHigh.withValues(alpha: 0.8),
                                 fontSize: 14,
                                 height: 1.4,
                               ),
@@ -164,7 +164,7 @@ class GlobalAnnouncementCard extends ConsumerWidget {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: accentColor.withOpacity(0.15),
+                                    color: accentColor.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
@@ -200,12 +200,12 @@ class GlobalAnnouncementCard extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: context.colors.surface.withOpacity(0.5),
+                            color: context.colors.surface.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.close_rounded,
-                            color: context.colors.textHigh.withOpacity(0.5),
+                            color: context.colors.textHigh.withValues(alpha: 0.5),
                             size: 18,
                           ),
                         ),

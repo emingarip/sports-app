@@ -192,9 +192,13 @@ final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
     }
 
     if (matchState.statusFilter == StatusFilter.live &&
-        m.status != model.MatchStatus.live) return false;
+        m.status != model.MatchStatus.live) {
+      return false;
+    }
     if (matchState.statusFilter == StatusFilter.finished &&
-        m.status != model.MatchStatus.finished) return false;
+        m.status != model.MatchStatus.finished) {
+      return false;
+    }
 
     return true;
   }).toList();

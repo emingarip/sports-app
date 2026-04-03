@@ -25,7 +25,7 @@ class OnboardingBottomBar extends StatelessWidget {
         color: context.colors.background,
         boxShadow: [
           BoxShadow(
-            color: context.colors.surfaceContainerLowest.withOpacity(0.8),
+            color: context.colors.surfaceContainerLowest.withValues(alpha: 0.8),
             blurRadius: 20,
             offset: const Offset(0, -10),
           )
@@ -45,9 +45,9 @@ class OnboardingBottomBar extends StatelessWidget {
                   backgroundColor: context.colors.primaryContainer,
                   foregroundColor: context.colors.onPrimaryContainer,
                   disabledBackgroundColor: context.colors.surfaceContainerHigh,
-                  disabledForegroundColor: context.colors.textMedium.withOpacity(0.5),
+                  disabledForegroundColor: context.colors.textMedium.withValues(alpha: 0.5),
                   elevation: onPrimaryPressed == null ? 0 : 4,
-                  shadowColor: context.colors.primaryContainer.withOpacity(0.4),
+                  shadowColor: context.colors.primaryContainer.withValues(alpha: 0.4),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                   textStyle: const TextStyle(
                     fontFamily: 'Lexend',

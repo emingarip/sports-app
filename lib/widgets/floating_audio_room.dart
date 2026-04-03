@@ -4,7 +4,7 @@ import 'package:sports_app/providers/voice_room_provider.dart';
 import 'package:sports_app/screens/voice_room_screen.dart';
 
 class FloatingAudioRoom extends ConsumerWidget {
-  const FloatingAudioRoom({Key? key}) : super(key: key);
+  const FloatingAudioRoom({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,7 +39,7 @@ class FloatingAudioRoom extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.greenAccent.withOpacity(0.3)),
+          border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.3)),
           boxShadow: const [
             BoxShadow(
               color: Colors.black26, 

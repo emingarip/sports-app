@@ -106,7 +106,7 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
             decoration: BoxDecoration(
               color: context.colors.surfaceVariant,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: context.colors.accent.withOpacity(0.3)),
+              border: Border.all(color: context.colors.accent.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -200,12 +200,12 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   )
                 ],
-                border: Border.all(color: context.colors.outline.withOpacity(0.4)),
+                border: Border.all(color: context.colors.outline.withValues(alpha: 0.4)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +214,7 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: context.colors.surfaceVariant.withOpacity(0.5),
+                      color: context.colors.surfaceVariant.withValues(alpha: 0.5),
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                     ),
                     child: Row(
@@ -264,7 +264,7 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
                           decoration: BoxDecoration(
                             color: context.colors.surface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: context.colors.outline.withOpacity(0.3)),
+                            border: Border.all(color: context.colors.outline.withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             market['score'],
@@ -292,7 +292,7 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               decoration: BoxDecoration(
-                                border: Border.all(color: context.colors.outline.withOpacity(0.3)),
+                                border: Border.all(color: context.colors.outline.withValues(alpha: 0.3)),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Row(
@@ -311,7 +311,7 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: context.colors.accent.withOpacity(0.15),
+                                      color: context.colors.accent.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -377,10 +377,10 @@ class _PredictionMarketScreenState extends ConsumerState<PredictionMarketScreen>
               decoration: BoxDecoration(
                 color: context.colors.surface,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: context.colors.outline.withOpacity(0.2)),
+                border: Border.all(color: context.colors.outline.withValues(alpha: 0.2)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   )
@@ -525,7 +525,7 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 24,
             offset: const Offset(0, -4),
           )
@@ -544,7 +544,7 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: context.colors.outline.withOpacity(0.5),
+                    color: context.colors.outline.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -561,9 +561,9 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: context.colors.surfaceVariant.withOpacity(0.5),
+                  color: context.colors.surfaceVariant.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: context.colors.outline.withOpacity(0.3)),
+                  border: Border.all(color: context.colors.outline.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   children: [
@@ -582,7 +582,7 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: context.colors.accent.withOpacity(0.2),
+                        color: context.colors.accent.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -700,7 +700,7 @@ class _BetSlipBottomSheetState extends State<BetSlipBottomSheet> {
         decoration: BoxDecoration(
           color: context.colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: context.colors.outline.withOpacity(0.3)),
+          border: Border.all(color: context.colors.outline.withValues(alpha: 0.3)),
         ),
         child: Text(
           label ?? '+$amount',

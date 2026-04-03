@@ -98,7 +98,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          color: context.colors.background.withOpacity(0.8),
+          color: context.colors.background.withValues(alpha: 0.8),
           padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top, bottom: 16),
           child: Row(
             children: [

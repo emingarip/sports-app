@@ -14,9 +14,9 @@ class MatchVoiceRoomsTab extends ConsumerStatefulWidget {
   final app_match.Match match;
 
   const MatchVoiceRoomsTab({
-    Key? key,
+    super.key,
     required this.match,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<MatchVoiceRoomsTab> createState() => _MatchVoiceRoomsTabState();
@@ -61,7 +61,7 @@ class _MatchVoiceRoomsTabState extends ConsumerState<MatchVoiceRoomsTab> {
                       Switch(
                         value: isPrivate,
                         onChanged: (val) => setState(() => isPrivate = val),
-                        activeColor: context.colors.primary,
+                        activeThumbColor: context.colors.primary,
                       ),
                     ],
                   ),
@@ -222,18 +222,10 @@ class _MatchVoiceRoomsTabState extends ConsumerState<MatchVoiceRoomsTab> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                if (pinController.text.trim() == room.pinCode) {
-                  Navigator.of(context).pop();
-                  ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName);
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const VoiceRoomScreen()));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Hatalı PIN kodu!'),
-                        backgroundColor: Colors.red),
-                  );
-                }
+                Navigator.of(context).pop();
+                ref.read(voiceRoomProvider.notifier).joinRoom(room.roomName, pinCode: pinController.text);
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const VoiceRoomScreen()));
               },
               child: const Text('Katıl'),
             ),
@@ -316,11 +308,11 @@ class _MatchVoiceRoomsTabState extends ConsumerState<MatchVoiceRoomsTab> {
                           color: Colors.white, size: 26),
                     ),
                     const SizedBox(width: 16),
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             "Canlı Oda Başlat",
                             style: TextStyle(
                               color: Colors.white,
@@ -329,7 +321,7 @@ class _MatchVoiceRoomsTabState extends ConsumerState<MatchVoiceRoomsTab> {
                               letterSpacing: -0.2,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             "Taraftarlarla sesli etkileşime geç",
                             style: TextStyle(

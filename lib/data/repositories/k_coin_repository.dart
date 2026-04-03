@@ -1,22 +1,21 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import '../../models/k_coin_package.dart';
 
 class KCoinRepository {
   final SupabaseClient _client;
-  final String _baseUrl;
 
-  KCoinRepository(this._client, {String? baseUrl})
-      : _baseUrl = baseUrl ?? dotenv.env['GAMIFICATION_API_URL'] ?? 'http://gamification.boskale.com/api/v1';
+  KCoinRepository(this._client);
 
   Future<int> getUserBalance(String userId) async {
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/users/$userId'));
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        return (json['points'] as num?)?.toInt() ?? 0;
+      final response = await _client
+          .from('users')
+          .select('k_coin_balance')
+          .eq('id', userId)
+          .maybeSingle();
+      if (response != null) {
+        return (response['k_coin_balance'] as num?)?.toInt() ?? 0;
       }
     } catch (_) {}
     return 0;
@@ -35,20 +34,25 @@ class KCoinRepository {
   /// Sends an event to the Gamification API and returns the reward result.
   /// Response includes: points_awarded, matched_rules, badges_awarded.
   Future<Map<String, dynamic>> sendEvent(String userId, String eventType, Map<String, dynamic> metadata) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/events'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'user_id': userId,
-        'event_type': eventType,
-        'metadata': metadata,
-      }),
-    );
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to send event to gamification system');
-    }
     try {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final response = await _client.functions.invoke(
+        'gamification-api-bridge',
+        body: {
+          'action': 'send_event',
+          'payload': {
+            'user_id': userId,
+            'event_type': eventType,
+            'metadata': metadata,
+          },
+        },
+      );
+      if (response.status == 200 || response.status == 201) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+      }
+      return {'points_awarded': 0, 'matched_rules': <String>[], 'badges_awarded': <String>[]};
     } catch (_) {
       return {'points_awarded': 0, 'matched_rules': <String>[], 'badges_awarded': <String>[]};
     }

@@ -11,7 +11,6 @@ import 'package:sports_app/models/notification.dart';
 import 'package:sports_app/providers/knowledge_graph_provider.dart';
 import 'package:sports_app/theme/app_theme.dart';
 import 'package:sports_app/services/announcement_service.dart';
-import 'package:sports_app/models/announcement.dart';
 import 'package:sports_app/providers/badge_provider.dart';
 import '../helpers/mock_match_repository.dart';
 import '../helpers/test_helpers.dart';

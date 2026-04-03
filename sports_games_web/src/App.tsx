@@ -16,19 +16,17 @@ function App() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
-    const refreshFromUrl = urlParams.get('refresh');
     const roomIdFromUrl = urlParams.get('roomId');
     const gameIdFromUrl = urlParams.get('gameId');
     const gameTypeFromUrl = urlParams.get('gameType');
     
     if (gameTypeFromUrl) setGameType(gameTypeFromUrl);
 
-    const authenticate = async (token: string, refresh: string, room: string, game: string) => {
+    const authenticate = async (token: string, room: string, game: string) => {
       try {
         const { data, error } = await supabase.auth.setSession({
            access_token: token,
-           refresh_token: refresh || token, 
+           refresh_token: token, 
         });
         
         if (!error && data.session) {
@@ -43,18 +41,31 @@ function App() {
       }
     };
 
-    if (tokenFromUrl && roomIdFromUrl) {
-      authenticate(tokenFromUrl, refreshFromUrl || '', roomIdFromUrl, gameIdFromUrl || '');
-    } else {
-      // DEVELOPMENT OVERRIDE: 
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        if (urlParams.get('dev') === 'true') {
-          setIsAuthenticated(true);
-          setRoomId('test_room_123');
-          setGameId('test_game_123');
-        }
+    const handleMessage = (event: MessageEvent) => {
+      let data = event.data;
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch (_) {}
+      }
+      
+      if (data && data.type === 'INIT_AUTH' && data.token) {
+        authenticate(data.token, roomIdFromUrl || '', gameIdFromUrl || '');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // DEVELOPMENT OVERRIDE: 
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      if (urlParams.get('dev') === 'true') {
+        setIsAuthenticated(true);
+        setRoomId('test_room_123');
+        setGameId('test_game_123');
       }
     }
+    
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   if (!isAuthenticated) {

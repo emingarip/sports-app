@@ -49,8 +49,8 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? context.colors.primaryContainer.withOpacity(0.3) : Colors.transparent,
-          border: index == 0 ? null : Border(top: BorderSide(color: context.colors.surfaceContainerHigh.withOpacity(0.5))),
+          color: isSelected ? context.colors.primaryContainer.withValues(alpha: 0.3) : Colors.transparent,
+          border: index == 0 ? null : Border(top: BorderSide(color: context.colors.surfaceContainerHigh.withValues(alpha: 0.5))),
         ),
         child: Row(
           children: [
@@ -158,7 +158,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            context.colors.surfaceContainerHighest.withOpacity(0.5),
+                            context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
                             context.colors.surfaceContainerLow,
                           ],
                         ),
@@ -179,7 +179,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: context.colors.surfaceContainerLowest.withOpacity(0.9),
+                                color: context.colors.surfaceContainerLowest.withValues(alpha: 0.9),
                                 borderRadius: BorderRadius.circular(32),
                                 boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                               ),
@@ -215,7 +215,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: context.colors.textHigh.withOpacity(0.06),
+                            color: context.colors.textHigh.withValues(alpha: 0.06),
                             blurRadius: 32,
                             offset: const Offset(0, 12),
                           )
@@ -241,10 +241,10 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
             Container(
               padding: const EdgeInsets.only(top: 16, bottom: 24, left: 24, right: 24),
               decoration: BoxDecoration(
-                color: context.colors.background.withOpacity(0.9),
+                color: context.colors.background.withValues(alpha: 0.9),
                 boxShadow: [
                   BoxShadow(
-                    color: context.colors.textHigh.withOpacity(0.04),
+                    color: context.colors.textHigh.withValues(alpha: 0.04),
                     blurRadius: 32,
                     offset: const Offset(0, -12),
                   )
@@ -293,7 +293,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                       foregroundColor: context.colors.onPrimaryContainer,
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       elevation: 4,
-                      shadowColor: context.colors.primaryContainer.withOpacity(0.5),
+                      shadowColor: context.colors.primaryContainer.withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                     ),
                     child: const Row(

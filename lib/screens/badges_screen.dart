@@ -102,14 +102,14 @@ class BadgesScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            context.colors.accent.withOpacity(0.15),
-            context.colors.accent.withOpacity(0.05),
+            context.colors.accent.withValues(alpha: 0.15),
+            context.colors.accent.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: context.colors.accent.withOpacity(0.2)),
+        border: Border.all(color: context.colors.accent.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -123,7 +123,7 @@ class BadgesScreen extends ConsumerWidget {
                 CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 6,
-                  backgroundColor: context.colors.outline.withOpacity(0.2),
+                  backgroundColor: context.colors.outline.withValues(alpha: 0.2),
                   valueColor:
                       AlwaysStoppedAnimation<Color>(context.colors.accent),
                   strokeCap: StrokeCap.round,
@@ -181,11 +181,12 @@ class BadgesScreen extends ConsumerWidget {
           Icon(
             Icons.military_tech_outlined,
             size: 48,
-            color: context.colors.accent.withOpacity(0.2),
+            color: context.colors.accent.withValues(alpha: 0.2),
           ),
         ],
       ),
-    );  }
+    );
+  }
 }
 
 /// Individual badge list item.
@@ -258,14 +259,14 @@ class _BadgeListItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isUnlocked
-                ? tierColor.withOpacity(0.5)
-                : context.colors.outline.withOpacity(0.2),
+                ? tierColor.withValues(alpha: 0.5)
+                : context.colors.outline.withValues(alpha: 0.2),
             width: isUnlocked ? 1.5 : 1,
           ),
           boxShadow: isUnlocked
               ? [
                   BoxShadow(
-                    color: tierColor.withOpacity(0.12),
+                    color: tierColor.withValues(alpha: 0.12),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )
@@ -282,7 +283,7 @@ class _BadgeListItem extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isUnlocked
-                    ? tierColor.withOpacity(0.15)
+                    ? tierColor.withValues(alpha: 0.15)
                     : context.colors.surfaceVariant,
               ),
               child: Icon(
@@ -320,10 +321,10 @@ class _BadgeListItem extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: context.colors.accent.withOpacity(0.1),
+                            color: context.colors.accent.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: context.colors.accent.withOpacity(0.2)),
+                                color: context.colors.accent.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -365,7 +366,7 @@ class _BadgeListItem extends StatelessWidget {
                             value: progressValue,
                             minHeight: 6,
                             backgroundColor:
-                                context.colors.outline.withOpacity(0.15),
+                                context.colors.outline.withValues(alpha: 0.15),
                             valueColor:
                                 AlwaysStoppedAnimation<Color>(tierColor),
                           ),
@@ -419,7 +420,7 @@ class _BadgeListItem extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: context.colors.outline.withOpacity(0.5),
+                  color: context.colors.outline.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -430,7 +431,7 @@ class _BadgeListItem extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: tierColor.withOpacity(0.15),
+                  color: tierColor.withValues(alpha: 0.15),
                   border: Border.all(color: tierColor, width: 2),
                 ),
                 child: Icon(
@@ -485,7 +486,7 @@ class _BadgeListItem extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: context.colors.accent.withOpacity(0.1),
+                    color: context.colors.accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -549,7 +550,7 @@ class _BadgeListItem extends StatelessWidget {
           child: LinearProgressIndicator(
             value: target > 0 ? (progress / target).clamp(0.0, 1.0) : 0,
             minHeight: 8,
-            backgroundColor: context.colors.outline.withOpacity(0.15),
+            backgroundColor: context.colors.outline.withValues(alpha: 0.15),
             valueColor: AlwaysStoppedAnimation<Color>(tierColor),
           ),
         ),
