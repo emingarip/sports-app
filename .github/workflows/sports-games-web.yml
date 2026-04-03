@@ -7,6 +7,7 @@ on:
       - master
       - 'feature/**'
       - 'bugfix/**'
+      - 'fix/**'
     paths:
       - 'sports_games_web/**'
   pull_request:

@@ -7,6 +7,7 @@ on:
       - master
       - 'feature/**'
       - 'bugfix/**'
+      - 'fix/**'
   workflow_dispatch:
 
 jobs:
