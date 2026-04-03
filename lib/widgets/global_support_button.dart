@@ -3,40 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/support_providers.dart';
 import '../screens/private_chat_screen.dart';
-import '../main.dart';
+import '../services/navigation_service.dart';
 
 class GlobalSupportButton extends ConsumerStatefulWidget {
-  final Widget child;
-
-  const GlobalSupportButton({
-    super.key,
-    required this.child,
-  });
+  const GlobalSupportButton({super.key, this.child});
+  
+  // Optional child for backward compatibility if needed, but not used in root overlay
+  final Widget? child;
 
   @override
   ConsumerState<GlobalSupportButton> createState() => _GlobalSupportButtonState();
 }
 
 class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
-  Offset? position; 
+  Offset? position;
   bool isDragging = false;
   final double buttonSize = 56.0;
 
   void _snapToEdge(BoxConstraints constraints) {
     if (position == null) return;
     
+    // Safety padding
+    const double padding = 16.0;
+    final double maxX = constraints.maxWidth - buttonSize - padding;
+    final double maxY = constraints.maxHeight - buttonSize - padding;
+    final double minY = MediaQuery.of(context).padding.top + padding;
+
     double targetX;
     // Nearest horizontal edge within constraints
     if (position!.dx + (buttonSize / 2) < constraints.maxWidth / 2) {
-      targetX = 16; // Snap to left
+      targetX = padding; // Snap to left
     } else {
-      targetX = constraints.maxWidth - buttonSize - 16; // Snap to right
+      targetX = maxX; // Snap to right
     }
 
     // Keep within vertical bounds
-    double minTop = MediaQuery.of(context).padding.top + 16;
-    double maxBottom = constraints.maxHeight - MediaQuery.of(context).padding.bottom - buttonSize - 16;
-    double targetY = position!.dy.clamp(minTop, maxBottom);
+    double targetY = position!.dy.clamp(minY, maxY);
 
     setState(() {
       position = Offset(targetX, targetY);
@@ -53,8 +55,9 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
 
       if (!mounted) return;
 
-      MyApp.navigatorKey.currentState?.push(
+      NavigationService.navigatorKey.currentState?.push(
         MaterialPageRoute(
+          settings: const RouteSettings(name: 'chat'),
           builder: (context) => PrivateChatScreen(
             roomId: roomData['roomId'] as String,
             otherUserId: roomData['adminId'] as String,
@@ -71,9 +74,13 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if visibility is explicitly disabled via provider
+    final isVisible = ref.watch(supportButtonVisibilityProvider);
+    if (!isVisible) return widget.child ?? const SizedBox.shrink();
+
     // Only show if user is logged in
     final session = Supabase.instance.client.auth.currentSession;
-    if (session == null) return widget.child;
+    if (session == null) return widget.child ?? const SizedBox.shrink();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -83,32 +90,49 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
           constraints.maxHeight * 0.7,
         );
 
-        return Stack(
-          children: [
-            widget.child,
-            Positioned(
-              left: position!.dx,
-              top: position!.dy,
-              child: GestureDetector(
-                onPanStart: (_) => setState(() => isDragging = true),
-                onPanUpdate: (details) {
-                  setState(() {
-                    position = Offset(
-                      (position!.dx + details.delta.dx).clamp(0, constraints.maxWidth - buttonSize),
-                      (position!.dy + details.delta.dy).clamp(0, constraints.maxHeight - buttonSize),
-                    );
-                  });
-                },
-                onPanEnd: (_) => _snapToEdge(constraints),
-                onTap: _handleTap,
-                child: AnimatedScale(
-                  scale: isDragging ? 0.9 : 1.0,
-                  duration: const Duration(milliseconds: 100),
-                  child: _buildButtonBody(),
-                ),
-              ),
+        // Clamping against CURRENT constraints to handle window resizing
+        final double currentX = position!.dx.clamp(0.0, constraints.maxWidth - buttonSize);
+        final double currentY = position!.dy.clamp(0.0, constraints.maxHeight - buttonSize);
+
+        final button = Material(
+          type: MaterialType.transparency,
+          child: GestureDetector(
+            onPanStart: (_) => setState(() => isDragging = true),
+            onPanUpdate: (details) {
+              setState(() {
+                position = Offset(
+                  (position!.dx + details.delta.dx).clamp(0, constraints.maxWidth - buttonSize),
+                  (position!.dy + details.delta.dy).clamp(0, constraints.maxHeight - buttonSize),
+                );
+              });
+            },
+            onPanEnd: (_) => _snapToEdge(constraints),
+            onTap: _handleTap,
+            child: AnimatedScale(
+              scale: isDragging ? 0.9 : 1.0,
+              duration: const Duration(milliseconds: 100),
+              child: _buildButtonBody(),
             ),
-          ],
+          ),
+        );
+
+        if (widget.child != null) {
+          return Stack(
+            children: [
+              widget.child!,
+              Positioned(
+                left: currentX,
+                top: currentY,
+                child: button,
+              ),
+            ],
+          );
+        }
+
+        return Positioned(
+          left: currentX,
+          top: currentY,
+          child: button,
         );
       },
     );

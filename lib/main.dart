@@ -5,19 +5,19 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:feedback/feedback.dart';
+
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/supabase_service.dart';
 import 'services/revenuecat_service.dart';
 import 'package:rive/rive.dart' as rive;
 
-
 import 'widgets/global_support_button.dart';
-
-
 import 'services/admob_service.dart';
 import 'providers/theme_provider.dart';
 import 'services/deep_link_service.dart';
+import 'services/navigation_service.dart';
+import 'services/support_navigator_observer.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -66,9 +66,6 @@ void main() {
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
-  // Global navigator key for components outside the context (like overlay buttons)
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
   @override
   ConsumerState<MyApp> createState() => _MyAppState();
 }
@@ -114,7 +111,10 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     final themeMode = ref.watch(themeModeNotifierProvider);
     
     return MaterialApp(
-      navigatorKey: MyApp.navigatorKey, // Set the key
+      navigatorKey: NavigationService.navigatorKey, // Set the global key
+      navigatorObservers: [
+        SupportNavigatorObserver(ref), // Register the observer
+      ],
       debugShowCheckedModeBanner: false,
       title: 'Sports App MVP',
       theme: AppTheme.lightTheme,
@@ -124,17 +124,18 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final bgColor = isDark ? AppTheme.darkColors.background : AppTheme.lightColors.background;
 
-        return Container(
-          color: bgColor,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: ClipRect(
-                child: GlobalSupportButton(
+        return Scaffold(
+          backgroundColor: bgColor,
+          body: Stack(
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
                   child: child!,
                 ),
               ),
-            ),
+              const GlobalSupportButton(),
+            ],
           ),
         );
       },

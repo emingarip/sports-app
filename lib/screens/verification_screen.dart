@@ -28,7 +28,10 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
       await SupabaseService().verifyOTP(widget.email, code);
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const VerificationSuccessScreen()),
+        MaterialPageRoute(
+          settings: const RouteSettings(name: 'success'),
+          builder: (_) => const VerificationSuccessScreen(),
+        ),
         (route) => false,
       );
     } catch (e) {

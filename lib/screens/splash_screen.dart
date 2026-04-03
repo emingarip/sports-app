@@ -38,6 +38,7 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
+          settings: const RouteSettings(name: 'main'),
           builder: widget.authenticatedBuilder ?? (_) => const MainLayout(),
         ),
       );
@@ -45,6 +46,7 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
+          settings: const RouteSettings(name: 'login'),
           builder: widget.unauthenticatedBuilder ?? (_) => const LoginScreen(),
         ),
       );

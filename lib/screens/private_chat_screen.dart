@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/frame_avatar.dart';
 
-class PrivateChatScreen extends StatefulWidget {
+class PrivateChatScreen extends ConsumerStatefulWidget {
   final String roomId;
   final String otherUserId;
   final String otherUsername;
@@ -23,10 +23,10 @@ class PrivateChatScreen extends StatefulWidget {
   });
 
   @override
-  State<PrivateChatScreen> createState() => _PrivateChatScreenState();
+  ConsumerState<PrivateChatScreen> createState() => _PrivateChatScreenState();
 }
 
-class _PrivateChatScreenState extends State<PrivateChatScreen> {
+class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen> {
   final _supabase = Supabase.instance.client;
   final _msgController = TextEditingController();
   final _scrollController = ScrollController();

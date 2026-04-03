@@ -28,7 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
       await SupabaseService().signInWithOtp(email);
       if (!mounted) return;
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => VerificationScreen(email: email)),
+        MaterialPageRoute(
+          settings: const RouteSettings(name: 'verification'),
+          builder: (_) => VerificationScreen(email: email),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -217,7 +220,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: () {
                                   Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(builder: (_) => const MainLayout()),
+                                    MaterialPageRoute(
+                                      settings: const RouteSettings(name: 'main'),
+                                      builder: (_) => const MainLayout(),
+                                    ),
                                   );
                                 },
                                 icon: Image.network(
