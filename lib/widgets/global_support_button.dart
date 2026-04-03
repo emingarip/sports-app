@@ -56,9 +56,9 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
       MyApp.navigatorKey.currentState?.push(
         MaterialPageRoute(
           builder: (context) => PrivateChatScreen(
-            roomId: roomData['room_id'],
-            otherUserId: roomData['admin_id'],
-            otherUsername: 'Canlı Destek',
+            roomId: roomData['roomId'] as String,
+            otherUserId: roomData['adminId'] as String,
+            otherUsername: roomData['adminName'] ?? 'Canlı Destek',
           ),
         ),
       );
