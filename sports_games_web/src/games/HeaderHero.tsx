@@ -42,6 +42,7 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
     isJumping: false,
     jumpProgress: 0,
   });
+  const targetX = useRef(screenWidth / 2);
 
   const objects = useRef<Array<{ id: number; type: 'ball' | 'boot' | 'item'; x: number; y: number; dx: number; dy: number; gravity: number; active: boolean; isGold?: boolean; isHelmet?: boolean; isArc?: boolean }>>([]);
   const difficultyScaler = useRef(new DifficultyScaler());
@@ -148,6 +149,11 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
         ctx.clearRect(-50, -50, screenWidth + 100, screenHeight + 100);
       }
 
+      // Player horizontal movement (lerp for smoothing)
+      player.current.x += (targetX.current - player.current.x) * 0.2;
+      // Clamp player within bounds
+      player.current.x = Math.max(30, Math.min(screenWidth - 30, player.current.x));
+
       // Player jump logic
       let currentY = player.current.y;
       if (player.current.isJumping) {
@@ -190,14 +196,26 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
 
          const speedMult = difficultyScaler.current.getSpeedMultiplier(scoreRef.current);
          
+         // ADAPTIVE PHYSICS: Target the play area around the center
+         const startX = isLeft ? -30 : screenWidth + 30;
+         const startY = isArc ? screenHeight - 150 : screenHeight - 250;
+         const targetXPos = (screenWidth * 0.5) + (Math.random() * 160 - 80); // Target middle 40% of screen
+         
+         // Approximate flight time to reach player height (~150-200px drop)
+         // Higher dy means longer air time
+         const baseDy = isArc ? -(9 + Math.random()*4) : -(5 + Math.random()*3);
+         const flightTime = isArc ? 85 : 70; // estimated frames to reach player area
+         
+         const calculatedDx = (targetXPos - startX) / (flightTime / speedMult);
+
          objects.current.push({
             id: Date.now(), 
             type,
-            x: isLeft ? -30 : screenWidth + 30,
-            y: isArc ? screenHeight - 150 : screenHeight - 250,
-            dx: (isLeft ? (3 + Math.random()*2) : -(3 + Math.random()*2)) * speedMult,
-            dy: (isArc ? -(9 + Math.random()*4) : -(5 + Math.random()*3)),
-            gravity: isArc ? 0.25 : 0.15,
+            x: startX,
+            y: startY,
+            dx: calculatedDx,
+            dy: baseDy * speedMult,
+            gravity: (isArc ? 0.25 : 0.15) * speedMult,
             active: true,
             isGold,
             isHelmet,
@@ -347,10 +365,27 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
     }
   };
 
+  const handlePointerMove = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
+    if (countdown > 0 || isGameOver || isTimeUp) return;
+    let clientX = 0;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = (e as any).clientX;
+    }
+    targetX.current = clientX;
+  };
+
   const min = Math.floor(overallTimeLeft / 60); const sec = overallTimeLeft % 60;
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-gradient-to-b from-orange-400 to-red-500 select-none touch-none font-sans" onMouseDown={handleTap} onTouchStart={handleTap}>
+    <div 
+      className="w-full h-full relative overflow-hidden bg-gradient-to-b from-orange-400 to-red-500 select-none touch-none font-sans" 
+      onMouseDown={handleTap} 
+      onTouchStart={handleTap}
+      onMouseMove={handlePointerMove}
+      onTouchMove={handlePointerMove}
+    >
       <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2 pointer-events-none">
         <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px] order-last">
           <h3 className="text-white/80 text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">Canlı Liderlik</h3>
