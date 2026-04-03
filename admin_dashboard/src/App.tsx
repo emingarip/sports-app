@@ -12,6 +12,8 @@ import Bots from './pages/Bots';
 import Announcements from './pages/Announcements';
 import Products from './pages/Products';
 import Settings from './pages/Settings';
+import Feedbacks from './pages/Feedbacks';
+import SupportChat from './pages/SupportChat';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -50,6 +52,8 @@ function App() {
           <Route path="announcements" element={<Announcements />} />
           <Route path="products" element={<Products />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="feedbacks" element={<Feedbacks />} />
+          <Route path="support-chat" element={<SupportChat />} />
         </Route>
       </Routes>
     </Router>

@@ -18,7 +18,6 @@ import 'avatar_frames_screen.dart';
 import '../widgets/frame_avatar.dart';
 import '../providers/leaderboard_provider.dart';
 import '../widgets/shimmer_loading.dart';
-import '../providers/support_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:feedback/feedback.dart';
@@ -439,7 +438,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 iconColor: Colors.blueAccent,
                 title: 'Canlı Destek',
                 onTap: () {
-                  ref.read(liveChatServiceProvider).openChat(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+                  );
                 },
               ),
               Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),

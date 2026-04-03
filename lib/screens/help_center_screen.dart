@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../data/repositories/support/faq_repository.dart';
+import '../providers/support_providers.dart';
+import 'private_chat_screen.dart';
 
 class HelpCenterScreen extends ConsumerWidget {
   const HelpCenterScreen({super.key});
@@ -161,6 +163,77 @@ class HelpCenterScreen extends ConsumerWidget {
                       );
                     },
                     childCount: categoriesWithArticles.length,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: context.colors.surfaceContainer,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: context.colors.outline.withAlpha(25),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Hala yardıma mı ihtiyacınız var?',
+                          style: TextStyle(
+                            color: context.colors.textHigh,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                             // Show loading
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(child: CircularProgressIndicator()),
+                            );
+
+                            try {
+                              final supportData = await ref.read(supportRepositoryProvider).prepareSupportRoom();
+                              
+                              if (context.mounted) {
+                                Navigator.pop(context); // Remove loading
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PrivateChatScreen(
+                                      roomId: supportData['room_id'],
+                                      otherUserId: supportData['admin_id'],
+                                      otherUsername: 'Canlı Destek',
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                Navigator.pop(context); // Remove loading
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Hata: $e')),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.headset_mic_outlined),
+                          label: const Text('Destek Talebi Oluştur'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: context.colors.primaryContainer,
+                            side: BorderSide(color: context.colors.primaryContainer),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

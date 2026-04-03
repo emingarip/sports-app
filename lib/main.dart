@@ -12,6 +12,9 @@ import 'services/revenuecat_service.dart';
 import 'package:rive/rive.dart' as rive;
 
 
+import 'widgets/global_support_button.dart';
+
+
 import 'services/admob_service.dart';
 import 'providers/theme_provider.dart';
 import 'services/deep_link_service.dart';
@@ -63,6 +66,9 @@ void main() {
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
+  // Global navigator key for components outside the context (like overlay buttons)
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   ConsumerState<MyApp> createState() => _MyAppState();
 }
@@ -108,6 +114,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     final themeMode = ref.watch(themeModeNotifierProvider);
     
     return MaterialApp(
+      navigatorKey: MyApp.navigatorKey, // Set the key
       debugShowCheckedModeBanner: false,
       title: 'Sports App MVP',
       theme: AppTheme.lightTheme,
@@ -122,7 +129,11 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-              child: ClipRect(child: child!),
+              child: ClipRect(
+                child: GlobalSupportButton(
+                  child: child!,
+                ),
+              ),
             ),
           ),
         );
