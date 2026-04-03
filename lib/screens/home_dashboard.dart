@@ -27,9 +27,9 @@ import 'voice_room_screen.dart';
 import '../providers/voice_room_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/global_announcement_card.dart';
-import 'inbox_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/badge_provider.dart';
+import '../widgets/inbox_message_button.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -670,8 +670,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             final userId = Supabase.instance.client.auth.currentUser?.id;
             if (userId != null) {
               Share.share(
-                "Velocity Score'a katıl ve anında K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId"
-              );
+                  "Velocity Score'a katıl ve anında K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId");
               ref.read(badgeProvider.notifier).triggerEvent('invite_friend');
             }
           },
@@ -684,16 +683,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 delegate: MatchSearchDelegate(ref),
               );
             }),
-        IconButton(
-          icon: Icon(Icons.mark_chat_unread_outlined,
-              color: context.colors.textMedium),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const InboxScreen()),
-            );
-          },
-        ),
+        const InboxMessageButton(),
         const NotificationBell(),
         const SizedBox(width: 8),
       ],

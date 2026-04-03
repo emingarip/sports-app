@@ -74,11 +74,16 @@ class HelpCenterScreen extends ConsumerWidget {
                       // Match icon string to IconData roughly
                       IconData getIcon(String? iconStr) {
                         switch (iconStr) {
-                          case 'person': return Icons.person;
-                          case 'workspace_premium': return Icons.workspace_premium;
-                          case 'sports_soccer': return Icons.sports_soccer;
-                          case 'build': return Icons.build;
-                          default: return Icons.help_outline;
+                          case 'person':
+                            return Icons.person;
+                          case 'workspace_premium':
+                            return Icons.workspace_premium;
+                          case 'sports_soccer':
+                            return Icons.sports_soccer;
+                          case 'build':
+                            return Icons.build;
+                          default:
+                            return Icons.help_outline;
                         }
                       }
 
@@ -102,7 +107,8 @@ class HelpCenterScreen extends ConsumerWidget {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: context.colors.primaryContainer.withAlpha(30),
+                                      color: context.colors.primaryContainer
+                                          .withAlpha(30),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
@@ -114,7 +120,10 @@ class HelpCenterScreen extends ConsumerWidget {
                                   Expanded(
                                     child: Text(
                                       group.category.name,
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
                                             color: context.colors.textHigh,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -130,15 +139,21 @@ class HelpCenterScreen extends ConsumerWidget {
                                   dividerColor: Colors.transparent,
                                 ),
                                 child: ExpansionTile(
-                                  tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                                  tilePadding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 4),
                                   childrenPadding: const EdgeInsets.only(
-                                    left: 20, right: 20, bottom: 20,
+                                    left: 20,
+                                    right: 20,
+                                    bottom: 20,
                                   ),
                                   iconColor: context.colors.primaryContainer,
                                   collapsedIconColor: context.colors.textMedium,
                                   title: Text(
                                     article.question,
-                                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
                                           color: context.colors.textHigh,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -148,7 +163,10 @@ class HelpCenterScreen extends ConsumerWidget {
                                       alignment: Alignment.centerLeft,
                                       child: Text(
                                         article.answer,
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
                                               color: context.colors.textMedium,
                                               height: 1.5,
                                             ),
@@ -168,7 +186,8 @@ class HelpCenterScreen extends ConsumerWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -191,27 +210,33 @@ class HelpCenterScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
                         OutlinedButton.icon(
                           onPressed: () async {
-                             // Show loading
+                            // Show loading
                             showDialog(
                               context: context,
                               barrierDismissible: false,
-                              builder: (context) => const Center(child: CircularProgressIndicator()),
+                              builder: (context) => const Center(
+                                  child: CircularProgressIndicator()),
                             );
 
                             try {
-                              final supportData = await ref.read(supportRepositoryProvider).prepareSupportRoom();
-                              
+                              final supportData = await ref
+                                  .read(supportRepositoryProvider)
+                                  .prepareSupportRoom();
+
                               if (context.mounted) {
                                 Navigator.pop(context); // Remove loading
-                                Navigator.push(
+                                await showPrivateChatOverlay(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PrivateChatScreen(
-                                      roomId: supportData['room_id'],
-                                      otherUserId: supportData['admin_id'],
-                                      otherUsername: 'Canlı Destek',
-                                    ),
-                                  ),
+                                  roomId: supportData['roomId'] as String,
+                                  otherUserId: supportData['adminId'] as String,
+                                  otherUsername:
+                                      (supportData['adminName'] as String?) ??
+                                          'Canli Destek',
+                                  otherAvatarUrl:
+                                      supportData['adminAvatarUrl'] as String?,
+                                  otherActiveFrame:
+                                      supportData['adminActiveFrame']
+                                          as String?,
                                 );
                               }
                             } catch (e) {
@@ -227,9 +252,12 @@ class HelpCenterScreen extends ConsumerWidget {
                           label: const Text('Destek Talebi Oluştur'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: context.colors.primaryContainer,
-                            side: BorderSide(color: context.colors.primaryContainer),
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            side: BorderSide(
+                                color: context.colors.primaryContainer),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
                           ),
                         ),
                       ],

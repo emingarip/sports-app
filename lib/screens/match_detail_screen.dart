@@ -1175,17 +1175,14 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                         final roomId = await _chatService
                             .getOrCreatePrivateRoom(msg.userId!);
                         if (!mounted) return;
-                        Navigator.push(
+                        await showPrivateChatOverlay(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => PrivateChatScreen(
-                              roomId: roomId,
-                              otherUserId: msg.userId!,
-                              otherUsername: msg.username ?? 'Kullanıcı',
-                              otherAvatarUrl: msg.avatarUrl,
-                              isBot: msg.isBot,
-                            ),
-                          ),
+                          roomId: roomId,
+                          otherUserId: msg.userId!,
+                          otherUsername: msg.username ?? 'Kullanici',
+                          otherAvatarUrl: msg.avatarUrl,
+                          otherActiveFrame: msg.activeFrame,
+                          isBot: msg.isBot,
                         );
                       } catch (e) {
                         if (mounted) {

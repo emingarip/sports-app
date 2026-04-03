@@ -100,9 +100,12 @@ class MyApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      home: const GlobalSupportButton(
-        child: SplashScreen(),
-      ),
+      builder: (context, child) {
+        return GlobalSupportButton(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      home: const SplashScreen(),
     );
   }
 }

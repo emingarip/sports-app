@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/support_providers.dart';
 import '../screens/private_chat_screen.dart';
-import '../services/navigation_service.dart';
 
 class GlobalSupportButton extends ConsumerStatefulWidget {
   const GlobalSupportButton({super.key, required this.child});
   final Widget child;
 
   @override
-  ConsumerState<GlobalSupportButton> createState() => _GlobalSupportButtonState();
+  ConsumerState<GlobalSupportButton> createState() =>
+      _GlobalSupportButtonState();
 }
 
 class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
@@ -20,7 +20,7 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
 
   void _snapToEdge(Size screenSize) {
     if (position == null) return;
-    
+
     // Safety padding
     const double padding = 16.0;
     final double maxX = screenSize.width - buttonSize - padding;
@@ -46,22 +46,20 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
 
   Future<void> _handleTap() async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     try {
       final supportRepo = ref.read(supportRepositoryProvider);
       final roomData = await supportRepo.prepareSupportRoom();
 
       if (!mounted) return;
 
-      NavigationService.navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          settings: const RouteSettings(name: 'chat'),
-          builder: (context) => PrivateChatScreen(
-            roomId: roomData['roomId'] as String,
-            otherUserId: roomData['adminId'] as String,
-            otherUsername: roomData['adminName'] ?? 'Canlı Destek',
-          ),
-        ),
+      await showPrivateChatOverlay(
+        context,
+        roomId: roomData['roomId'] as String,
+        otherUserId: roomData['adminId'] as String,
+        otherUsername: roomData['adminName'] ?? 'Canli Destek',
+        otherAvatarUrl: roomData['adminAvatarUrl'] as String?,
+        otherActiveFrame: roomData['adminActiveFrame'] as String?,
       );
     } catch (e) {
       scaffoldMessenger.showSnackBar(
@@ -90,8 +88,10 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
     );
 
     // Clamping against CURRENT constraints to handle window resizing
-    final double currentX = position!.dx.clamp(0.0, screenSize.width - buttonSize);
-    final double currentY = position!.dy.clamp(0.0, screenSize.height - buttonSize);
+    final double currentX =
+        position!.dx.clamp(0.0, screenSize.width - buttonSize);
+    final double currentY =
+        position!.dy.clamp(0.0, screenSize.height - buttonSize);
 
     return Stack(
       children: [
@@ -106,8 +106,10 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
               onPanUpdate: (details) {
                 setState(() {
                   position = Offset(
-                    (position!.dx + details.delta.dx).clamp(0, screenSize.width - buttonSize),
-                    (position!.dy + details.delta.dy).clamp(0, screenSize.height - buttonSize),
+                    (position!.dx + details.delta.dx)
+                        .clamp(0, screenSize.width - buttonSize),
+                    (position!.dy + details.delta.dy)
+                        .clamp(0, screenSize.height - buttonSize),
                   );
                 });
               },

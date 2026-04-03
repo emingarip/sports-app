@@ -22,6 +22,8 @@ class MainLayout extends ConsumerStatefulWidget {
 }
 
 class _MainLayoutState extends ConsumerState<MainLayout> {
+  static const double _shellMaxWidth = 600;
+
   @override
   void initState() {
     super.initState();
@@ -36,9 +38,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     if (user != null) {
       final profile = await SupabaseService().getUserProfile(user.id);
       if (profile == null) return;
-      
+
       final username = profile['username'] as String?;
-      
+
       if (username == null || username.trim().isEmpty) {
         if (!mounted) return;
         showDialog(
@@ -68,13 +70,23 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
               ProfileScreen(),
             ],
           ),
-          const Positioned(
-            bottom: 80,
-            left: 0,
-            right: 0,
-            child: FloatingAudioRoom(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: _shellMaxWidth),
+              child: const Padding(
+                padding: EdgeInsets.only(bottom: 80),
+                child: FloatingAudioRoom(),
+              ),
+            ),
           ),
-          const CustomBottomNav(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: _shellMaxWidth),
+              child: const CustomBottomNav(),
+            ),
+          ),
         ],
       ),
     );
