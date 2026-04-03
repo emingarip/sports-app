@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
 
 declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
@@ -37,6 +38,14 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     gravity: 0.25,
     bounce: -6,
   });
+
+  const engineRef = useRef({
+    particles: new ParticleSystem(),
+    shake: new ScreenShake(),
+    texts: new FloatingTextSystem(),
+    audio: new AudioSynthesizer(),
+  });
+  const trailRef = useRef<{x: number, y: number}[]>([]);
 
   const pipes = useRef<Array<{ x: number, width: number, topHeight: number, bottomHeight: number, passed: boolean }>>([]);
   const gap = 140; // Gap between top and bottom pipe
@@ -124,6 +133,9 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
       ctx.clearRect(0, 0, screenWidth, screenHeight);
 
       // Background moving lines
+      ctx.save();
+      engineRef.current.shake.apply(ctx);
+
       ctx.strokeStyle = 'rgba(255,255,255,0.05)';
       ctx.lineWidth = 1;
       for (let i = 0; i < screenWidth; i += 40) {
@@ -134,17 +146,27 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
       ball.current.dy += ball.current.gravity;
       ball.current.y += ball.current.dy;
 
-      // Draw ball
-      ctx.beginPath(); ctx.arc(ball.current.x, ball.current.y, ball.current.radius, 0, Math.PI * 2);
-      ctx.fillStyle = 'white'; ctx.fill();
-      ctx.lineWidth = 2; ctx.strokeStyle = '#333'; ctx.stroke();
-      // Soccer pattern
-      ctx.fillStyle = '#222'; ctx.beginPath();
-      const rAngle = frames * 0.05;
-      for (let i = 0; i < 5; i++) {
-        ctx.lineTo(ball.current.x + Math.cos((18 + i * 72) * Math.PI / 180 + rAngle) * (ball.current.radius * 0.4), ball.current.y - Math.sin((18 + i * 72) * Math.PI / 180 + rAngle) * (ball.current.radius * 0.4));
+      // Draw trail
+      trailRef.current.push({ x: ball.current.x, y: ball.current.y });
+      if (trailRef.current.length > 10) trailRef.current.shift();
+      
+      if (trailRef.current.length > 1) {
+        ctx.beginPath();
+        for (let i = 0; i < trailRef.current.length; i++) {
+          const pt = trailRef.current[i];
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.lineWidth = ball.current.radius * 0.8;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
       }
-      ctx.closePath(); ctx.fill();
+
+      // Draw ball
+      const rAngle = frames * 0.05;
+      drawSoccerBall(ctx, ball.current.x, ball.current.y, ball.current.radius, rAngle);
 
       // Pipes
       if (frames % 100 === 0) {
@@ -167,6 +189,7 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
          // Collision detection
          if (ball.current.x + ball.current.radius > p.x && ball.current.x - ball.current.radius < p.x + p.width) {
             if (ball.current.y - ball.current.radius < p.topHeight || ball.current.y + ball.current.radius > screenHeight - p.bottomHeight) {
+               engineRef.current.audio.playCrash();
                handleGameOver(false); return;
             }
          }
@@ -175,6 +198,9 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
          if (!p.passed && ball.current.x > p.x + p.width) {
             p.passed = true;
             setScore(s => s + 1);
+            engineRef.current.audio.playGoal();
+            engineRef.current.particles.emit(p.x + p.width, ball.current.y, '#FDB022', 15, 3);
+            engineRef.current.texts.add(p.x + p.width, ball.current.y - 20, '+1', '#FDB022');
          }
 
          if (p.x + p.width < 0) { pipes.current.splice(i, 1); }
@@ -182,8 +208,15 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
 
       // Ground collision
       if (ball.current.y + ball.current.radius > screenHeight || ball.current.y - ball.current.radius < 0) {
+         engineRef.current.audio.playCrash();
          handleGameOver(false); return;
       }
+
+      // Engine Update
+      engineRef.current.particles.updateAndDraw(ctx);
+      engineRef.current.texts.updateAndDraw(ctx);
+      
+      ctx.restore();
 
       frames++;
       requestRef.current = requestAnimationFrame(render);
@@ -210,6 +243,9 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     setScore(0); lastSavedScoreRef.current = 0; setIsGameOver(false); setCountdown(3); setGameKey(k => k + 1);
     ball.current = { x: 100, y: screenHeight / 2, radius: 15, dy: 0, gravity: 0.25, bounce: -6 };
     pipes.current = [];
+    trailRef.current = [];
+    engineRef.current.particles.particles = [];
+    engineRef.current.texts.texts = [];
   };
 
   const exitGame = () => {
@@ -222,6 +258,8 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
   const handleTap = (_e: React.TouchEvent | React.MouseEvent) => {
     if (countdown > 0 || isGameOver || isTimeUp) return;
     ball.current.dy = ball.current.bounce;
+    engineRef.current.audio.playBounce();
+    engineRef.current.particles.emit(ball.current.x, ball.current.y + ball.current.radius, '#ffffff', 5, 1);
   };
 
   const min = Math.floor(overallTimeLeft / 60);

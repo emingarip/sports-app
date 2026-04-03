@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer } from '../lib/gameUtils';
 
 declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
@@ -28,16 +29,30 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
   const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 500;
 
-  const hitZoneY = screenHeight - 100;
-  const hitZoneTolerance = 40; // max distance from hitZoneY for a valid hit
+  const cx = screenWidth / 2;
+  const cy = screenHeight / 2;
+  const targetRadius = 60;
+  const hitZoneTolerance = 25; // max radius distance for a valid hit
 
   // Game state
-  const notes = useRef<Array<{ id: number; y: number; speed: number; hit: boolean; miss: boolean }>>([]);
+  const notes = useRef<Array<{ id: number; radius: number; speed: number; hit: boolean; miss: boolean }>>([]);
   const lastSpawn = useRef(0);
-  const spawnRate = useRef(1000); // 1 sec
+  const spawnRate = useRef(1200); // 1.2 sec
   
   // Visual feedback
   const feedback = useRef<Array<{ id: number; text: string; alpha: number; y: number; color: string }>>([]);
+
+  // Juice systems
+  const particles = useRef(new ParticleSystem());
+  const shake = useRef(new ScreenShake());
+  const floatingText = useRef(new FloatingTextSystem());
+  const audio = useRef<AudioSynthesizer | null>(null);
+  
+  const shockwaves = useRef<Array<{ x: number; y: number; radius: number; maxRadius: number; color: string; alpha: number; thickness: number }>>([]);
+
+  useEffect(() => {
+    audio.current = new AudioSynthesizer();
+  }, []);
 
   useEffect(() => {
     if (!gameId) return;
@@ -118,20 +133,26 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
     let time = 0;
 
     const render = () => {
-      ctx.clearRect(0, 0, screenWidth, screenHeight);
+      ctx.save();
+      shake.current.apply(ctx);
 
-      // Hit Zone
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(0, hitZoneY - 20, screenWidth, 40);
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(0, hitZoneY); ctx.lineTo(screenWidth, hitZoneY); ctx.stroke();
+      // Clear the background, taking shake offset into account
+      ctx.clearRect(-50, -50, screenWidth + 100, screenHeight + 100);
 
-      // Spawn notes
+      // Draw Target Circle (Center)
+      ctx.beginPath();
+      ctx.arc(cx, cy, targetRadius, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.stroke();
+
+      // Spawn approach circles
       if (time - lastSpawn.current > spawnRate.current) {
          lastSpawn.current = time;
-         notes.current.push({ id: Date.now(), y: -20, speed: 4 + Math.random() * 2, hit: false, miss: false });
-         spawnRate.current = Math.max(300, spawnRate.current - (scoreRef.current > 50 ? 5 : 15)); // gets faster
+         notes.current.push({ id: Date.now(), radius: screenWidth * 0.8, speed: 2 + Math.random(), hit: false, miss: false });
+         spawnRate.current = Math.max(400, spawnRate.current - (scoreRef.current > 50 ? 5 : 20)); // gets faster
       }
 
       // Update and draw notes
@@ -139,25 +160,27 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
         const n = notes.current[i];
         if (n.hit) continue;
 
-        n.y += n.speed;
+        n.radius -= n.speed;
         
-        // Draw note (musical note or star shape, let's just do a glowing circle)
+        // Draw approach circle
         ctx.beginPath();
-        ctx.arc(screenWidth / 2, n.y, 25, 0, Math.PI * 2);
-        ctx.fillStyle = n.miss ? 'red' : '#FDB022';
-        ctx.fill();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#fff';
+        ctx.arc(cx, cy, Math.max(0, n.radius), 0, Math.PI * 2);
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = n.miss ? 'red' : '#FDB022';
         ctx.stroke();
 
         // Check miss
-        if (!n.miss && n.y > hitZoneY + hitZoneTolerance) {
+        if (!n.miss && n.radius < targetRadius - hitZoneTolerance) {
            n.miss = true;
            setScore(s => Math.max(0, s - 1));
-           feedback.current.push({ id: Date.now(), text: 'MISS!', alpha: 1, y: hitZoneY - 50, color: 'red' });
+           feedback.current.push({ id: Date.now(), text: 'MISS!', alpha: 1, y: cy - 80, color: 'red' });
+           
+           shake.current.trigger(5);
+           audio.current?.playCrash();
+           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 60, color: 'red', alpha: 0.8, thickness: 2 });
         }
 
-        if (n.y > screenHeight) {
+        if (n.radius <= 0) {
            notes.current.splice(i, 1);
         }
       }
@@ -173,6 +196,30 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
          f.alpha -= 0.02;
          if (f.alpha <= 0) feedback.current.splice(i, 1);
       }
+
+      // Update and draw shockwaves
+      for (let i = shockwaves.current.length - 1; i >= 0; i--) {
+        const sw = shockwaves.current[i];
+        sw.radius += 5;
+        sw.alpha -= 0.05;
+        if (sw.alpha <= 0) {
+           shockwaves.current.splice(i, 1);
+        } else {
+           ctx.save();
+           ctx.globalAlpha = sw.alpha;
+           ctx.strokeStyle = sw.color;
+           ctx.lineWidth = sw.thickness;
+           ctx.beginPath();
+           ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+           ctx.stroke();
+           ctx.restore();
+        }
+      }
+
+      particles.current.updateAndDraw(ctx);
+      floatingText.current.updateAndDraw(ctx);
+
+      ctx.restore();
 
       time += 16.6; // approx 60fps ms
       requestRef.current = requestAnimationFrame(render);
@@ -210,14 +257,14 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
   const handleTap = () => {
     if (countdown > 0 || isGameOver || isTimeUp) return;
 
-    // Find the note closest to hit zone
+    // Find the note closest to the target radius
     let closestIndex = -1;
     let minDistance = 9999;
 
     for (let i = 0; i < notes.current.length; i++) {
        const n = notes.current[i];
        if (n.hit || n.miss) continue;
-       const dist = Math.abs(n.y - hitZoneY);
+       const dist = Math.abs(n.radius - targetRadius);
        if (dist < minDistance) {
           minDistance = dist;
           closestIndex = i;
@@ -227,16 +274,37 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
     if (closestIndex !== -1 && minDistance <= hitZoneTolerance * 1.5) {
        notes.current[closestIndex].hit = true;
        
-       let pts = 1; let color = 'green'; let text = 'OK';
-       if (minDistance < 10) { pts = 3; color = 'yellow'; text = 'PERFECT!'; }
-       else if (minDistance < 25) { pts = 2; color = 'green'; text = 'GOOD'; }
+       let pts = 1; let color = 'white'; let text = 'OK';
+       if (minDistance < 8) { 
+           pts = 3; color = '#FFD700'; text = 'PERFECT!'; 
+           audio.current?.playGoal();
+           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 120, color: '#FFD700', alpha: 1, thickness: 8 });
+           particles.current.emit(cx, cy, '#FFD700', 40, 10);
+           shake.current.trigger(12);
+       }
+       else if (minDistance < 18) { 
+           pts = 2; color = '#00FF00'; text = 'GOOD'; 
+           audio.current?.playBounce();
+           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 80, color: '#00FF00', alpha: 0.8, thickness: 4 });
+           particles.current.emit(cx, cy, '#00FF00', 20, 6);
+           shake.current.trigger(6);
+       }
+       else {
+           audio.current?.playBounce();
+           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 50, color: '#FFFFFF', alpha: 0.6, thickness: 2 });
+           particles.current.emit(cx, cy, '#FFFFFF', 10, 4);
+       }
        
        setScore(s => s + pts);
-       feedback.current.push({ id: Date.now(), text, alpha: 1, y: hitZoneY - 50, color });
+       feedback.current.push({ id: Date.now(), text, alpha: 1, y: cy - 100, color });
     } else {
        // Tap when nothing is there -> penalty
        setScore(s => Math.max(0, s - 1));
-       feedback.current.push({ id: Date.now(), text: 'MISS!', alpha: 1, y: hitZoneY - 50, color: 'red' });
+       feedback.current.push({ id: Date.now(), text: 'MISS!', alpha: 1, y: cy - 100, color: 'red' });
+       
+       audio.current?.playCrash();
+       shake.current.trigger(8);
+       shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 60, color: 'red', alpha: 0.8, thickness: 2 });
     }
   };
 

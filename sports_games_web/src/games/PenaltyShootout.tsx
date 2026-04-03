@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
 
 declare global {
   interface Window {
@@ -47,7 +48,17 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
     startX: screenWidth / 2,
     startY: screenHeight - 100,
     progress: 0,
+    curve: 0,
+    rotation: 0,
   });
+
+  const engineRef = useRef({
+    particles: new ParticleSystem(),
+    shake: new ScreenShake(),
+    texts: new FloatingTextSystem(),
+    audio: new AudioSynthesizer(),
+  });
+  const trailRef = useRef<{x: number, y: number, r: number}[]>([]);
 
   const keeper = useRef({
     x: screenWidth / 2,
@@ -196,6 +207,9 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
     const render = () => {
       ctx.clearRect(0, 0, screenWidth, screenHeight);
 
+      ctx.save();
+      engineRef.current.shake.apply(ctx);
+
       // Draw Goal
       ctx.strokeStyle = 'white';
       ctx.lineWidth = 5;
@@ -236,15 +250,21 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
 
       // Update Ball
       if (ball.current.isShooting) {
-        ball.current.progress += 0.05; // Animation speed
+        ball.current.progress += 0.04; // Animation speed
         if (ball.current.progress >= 1) {
           ball.current.progress = 1;
         }
-        ball.current.x = ball.current.startX + (ball.current.targetX - ball.current.startX) * ball.current.progress;
-        ball.current.y = ball.current.startY + (ball.current.targetY - ball.current.startY) * ball.current.progress;
+        
+        const t = ball.current.progress;
+        const cx = (ball.current.startX + ball.current.targetX) / 2 + ball.current.curve;
+        const cy = (ball.current.startY + ball.current.targetY) / 2;
+        
+        ball.current.x = Math.pow(1-t, 2) * ball.current.startX + 2 * (1-t) * t * cx + Math.pow(t, 2) * ball.current.targetX;
+        ball.current.y = Math.pow(1-t, 2) * ball.current.startY + 2 * (1-t) * t * cy + Math.pow(t, 2) * ball.current.targetY;
+        ball.current.rotation += (ball.current.curve > 0 ? 0.2 : -0.2) + 0.1;
         
         // Scale down the ball to simulate depth
-        const currentRadius = ball.current.radius * (1 - ball.current.progress * 0.4);
+        const currentRadius = ball.current.radius * (1 - ball.current.progress * 0.5);
 
         if (ball.current.progress >= 1) {
           // Check collision with keeper
@@ -260,11 +280,16 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
 
           if (hitGoal && !hitKeeper) {
             setScore(s => s + 1);
-            // Increase diff
             keeper.current.speed += 0.2;
+            engineRef.current.audio.playGoal();
+            engineRef.current.particles.emit(ball.current.x, ball.current.y, '#ffffff', 30, 5);
+            engineRef.current.texts.add(ball.current.x, ball.current.y - 20, 'GOL!', '#FDB022');
           } else {
-            // Saved or Missed
-            // Could decrement score or keep it same. Let's just keep same for simple arcade feel.
+            engineRef.current.audio.playCrash();
+            if (hitKeeper) {
+               engineRef.current.shake.trigger(12);
+               engineRef.current.particles.emit(ball.current.x, ball.current.y, '#ff4d4d', 15, 3);
+            }
           }
 
           // Reset
@@ -275,22 +300,45 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
               x: screenWidth / 2,
               y: screenHeight - 100,
               progress: 0,
+              curve: 0,
+              rotation: 0,
             };
             keeper.current.x = screenWidth / 2 - keeper.current.width / 2;
-          }, 500);
+            trailRef.current = [];
+          }, 1000);
         }
       }
 
-      // Draw Ball
-      const r = ball.current.isShooting ? ball.current.radius * (1 - ball.current.progress * 0.4) : ball.current.radius;
-      ctx.beginPath();
-      ctx.arc(ball.current.x, ball.current.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = 'white';
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#333';
-      ctx.stroke();
+      // Draw Trail
+      if (ball.current.isShooting && ball.current.progress < 1) {
+         trailRef.current.push({ x: ball.current.x, y: ball.current.y, r: ball.current.radius * (1 - ball.current.progress * 0.5) });
+         if (trailRef.current.length > 20) trailRef.current.shift();
+      }
       
+      if (trailRef.current.length > 1) {
+        ctx.beginPath();
+        for (let i = 0; i < trailRef.current.length; i++) {
+          const pt = trailRef.current[i];
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+
+      // Draw Ball
+      const r = ball.current.isShooting ? ball.current.radius * (1 - ball.current.progress * 0.5) : ball.current.radius;
+      drawSoccerBall(ctx, ball.current.x, ball.current.y, r, ball.current.rotation);
+
+      // Engine Update
+      engineRef.current.particles.updateAndDraw(ctx);
+      engineRef.current.texts.updateAndDraw(ctx);
+      
+      ctx.restore();
+
       requestRef.current = requestAnimationFrame(render);
     };
 
@@ -361,6 +409,9 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
       
       ball.current.targetX = ball.current.x + Math.tan(angle) * distance;
       ball.current.targetY = targetY;
+      ball.current.curve = dx * 0.8; // Apply curve based on horizontal swipe distance
+
+      engineRef.current.audio.playBounce(); // kick sound
 
       // Decide keeper dive
       // small chance keeper guesses wrong, mostly dives towards ball X
