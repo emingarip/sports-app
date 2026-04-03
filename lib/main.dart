@@ -126,16 +126,13 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
         return Scaffold(
           backgroundColor: bgColor,
-          body: Stack(
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: child!,
-                ),
+          body: GlobalSupportButton(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: child!,
               ),
-              const GlobalSupportButton(),
-            ],
+            ),
           ),
         );
       },
