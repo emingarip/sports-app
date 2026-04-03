@@ -12,8 +12,8 @@ export class AudioSynthesizer {
   }
 
   private init() {
-    if (typeof window !== 'undefined') {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (typeof globalThis.window !== 'undefined') {
+      const AudioContextClass = globalThis.window.AudioContext || (globalThis.window as any).webkitAudioContext;
       if (AudioContextClass) {
         this.ctx = new AudioContextClass();
       }
@@ -60,6 +60,62 @@ export class AudioSynthesizer {
     this.playTone(1500, 'sine', 0.4, 0.2);
     setTimeout(() => this.playTone(1500, 'sine', 0.6, 0.3), 500);
   }
+
+  playLevelUp() {
+    if (!this.ctx) return;
+    this.playTone(440, 'square', 0.1, 0.1);
+    setTimeout(() => this.playTone(554.37, 'square', 0.1, 0.1), 100);
+    setTimeout(() => this.playTone(659.25, 'square', 0.3, 0.1), 200);
+  }
+
+  playPowerUp() {
+    this.playTone(523.25, 'sine', 0.1, 0.1); // C5
+    setTimeout(() => this.playTone(659.25, 'sine', 0.15, 0.1), 100); // E5
+    setTimeout(() => this.playTone(783.99, 'sine', 0.2, 0.2), 200); // G5
+  }
+}
+
+// --- DIFFICULTY SCALER ---
+export class DifficultyScaler {
+  level: number = 1;
+  scoreThreshold: number;
+  increment: number;
+
+  constructor(scoreThreshold: number = 10, increment: number = 1) {
+    this.scoreThreshold = scoreThreshold;
+    this.increment = increment;
+  }
+
+  update(currentScore: number): boolean {
+    const newLevel = Math.floor(currentScore / this.scoreThreshold) + 1;
+    if (newLevel > this.level) {
+      this.level = newLevel;
+      return true; // Level up!
+    }
+    return false;
+  }
+
+  reset() {
+    this.level = 1;
+  }
+
+  get multiplier(): number {
+    return 1 + (this.level - 1) * 0.2; // 20% increase per level
+  }
+
+  getSpeedMultiplier(score: number): number {
+    const level = this.getLevel(score);
+    return 1.0 + (level - 1) * 0.15;
+  }
+
+  getSpawnRate(score: number): number {
+    const level = this.getLevel(score);
+    return Math.max(800, 2000 - (level - 1) * 150);
+  }
+
+  getLevel(score: number): number {
+    return Math.floor(score / 15) + 1;
+  }
 }
 
 // --- PARTICLE SYSTEM ---
@@ -94,6 +150,10 @@ export class ParticleSystem {
     }
   }
 
+  explosion(x: number, y: number, color: string, count: number = 30, speed: number = 8) {
+    this.emit(x, y, color, count, speed);
+  }
+
   updateAndDraw(ctx: CanvasRenderingContext2D) {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
@@ -125,13 +185,36 @@ interface FloatingText {
   life: number;
   color: string;
   velocity: number;
+  size: number;
 }
 
 export class FloatingTextSystem {
   texts: FloatingText[] = [];
 
-  add(x: number, y: number, text: string, color: string = '#FFF') {
-    this.texts.push({ x, y, text, life: 1.0, color, velocity: 1.5 });
+  add(x: number, y: number, text: string, color: string = '#FFF', size: number = 24) {
+    this.texts.push({ x, y, text, life: 1.0, color, velocity: 1.5, size } as any);
+  }
+
+  addSpecial(x: number, y: number, type: 'PERFECT' | 'COMBO' | 'CRITICAL', value?: string) {
+    let color = '#FFF';
+    let size = 28;
+    let text = type as string;
+
+    if (type === 'PERFECT') {
+      color = '#fbbf24'; // Gold
+      size = 36;
+      text = 'PERFECT!';
+    } else if (type === 'COMBO') {
+      color = '#60a5fa'; // Blue
+      size = 30;
+      text = value ? `x${value} COMBO` : 'COMBO!';
+    } else if (type === 'CRITICAL') {
+      color = '#f87171'; // Red
+      size = 40;
+      text = 'CRITICAL!!';
+    }
+
+    this.add(x, y, text, color, size);
   }
 
   updateAndDraw(ctx: CanvasRenderingContext2D) {
@@ -148,7 +231,7 @@ export class FloatingTextSystem {
       ctx.save();
       ctx.globalAlpha = t.life;
       ctx.fillStyle = t.color;
-      ctx.font = 'bold 24px sans-serif';
+      ctx.font = `bold ${t.size || 24}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(0,0,0,0.5)';
       ctx.shadowBlur = 4;

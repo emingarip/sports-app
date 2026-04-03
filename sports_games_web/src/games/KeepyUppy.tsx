@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
 
 // Declaration for the injected Flutter bridge
 declare global {
@@ -48,6 +48,11 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     rotationSpeed: 0,
     scaleY: 1,
   });
+  
+  const difficulty = useRef(new DifficultyScaler(15));
+  const combo = useRef(1);
+  const lastHitTime = useRef(0);
+  const [wind, setWind] = useState(0);
 
   const engineRef = useRef({
     particles: new ParticleSystem(),
@@ -201,6 +206,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let frames = 0;
     const render = () => {
       // Clear canvas
       ctx.clearRect(0, 0, screenWidth, screenHeight);
@@ -214,6 +220,24 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       ball.current.x += ball.current.dx;
       ball.current.rotation += ball.current.rotationSpeed;
       ball.current.scaleY += (1 - ball.current.scaleY) * 0.15;
+
+      // Wind effect
+      if (difficulty.current.level >= 2) {
+        const targetWind = Math.sin(frames * 0.02) * (difficulty.current.level * 0.2);
+        setWind(targetWind);
+        ball.current.dx += targetWind * 0.05;
+        
+        // Draw wind particles (dust)
+        if (frames % 5 === 0) {
+          engineRef.current.particles.emit(
+            targetWind > 0 ? 0 : screenWidth, 
+            Math.random() * screenHeight, 
+            'rgba(255,255,255,0.2)', 
+            1, 
+            Math.abs(targetWind) * 5
+          );
+        }
+      }
 
       // Wall collisions (bounce off left and right walls)
       if (ball.current.x + ball.current.radius > screenWidth) {
@@ -309,6 +333,9 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       rotationSpeed: 0,
       scaleY: 1,
     };
+    difficulty.current.reset();
+    combo.current = 1;
+    lastHitTime.current = 0;
     engineRef.current.particles.particles = [];
     engineRef.current.texts.texts = [];
   };
@@ -353,7 +380,20 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     );
 
     if (dist < ball.current.radius * 3) {
-      setScore(s => s + 1);
+      const now = Date.now();
+      if (now - lastHitTime.current < 1500) {
+        combo.current += 1;
+      } else {
+        combo.current = 1;
+      }
+      lastHitTime.current = now;
+
+      // Perfect Kick Check (hit close to ground)
+      const isPerfect = (screenHeight - (ball.current.y + ball.current.radius)) < 40;
+      const points = isPerfect ? 5 * combo.current : 1 * combo.current;
+      
+      setScore(s => s + points);
+      difficulty.current.update(scoreRef.current);
       
       const xOffset = clientX - ball.current.x;
       
@@ -361,11 +401,19 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       ball.current.dx = -(xOffset * 0.15);
       ball.current.rotationSpeed = (xOffset * 0.01);
       
-      ball.current.gravity += 0.005;
+      // Gradually increase difficulty
+      ball.current.gravity = 0.5 + (difficulty.current.level * 0.02);
       
       engineRef.current.audio.playBounce();
-      engineRef.current.particles.emit(ball.current.x, ball.current.y + ball.current.radius, '#ffffff', 10, 2);
-      engineRef.current.texts.add(ball.current.x, ball.current.y - ball.current.radius - 10, '+1', '#FDB022');
+      engineRef.current.particles.emit(ball.current.x, ball.current.y + ball.current.radius, isPerfect ? '#ffcc00' : '#ffffff', isPerfect ? 20 : 10, isPerfect ? 4 : 2);
+      
+      if (isPerfect) {
+        engineRef.current.texts.add(ball.current.x, ball.current.y - 40, `PERFECT! x${combo.current}`, '#ffcc00', 32);
+        engineRef.current.shake.trigger(15);
+      } else {
+        engineRef.current.texts.add(ball.current.x, ball.current.y - ball.current.radius - 10, `+${points}${combo.current > 1 ? ` (x${combo.current})` : ''}`, '#FDB022');
+      }
+      
       ball.current.scaleY = 0.6; // trigger stretch logic
     }
   };
@@ -411,9 +459,19 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
             <span className="text-red-400 text-sm">Süre: </span> 
             <span className={`text-xl ${overallTimeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{timeString}</span>
           </div>
-          <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
-            Skor: <span className="text-2xl text-yellow-400">{score}</span>
+          <div className="flex gap-2">
+            <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
+              Level: <span className="text-xl text-blue-400">{difficulty.current.level}</span>
+            </div>
+            <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
+              Skor: <span className="text-2xl text-yellow-400">{score}</span>
+            </div>
           </div>
+          {wind !== 0 && (
+            <div className="bg-blue-500/30 backdrop-blur-sm rounded-full px-4 py-1 text-xs text-white border border-white/10 animate-pulse">
+              Rüzgar: {wind > 0 ? '➡️' : '⬅️'} {Math.abs(wind).toFixed(1)}
+            </div>
+          )}
         </div>
       </div>
 

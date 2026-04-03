@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer } from '../lib/gameUtils';
+import { DifficultyScaler, ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer } from '../lib/gameUtils';
 
 declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
@@ -35,9 +35,12 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
   const hitZoneTolerance = 25; // max radius distance for a valid hit
 
   // Game state
-  const notes = useRef<Array<{ id: number; radius: number; speed: number; hit: boolean; miss: boolean }>>([]);
+  const notes = useRef<Array<{ id: number; radius: number; speed: number; hit: boolean; miss: boolean; isDouble?: boolean }>>([]);
   const lastSpawn = useRef(0);
-  const spawnRate = useRef(1200); // 1.2 sec
+  const difficulty = useRef(new DifficultyScaler());
+  const streak = useRef(0);
+  const [multiplier, setMultiplier] = useState(1);
+  const [level, setLevel] = useState(1);
   
   // Visual feedback
   const feedback = useRef<Array<{ id: number; text: string; alpha: number; y: number; color: string }>>([]);
@@ -148,11 +151,20 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.stroke();
 
-      // Spawn approach circles
-      if (time - lastSpawn.current > spawnRate.current) {
+      // Spawn approach circles (dynamic BPM scaling)
+      const currentSpawnRate = difficulty.current.getSpawnRate(scoreRef.current);
+      if (time - lastSpawn.current > currentSpawnRate) {
          lastSpawn.current = time;
-         notes.current.push({ id: Date.now(), radius: screenWidth * 0.8, speed: 2 + Math.random(), hit: false, miss: false });
-         spawnRate.current = Math.max(400, spawnRate.current - (scoreRef.current > 50 ? 5 : 20)); // gets faster
+         const currentLevel = difficulty.current.getLevel(scoreRef.current);
+         setLevel(currentLevel);
+
+         const speed = (2 + Math.random()) * difficulty.current.getSpeedMultiplier(scoreRef.current);
+         notes.current.push({ id: Date.now(), radius: screenWidth * 0.8, speed, hit: false, miss: false });
+         
+         // Double note support for elite players
+         if (currentLevel >= 3 && Math.random() < 0.2) {
+            notes.current.push({ id: Date.now() + 1, radius: screenWidth * 1.0, speed, hit: false, miss: false, isDouble: true });
+         }
       }
 
       // Update and draw notes
@@ -172,8 +184,10 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
         // Check miss
         if (!n.miss && n.radius < targetRadius - hitZoneTolerance) {
            n.miss = true;
+           streak.current = 0;
+           setMultiplier(1);
            setScore(s => Math.max(0, s - 1));
-           feedback.current.push({ id: Date.now(), text: 'MISS!', alpha: 1, y: cy - 80, color: 'red' });
+           floatingText.current.add(cx, cy - 80, "KAÇTI!", "red", 24);
            
            shake.current.trigger(5);
            audio.current?.playCrash();
@@ -244,7 +258,8 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
 
   const playAgain = () => {
     setScore(0); lastSavedScoreRef.current = 0; setIsGameOver(false); setCountdown(3); setGameKey(k => k + 1);
-    notes.current = []; lastSpawn.current = 0; spawnRate.current = 1000; feedback.current = [];
+    notes.current = []; lastSpawn.current = 0; feedback.current = [];
+    streak.current = 0; setMultiplier(1);
   };
 
   const exitGame = () => {
@@ -257,7 +272,6 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
   const handleTap = () => {
     if (countdown > 0 || isGameOver || isTimeUp) return;
 
-    // Find the note closest to the target radius
     let closestIndex = -1;
     let minDistance = 9999;
 
@@ -272,38 +286,57 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
     }
 
     if (closestIndex !== -1 && minDistance <= hitZoneTolerance * 1.5) {
-       notes.current[closestIndex].hit = true;
+       const note = notes.current[closestIndex];
+       note.hit = true;
        
-       let pts = 1; let color = 'white'; let text = 'OK';
+       streak.current += 1;
+       const currentStreak = streak.current;
+       
+       // Multiplier logic
+       let newMult = 1;
+       if (currentStreak >= 20) newMult = 3;
+       else if (currentStreak >= 10) newMult = 2;
+       
+       if (newMult > multiplier) {
+          setMultiplier(newMult);
+          audio.current?.playPowerUp();
+          floatingText.current.add(cx, cy - 130, `ALEV ALDIN! x${newMult}`, "#ff4500", 34);
+       }
+
+       let pts = 1 * newMult;
+       let color = 'white';
+       let text = 'ORTA';
+
        if (minDistance < 8) { 
-           pts = 3; color = '#FFD700'; text = 'PERFECT!'; 
+           pts = 3 * newMult; color = '#FFD700'; text = 'MÜKEMMEL!'; 
            audio.current?.playGoal();
-           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 120, color: '#FFD700', alpha: 1, thickness: 8 });
-           particles.current.emit(cx, cy, '#FFD700', 40, 10);
-           shake.current.trigger(12);
+           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 150, color: '#FFD700', alpha: 1, thickness: 10 });
+           particles.current.explosion(cx, cy, '#FFD700', 30);
+           shake.current.trigger(15);
        }
        else if (minDistance < 18) { 
-           pts = 2; color = '#00FF00'; text = 'GOOD'; 
+           pts = 2 * newMult; color = '#00FF00'; text = 'HARİKA!'; 
            audio.current?.playBounce();
-           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 80, color: '#00FF00', alpha: 0.8, thickness: 4 });
-           particles.current.emit(cx, cy, '#00FF00', 20, 6);
-           shake.current.trigger(6);
+           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 100, color: '#00FF00', alpha: 0.8, thickness: 5 });
+           particles.current.explosion(cx, cy, '#00FF00', 20);
+           shake.current.trigger(8);
        }
        else {
            audio.current?.playBounce();
-           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 50, color: '#FFFFFF', alpha: 0.6, thickness: 2 });
-           particles.current.emit(cx, cy, '#FFFFFF', 10, 4);
+           shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 60, color: '#FFFFFF', alpha: 0.6, thickness: 2 });
+           particles.current.explosion(cx, cy, '#FFFFFF', 10);
        }
        
        setScore(s => s + pts);
-       feedback.current.push({ id: Date.now(), text, alpha: 1, y: cy - 100, color });
+       floatingText.current.add(cx, cy - 100, text, color, 28);
     } else {
-       // Tap when nothing is there -> penalty
+       streak.current = 0;
+       setMultiplier(1);
        setScore(s => Math.max(0, s - 1));
-       feedback.current.push({ id: Date.now(), text: 'MISS!', alpha: 1, y: cy - 100, color: 'red' });
+       floatingText.current.add(cx, cy - 100, 'KAÇTI!', 'red', 30);
        
        audio.current?.playCrash();
-       shake.current.trigger(8);
+       shake.current.trigger(10);
        shockwaves.current.push({ x: cx, y: cy, radius: targetRadius, maxRadius: targetRadius + 60, color: 'red', alpha: 0.8, thickness: 2 });
     }
   };
@@ -326,14 +359,27 @@ export default function GoalCelebrationRhythm({ roomId, gameId }: GoalCelebratio
              </div>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl flex items-center gap-2">
-            <span className="text-red-400 text-sm">Süre: </span> 
-            <span className={`text-xl ${overallTimeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{`${min}:${sec < 10 ? '0' : ''}${sec}`}</span>
-          </div>
-          <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
-            Skor: <span className="text-2xl text-yellow-400">{score}</span>
-          </div>
+        <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px]">
+           <div className="flex justify-between items-center mb-1">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Skor</span>
+             <span className="text-white font-black text-2xl drop-shadow-lg">{score}</span>
+           </div>
+           <div className="flex justify-between items-center mb-1">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Süre</span>
+             <span className="text-white font-mono font-bold text-lg">{min}:{sec < 10 ? '0' + sec : sec}</span>
+           </div>
+           <div className="flex justify-between items-center pt-1 border-t border-white/10">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Kombo</span>
+             <span className="text-yellow-400 font-black text-lg animate-pulse">x{multiplier}</span>
+           </div>
+           <div className="flex justify-between items-center">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Seri</span>
+             <span className="text-white font-bold text-sm tracking-widest">{streak.current}</span>
+           </div>
+           <div className="flex justify-between items-center mt-1">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Seviye</span>
+             <span className="text-purple-400 font-bold text-sm tracking-widest">{level}</span>
+           </div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
 
 declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
@@ -47,7 +47,9 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
   });
   const trailRef = useRef<{x: number, y: number}[]>([]);
 
-  const pipes = useRef<Array<{ x: number, width: number, topHeight: number, bottomHeight: number, passed: boolean }>>([]);
+  const difficulty = useRef(new DifficultyScaler(10));
+  const stars = useRef<Array<{ x: number, y: number, radius: number, collected: boolean }>>([]);
+  const pipes = useRef<Array<{ x: number, width: number, topHeight: number, bottomHeight: number, passed: boolean, vy?: number, offset?: number }>>([]);
   const gap = 140; // Gap between top and bottom pipe
 
   useEffect(() => {
@@ -127,9 +129,12 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     const ctx = canvas.getContext('2d'); if (!ctx) return;
 
     let frames = 0;
-    const pipeSpeed = 3;
 
     const render = () => {
+      const currentLevel = difficulty.current.level;
+      const pipeSpeed = 3 + (currentLevel * 0.5);
+      const gapSize = Math.max(100, gap - (currentLevel * 5));
+
       ctx.clearRect(0, 0, screenWidth, screenHeight);
 
       // Background moving lines
@@ -169,26 +174,90 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
       drawSoccerBall(ctx, ball.current.x, ball.current.y, ball.current.radius, rAngle);
 
       // Pipes
-      if (frames % 100 === 0) {
-         const topHeight = Math.random() * (screenHeight - gap - 100) + 50;
-         pipes.current.push({ x: screenWidth, width: 50, topHeight, bottomHeight: screenHeight - gap - topHeight, passed: false });
+      if (frames % Math.max(60, 100 - currentLevel * 5) === 0) {
+         const topHeight = Math.random() * (screenHeight - gapSize - 100) + 50;
+         pipes.current.push({ 
+           x: screenWidth, 
+           width: 50, 
+           topHeight, 
+           bottomHeight: screenHeight - gapSize - topHeight, 
+           passed: false,
+           vy: currentLevel >= 3 ? (Math.random() - 0.5) * 2 : 0,
+           offset: 0
+         });
+
+         // Occasional star between pipes
+         if (Math.random() > 0.4) {
+           stars.current.push({
+             x: screenWidth + 25,
+             y: topHeight + gapSize / 2,
+             radius: 10,
+             collected: false
+           });
+         }
+      }
+
+      // Update Difficulty
+      if (difficulty.current.update(score)) {
+        engineRef.current.audio.playLevelUp();
+        engineRef.current.texts.add(screenWidth / 2, screenHeight / 2, `LEVEL ${difficulty.current.level}`, '#FACC15', 30);
+      }
+
+      // Stars
+      for (let i = stars.current.length - 1; i >= 0; i--) {
+        const s = stars.current[i];
+        s.x -= pipeSpeed;
+        
+        if (!s.collected) {
+          // Draw Star (Simple diamond for ball-like style)
+          ctx.fillStyle = '#FACC15';
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y - s.radius);
+          ctx.lineTo(s.x + s.radius, s.y);
+          ctx.lineTo(s.x, s.y + s.radius);
+          ctx.lineTo(s.x - s.radius, s.y);
+          ctx.closePath();
+          ctx.fill();
+          // Glow
+          ctx.shadowBlur = 10; ctx.shadowColor = '#FACC15'; ctx.stroke(); ctx.shadowBlur = 0;
+
+          // Collision
+          const dist = Math.hypot(ball.current.x - s.x, ball.current.y - s.y);
+          if (dist < ball.current.radius + s.radius) {
+            s.collected = true;
+            setScore(prev => prev + 5);
+            engineRef.current.audio.playGoal();
+            engineRef.current.particles.emit(s.x, s.y, '#FACC15', 10, 2);
+            engineRef.current.texts.add(s.x, s.y, '+5 STAR!', '#FACC15');
+          }
+        }
+        if (s.x + s.radius < 0) stars.current.splice(i, 1);
       }
 
       for (let i = pipes.current.length - 1; i >= 0; i--) {
          const p = pipes.current[i];
          p.x -= pipeSpeed;
 
+         // Moving pipes logic
+         if (p.vy) {
+           p.offset = (p.offset || 0) + p.vy;
+           if (Math.abs(p.offset) > 50) p.vy *= -1;
+         }
+
+         const drawTopHeight = p.topHeight + (p.offset || 0);
+         const drawBottomY = drawTopHeight + gapSize;
+
          // Draw top pipe (Red Card)
-         ctx.fillStyle = '#D92D20'; ctx.fillRect(p.x, 0, p.width, p.topHeight);
-         ctx.strokeStyle = '#912018'; ctx.strokeRect(p.x, 0, p.width, p.topHeight);
+         ctx.fillStyle = '#D92D20'; ctx.fillRect(p.x, 0, p.width, drawTopHeight);
+         ctx.strokeStyle = '#912018'; ctx.strokeRect(p.x, 0, p.width, drawTopHeight);
 
          // Draw bottom pipe (Yellow Card)
-         ctx.fillStyle = '#FDB022'; ctx.fillRect(p.x, screenHeight - p.bottomHeight, p.width, p.bottomHeight);
-         ctx.strokeStyle = '#B54708'; ctx.strokeRect(p.x, screenHeight - p.bottomHeight, p.width, p.bottomHeight);
+         ctx.fillStyle = '#FDB022'; ctx.fillRect(p.x, drawBottomY, p.width, screenHeight - drawBottomY);
+         ctx.strokeStyle = '#B54708'; ctx.strokeRect(p.x, drawBottomY, p.width, screenHeight - drawBottomY);
 
          // Collision detection
          if (ball.current.x + ball.current.radius > p.x && ball.current.x - ball.current.radius < p.x + p.width) {
-            if (ball.current.y - ball.current.radius < p.topHeight || ball.current.y + ball.current.radius > screenHeight - p.bottomHeight) {
+            if (ball.current.y - ball.current.radius < drawTopHeight || ball.current.y + ball.current.radius > drawBottomY) {
                engineRef.current.audio.playCrash();
                handleGameOver(false); return;
             }
@@ -243,6 +312,8 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     setScore(0); lastSavedScoreRef.current = 0; setIsGameOver(false); setCountdown(3); setGameKey(k => k + 1);
     ball.current = { x: 100, y: screenHeight / 2, radius: 15, dy: 0, gravity: 0.25, bounce: -6 };
     pipes.current = [];
+    stars.current = [];
+    difficulty.current.reset();
     trailRef.current = [];
     engineRef.current.particles.particles = [];
     engineRef.current.texts.texts = [];
@@ -287,7 +358,10 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
             <span className={`text-xl ${overallTimeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{`${min}:${sec < 10 ? '0' : ''}${sec}`}</span>
           </div>
           <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
-            Geçilen: <span className="text-2xl text-yellow-400">{score}</span>
+            Skor: <span className="text-2xl text-yellow-400">{score}</span>
+          </div>
+          <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
+            Seviye: <span className="text-2xl text-blue-400">{difficulty.current.level}</span>
           </div>
         </div>
       </div>

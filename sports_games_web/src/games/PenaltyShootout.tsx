@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
 
 declare global {
   interface Window {
@@ -68,6 +68,17 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
     speed: 3,
     direction: 1,
     targetX: screenWidth / 2,
+  });
+
+  const difficulty = useRef(new DifficultyScaler(5)); // Level up every 5 goals
+  const [wind, setWind] = useState({ speed: 0, display: '' });
+  const windRef = useRef(0);
+  
+  const wall = useRef({
+    active: false,
+    players: [] as { x: number, y: number, height: number }[],
+    jumpY: 0,
+    jumpVelocity: 0,
   });
 
   const goal = {
@@ -210,10 +221,32 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
       ctx.save();
       engineRef.current.shake.apply(ctx);
 
-      // Draw Goal
+      // Draw Goal Post
       ctx.strokeStyle = 'white';
       ctx.lineWidth = 5;
       ctx.strokeRect(goal.x, goal.y, goal.width, goal.height);
+
+      // Draw Target Zones (Corners)
+      ctx.fillStyle = 'rgba(255, 235, 59, 0.2)';
+      const zoneSize = 40;
+      // Top Left (2x)
+      ctx.fillRect(goal.x + 5, goal.y + 5, zoneSize, zoneSize);
+      ctx.strokeRect(goal.x + 5, goal.y + 5, zoneSize, zoneSize);
+      // Top Right (2x)
+      ctx.fillRect(goal.x + goal.width - zoneSize - 5, goal.y + 5, zoneSize, zoneSize);
+      ctx.strokeRect(goal.x + goal.width - zoneSize - 5, goal.y + 5, zoneSize, zoneSize);
+      // Bottom Corners (1.5x)
+      ctx.fillStyle = 'rgba(76, 175, 80, 0.2)';
+      ctx.fillRect(goal.x + 5, goal.y + goal.height - zoneSize - 5, zoneSize, zoneSize);
+      ctx.fillRect(goal.x + goal.width - zoneSize - 5, goal.y + goal.height - zoneSize - 5, zoneSize, zoneSize);
+
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('2x', goal.x + 5 + zoneSize/2, goal.y + 5 + zoneSize/2 + 4);
+      ctx.fillText('2x', goal.x + goal.width - zoneSize/2 - 5, goal.y + 5 + zoneSize/2 + 4);
+      ctx.fillText('1.5x', goal.x + 5 + zoneSize/2, goal.y + goal.height - zoneSize/2 - 5 + 4);
+      ctx.fillText('1.5x', goal.x + goal.width - zoneSize/2 - 5, goal.y + goal.height - zoneSize/2 - 5 + 4);
 
       // Draw Net
       ctx.strokeStyle = 'rgba(255,255,255,0.3)';
@@ -248,6 +281,41 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
       ctx.arc(keeper.current.x + keeper.current.width / 2, keeper.current.y - keeper.current.height - 10, 10, 0, Math.PI * 2);
       ctx.fill();
 
+      // Update & Draw Wall
+      if (difficulty.current.level >= 2) {
+        wall.current.active = true;
+        if (wall.current.players.length === 0) {
+          const startX = goal.x + goal.width / 4;
+          wall.current.players = [
+            { x: startX, y: 350, height: 40 },
+            { x: startX + 25, y: 350, height: 40 },
+          ];
+        }
+
+        // Periodic Jump
+        if (ball.current.isShooting && wall.current.jumpY === 0 && Math.random() > 0.02) {
+          wall.current.jumpVelocity = -8;
+        }
+
+        if (wall.current.jumpY < 0 || wall.current.jumpVelocity !== 0) {
+          wall.current.jumpY += wall.current.jumpVelocity;
+          wall.current.jumpVelocity += 0.5; // Gravity
+          if (wall.current.jumpY > 0) {
+            wall.current.jumpY = 0;
+            wall.current.jumpVelocity = 0;
+          }
+        }
+
+        ctx.fillStyle = '#3B82F6'; // Blue shirts for wall
+        wall.current.players.forEach(p => {
+          const py = p.y + wall.current.jumpY;
+          ctx.fillRect(p.x, py - p.height, 20, p.height);
+          ctx.beginPath();
+          ctx.arc(p.x + 10, py - p.height - 8, 8, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
       // Update Ball
       if (ball.current.isShooting) {
         ball.current.progress += 0.04; // Animation speed
@@ -261,14 +329,31 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
         
         ball.current.x = Math.pow(1-t, 2) * ball.current.startX + 2 * (1-t) * t * cx + Math.pow(t, 2) * ball.current.targetX;
         ball.current.y = Math.pow(1-t, 2) * ball.current.startY + 2 * (1-t) * t * cy + Math.pow(t, 2) * ball.current.targetY;
+        
+        // Apply wind effect during flight
+        ball.current.x += windRef.current * t * 2;
+        
         ball.current.rotation += (ball.current.curve > 0 ? 0.2 : -0.2) + 0.1;
         
         // Scale down the ball to simulate depth
         const currentRadius = ball.current.radius * (1 - ball.current.progress * 0.5);
 
         if (ball.current.progress >= 1) {
+          // Check collision with wall
+          let hitWall = false;
+          if (wall.current.active) {
+            wall.current.players.forEach(p => {
+               const py = p.y + wall.current.jumpY;
+               if (ball.current.x > p.x && ball.current.x < p.x + 20 &&
+                   ball.current.y > py - p.height && ball.current.y < py) {
+                 hitWall = true;
+               }
+            });
+          }
+
           // Check collision with keeper
           const hitKeeper = 
+            !hitWall &&
             ball.current.x + currentRadius > keeper.current.x &&
             ball.current.x - currentRadius < keeper.current.x + keeper.current.width &&
             ball.current.y + currentRadius > keeper.current.y - keeper.current.height &&
@@ -279,11 +364,36 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
             ball.current.y > goal.y && ball.current.y < goal.y + goal.height;
 
           if (hitGoal && !hitKeeper) {
-            setScore(s => s + 1);
-            keeper.current.speed += 0.2;
+            let multiplier = 1;
+            // Check target zones
+            const isTopLeft = ball.current.x < goal.x + 50 && ball.current.y < goal.y + 50;
+            const isTopRight = ball.current.x > goal.x + goal.width - 50 && ball.current.y < goal.y + 50;
+            const isBottomLeft = ball.current.x < goal.x + 50 && ball.current.y > goal.y + goal.height - 50;
+            const isBottomRight = ball.current.x > goal.x + goal.width - 50 && ball.current.y > goal.y + goal.height - 50;
+            
+            if (isTopLeft || isTopRight) multiplier = 2;
+            else if (isBottomLeft || isBottomRight) multiplier = 1.5;
+
+            const points = Math.floor(1 * multiplier);
+            setScore(s => s + points);
+            
+            if (difficulty.current.update(scoreRef.current + points)) {
+              engineRef.current.audio.playLevelUp();
+              engineRef.current.texts.add(screenWidth/2, screenHeight/2, `LEVEL ${difficulty.current.level}!`, '#4ADE80');
+              
+              // Change wind on level up
+              const newWind = (Math.random() - 0.5) * 4;
+              windRef.current = newWind;
+              setWind({ 
+                speed: newWind, 
+                display: newWind > 1 ? 'Strong East' : newWind < -1 ? 'Strong West' : newWind > 0 ? 'Light East' : 'Light West' 
+              });
+            }
+
+            keeper.current.speed = 3 * difficulty.current.multiplier;
             engineRef.current.audio.playGoal();
             engineRef.current.particles.emit(ball.current.x, ball.current.y, '#ffffff', 30, 5);
-            engineRef.current.texts.add(ball.current.x, ball.current.y - 20, 'GOL!', '#FDB022');
+            engineRef.current.texts.add(ball.current.x, ball.current.y - 20, multiplier > 1 ? `GOL X${multiplier}` : 'GOL!', '#FDB022');
           } else {
             engineRef.current.audio.playCrash();
             if (hitKeeper) {
@@ -466,6 +576,14 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
           <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
             Skor: <span className="text-2xl text-yellow-400">{score}</span>
           </div>
+          <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl text-sm">
+            Level: <span className="text-green-400">{difficulty.current.level}</span>
+          </div>
+          {wind.speed !== 0 && (
+            <div className="bg-blue-500/20 backdrop-blur-sm rounded-full px-3 py-1 text-xs text-blue-300 border border-blue-400/30 animate-pulse">
+              🌬️ {wind.display}
+            </div>
+          )}
         </div>
       </div>
 

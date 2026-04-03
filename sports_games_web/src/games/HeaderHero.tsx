@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall } from '../lib/gameUtils';
+import { ParticleSystem, ScreenShake, FloatingTextSystem, AudioSynthesizer, drawSoccerBall, DifficultyScaler } from '../lib/gameUtils';
 
 declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
@@ -25,6 +25,10 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
   const [topScores, setTopScores] = useState<any[]>([]);
   const [myHighScore, setMyHighScore] = useState(0);
   const [gameKey, setGameKey] = useState(0);
+  const [lives, setLives] = useState(3);
+  const livesRef = useRef(3);
+  const [level, setLevel] = useState(1);
+  const hasHelmet = useRef(false);
 
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
   const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 500;
@@ -39,8 +43,8 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
     jumpProgress: 0,
   });
 
-  const objects = useRef<Array<{ id: number; type: 'ball' | 'boot'; x: number; y: number; dx: number; dy: number; gravity: number; active: boolean }>>([]);
-  const spawnRate = useRef(2000); // 2 seconds
+  const objects = useRef<Array<{ id: number; type: 'ball' | 'boot' | 'item'; x: number; y: number; dx: number; dy: number; gravity: number; active: boolean; isGold?: boolean; isHelmet?: boolean; isArc?: boolean }>>([]);
+  const difficultyScaler = useRef(new DifficultyScaler());
 
   // Juice systems
   const particles = useRef(new ParticleSystem());
@@ -99,8 +103,8 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
     let duration = 120; let startTime = Date.now();
     const parts = gameId.split('_');
     if (parts.length >= 4) {
-      if (!isNaN(parseInt(parts[2], 10))) startTime = parseInt(parts[2], 10);
-      if (!isNaN(parseInt(parts[3], 10))) duration = parseInt(parts[3], 10);
+      if (!Number.isNaN(Number.parseInt(parts[2], 10))) startTime = Number.parseInt(parts[2], 10);
+      if (!Number.isNaN(Number.parseInt(parts[3], 10))) duration = Number.parseInt(parts[3], 10);
     }
     const calc = () => Math.max(0, duration - Math.floor((Date.now() - startTime) / 1000));
     setOverallTimeLeft(calc());
@@ -171,19 +175,36 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
       }
 
       // Spawn objects
-      if (frames % Math.floor(spawnRate.current / 16) === 0) {
+      const currentSpawnRate = difficultyScaler.current.getSpawnRate(scoreRef.current);
+      if (frames % Math.floor(currentSpawnRate / 16) === 0) {
          const isLeft = Math.random() > 0.5;
-         const type = Math.random() > 0.8 ? 'boot' : 'ball';
+         const rand = Math.random();
+         let type: 'ball' | 'boot' | 'item' = 'ball';
+         let isGold = false;
+         let isHelmet = false;
+         let isArc = Math.random() > 0.7; // 30% chance for curved trajectory
+
+         if (rand > 0.85) type = 'boot';
+         else if (rand < 0.05) { type = 'item'; isHelmet = true; } 
+         else if (rand < 0.15) { type = 'ball'; isGold = true; }
+
+         const speedMult = difficultyScaler.current.getSpeedMultiplier(scoreRef.current);
+         
          objects.current.push({
-            id: Date.now(), type,
-            x: isLeft ? -20 : screenWidth + 20,
-            y: screenHeight - 250,
-            dx: isLeft ? (2 + Math.random()*2) : -(2 + Math.random()*2),
-            dy: - (5 + Math.random()*3),
-            gravity: 0.15,
+            id: Date.now(), 
+            type,
+            x: isLeft ? -30 : screenWidth + 30,
+            y: isArc ? screenHeight - 150 : screenHeight - 250,
+            dx: (isLeft ? (3 + Math.random()*2) : -(3 + Math.random()*2)) * speedMult,
+            dy: (isArc ? -(9 + Math.random()*4) : -(5 + Math.random()*3)),
+            gravity: isArc ? 0.25 : 0.15,
             active: true,
+            isGold,
+            isHelmet,
+            isArc
          });
-         spawnRate.current = Math.max(800, spawnRate.current - 10);
+         
+         setLevel(difficultyScaler.current.getLevel(scoreRef.current));
       }
 
       // Update and draw objects
@@ -212,33 +233,72 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
 
         // Collision with player HEAD
         const dist = Math.sqrt(Math.pow(obj.x - player.current.x, 2) + Math.pow(obj.y - (currentY - 20), 2));
-        if (dist < 32) {
+        if (dist < 35) { // generous hitbox for header
            obj.active = false;
-           if (obj.type === 'ball') {
-              setScore(s => s + 1);
+           
+           if (obj.isHelmet) {
+             hasHelmet.current = true;
+             floatingText.current.addSpecial(obj.x, obj.y - 40, "CRITICAL", "KASK!");
+             audio.current?.playPowerUp(); // Assuming this exists or falls back
+             particles.current.explosion(obj.x, obj.y, "#3b82f6", 30);
+           } else if (obj.type === 'ball') {
+              const points = obj.isGold ? 3 : 1;
+              setScore(s => s + points);
               impactFrame.current = 3;
-              shake.current.trigger(12);
-              particles.current.emit(obj.x, obj.y, '#FFD700', 20, 8);
+              shake.current.trigger(obj.isGold ? 20 : 10);
               
-              const catchphrases = ["BANG!", "SMASH!", "BOOM!", "GG!"];
-              const phrase = catchphrases[Math.floor(Math.random() * catchphrases.length)];
-              floatingText.current.add(obj.x, obj.y - 30, phrase, "rgba(255, 255, 0, 1)");
+              if (obj.isGold) {
+                floatingText.current.addSpecial(obj.x, obj.y - 40, "PERFECT");
+                particles.current.explosion(obj.x, obj.y, "#fbbf24", 25);
+              } else {
+                particles.current.emit(obj.x, obj.y, '#FFD700', 15, 6);
+                floatingText.current.add(obj.x, obj.y - 30, "+1", "rgba(255, 255, 0, 1)");
+              }
               
               audio.current?.playBounce();
            } else {
-              setScore(s => Math.max(0, s - 2));
-              shake.current.trigger(25);
-              particles.current.emit(obj.x, obj.y, '#FF0000', 30, 10);
-              floatingText.current.add(obj.x, obj.y - 30, "-2", "rgba(255, 0, 0, 1)");
-              audio.current?.playCrash();
-              
-              // Flash red background
-              ctx.fillStyle = 'rgba(255,0,0,0.5)'; 
-              ctx.fillRect(-50,-50,screenWidth + 100, screenHeight + 100);
+              // BOOT (Danger)
+              if (hasHelmet.current) {
+                hasHelmet.current = false;
+                floatingText.current.add(obj.x, obj.y - 40, "KASK KIRILDI!", "#f87171", 20);
+                shake.current.trigger(15);
+                particles.current.explosion(obj.x, obj.y, "#94a3b8", 20);
+              } else {
+                setLives(l => {
+                  const newLives = l - 1;
+                  livesRef.current = newLives;
+                  if (newLives <= 0) handleGameOver();
+                  return newLives;
+                });
+                shake.current.trigger(25);
+                particles.current.explosion(obj.x, obj.y, '#FF0000', 30, 10);
+                floatingText.current.add(obj.x, obj.y - 30, "-1 CAN", "rgba(255, 0, 0, 1)");
+                audio.current?.playCrash();
+                
+                // Flash red background
+                ctx.fillStyle = 'rgba(255,0,0,0.5)'; 
+                ctx.fillRect(-50,-50,screenWidth + 100, screenHeight + 100);
+              }
            }
         }
 
-        if (obj.y > screenHeight) objects.current.splice(i, 1);
+        if (obj.y > screenHeight) {
+          if (obj.type === 'ball' && !obj.active && !obj.isGold) {
+            // Already hit, safely remove
+          } else if (obj.type === 'ball' && obj.active && !obj.isGold) {
+            // Missed a normal ball
+            if (hasHelmet.current) {
+              hasHelmet.current = false;
+              floatingText.current.add(player.current.x, player.current.y - 40, "KASK KIRILDI!", "#f87171", 20);
+            } else {
+              livesRef.current -= 1;
+              setLives(livesRef.current);
+              if (livesRef.current <= 0) handleGameOver();
+              floatingText.current.add(obj.x, screenHeight - 20, "KAÇTI!", "#ff0000", 20);
+            }
+          }
+          objects.current.splice(i, 1);
+        }
       }
 
       particles.current.updateAndDraw(ctx);
@@ -269,14 +329,14 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
 
   const playAgain = () => {
     setScore(0); lastSavedScoreRef.current = 0; setIsGameOver(false); setCountdown(3); setGameKey(k => k + 1);
-    objects.current = []; spawnRate.current = 2000;
+    objects.current = []; livesRef.current = 3; setLives(3); setLevel(1);
   };
 
   const exitGame = () => {
     setIsSubmitting(true);
     const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(score, myHighScore), roomId, gameId });
-    if (window.MiniGameBridge) window.MiniGameBridge.postMessage(payload);
-    window.parent.postMessage(payload, '*');
+    if (globalThis.window?.MiniGameBridge) globalThis.window.MiniGameBridge.postMessage(payload);
+    globalThis.window?.parent?.postMessage(payload, '*');
   };
 
   const handleTap = () => {
@@ -305,14 +365,23 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
              </div>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl flex items-center gap-2">
-            <span className="text-red-400 text-sm">Süre: </span> 
-            <span className={`text-xl ${overallTimeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{`${min}:${sec < 10 ? '0' : ''}${sec}`}</span>
-          </div>
-          <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 text-white font-bold tabular-nums border border-white/20 shadow-xl">
-            Kafa: <span className="text-2xl text-yellow-400">{score}</span>
-          </div>
+        <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px]">
+           <div className="flex justify-between items-center mb-1">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Kafa</span>
+             <span className="text-white font-black text-2xl drop-shadow-lg">{score}</span>
+           </div>
+           <div className="flex justify-between items-center mb-1">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Süre</span>
+             <span className="text-white font-mono font-bold text-lg">{min}:{sec < 10 ? '0' + sec : sec}</span>
+           </div>
+           <div className="flex justify-between items-center pt-1 border-t border-white/10">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Can</span>
+             <span className="text-red-400 text-sm animate-pulse">{"❤️".repeat(Math.max(0, lives))}</span>
+           </div>
+           <div className="flex justify-between items-center mt-1">
+             <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Seviye</span>
+             <span className="text-yellow-400 font-bold text-sm tracking-widest">{level}</span>
+           </div>
         </div>
       </div>
 
