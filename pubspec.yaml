@@ -9,7 +9,11 @@ environment:
 
 dependencies:
   app_links: ^7.0.0
+  crisp_chat: ^2.4.6
+  device_info_plus: ^12.4.0
+  feedback: ^3.2.0
   firebase_core: ^4.5.0
+  firebase_crashlytics: ^5.1.0
   firebase_messaging: ^16.1.2
   flutter:
     sdk: flutter
@@ -26,6 +30,7 @@ dependencies:
   live_activities: ^2.4.7
   livekit_client: ^2.6.5
   lottie: ^3.3.2
+  package_info_plus: ^9.0.1
   permission_handler: ^12.0.1
   purchases_flutter: ^9.15.1
   rive: 0.14.4

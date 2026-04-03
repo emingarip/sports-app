@@ -8,6 +8,7 @@ import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'notification_preferences_screen.dart';
+import 'help_center_screen.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/badge_provider.dart';
 import 'store_front_screen.dart';
@@ -17,6 +18,11 @@ import 'avatar_frames_screen.dart';
 import '../widgets/frame_avatar.dart';
 import '../providers/leaderboard_provider.dart';
 import '../widgets/shimmer_loading.dart';
+import '../providers/support_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:feedback/feedback.dart';
+import '../data/repositories/support/bug_report_service.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -102,6 +108,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _buildBadgeShowcase(),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 _buildSettingsMenu(),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                _buildSupportMenu(),
                 _buildRecentActivityHeader(),
                 if (_bets.isEmpty) _buildEmptyActivityState() else _buildBetsList(),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -393,6 +401,151 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildSupportMenu() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: context.colors.outline.withOpacity(0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               Padding(
+                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                 child: Row(
+                   children: [
+                     Icon(Icons.headset_mic_rounded, size: 20, color: context.colors.primary),
+                     const SizedBox(width: 8),
+                     Text(
+                       'DESTEK & YARDIM',
+                       style: TextStyle(
+                         color: context.colors.primary,
+                         fontSize: 13,
+                         fontWeight: FontWeight.w800,
+                         letterSpacing: 1.2,
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
+              _buildSettingsTile(
+                icon: Icons.chat_bubble_outline,
+                iconColor: Colors.blueAccent,
+                title: 'Canlı Destek',
+                onTap: () {
+                  ref.read(liveChatServiceProvider).openChat(context);
+                },
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.help_outline,
+                iconColor: Colors.orangeAccent,
+                title: 'Yardım Merkezi (SSS)',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+                  );
+                },
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.bug_report_outlined,
+                iconColor: Colors.redAccent,
+                title: 'Sorun Bildir',
+                onTap: () {
+                  BetterFeedback.of(context).show((UserFeedback feedback) async {
+                    try {
+                      await ref.read(bugReportServiceProvider).submitFeedback(
+                        feedback.text,
+                        feedback.screenshot,
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Geri bildiriminiz başarıyla iletildi!')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Hata: $e')),
+                        );
+                      }
+                    }
+                  });
+                },
+              ),
+              Divider(height: 1, indent: 64, color: context.colors.outline.withOpacity(0.1)),
+              _buildSettingsTile(
+                icon: Icons.contact_mail_outlined,
+                iconColor: Colors.green,
+                title: 'Bize Ulaşın',
+                onTap: () => _showContactBottomSheet(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showContactBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+         decoration: BoxDecoration(
+           color: context.colors.surfaceContainer,
+           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+         ),
+         child: SafeArea(
+           child: Column(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+               const SizedBox(height: 12),
+               Container(width: 40, height: 4, decoration: BoxDecoration(color: context.colors.outline.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+               const SizedBox(height: 24),
+               Text('Bize Ulaşın', style: TextStyle(color: context.colors.textHigh, fontSize: 20, fontWeight: FontWeight.bold)),
+               const SizedBox(height: 16),
+               _buildContactOption(Icons.message, 'WhatsApp', Colors.green, () => _launchSocialUrl(dotenv.env['WHATSAPP_URL'])),
+               _buildContactOption(Icons.send, 'Telegram', Colors.blue, () => _launchSocialUrl(dotenv.env['TELEGRAM_URL'])),
+               _buildContactOption(Icons.email, 'E-Posta', Colors.redAccent, () => _launchSocialUrl('mailto:${dotenv.env['SUPPORT_EMAIL']}')),
+               _buildContactOption(Icons.camera_alt, 'Instagram', Colors.purpleAccent, () => _launchSocialUrl(dotenv.env['INSTAGRAM_URL'])),
+               const SizedBox(height: 24),
+             ],
+           ),
+         ),
+      ),
+    );
+  }
+
+  Widget _buildContactOption(IconData icon, String title, Color color, VoidCallback onTap) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+        child: Icon(icon, color: color, size: 24),
+      ),
+      title: Text(title, style: TextStyle(color: context.colors.textHigh)),
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+    );
+  }
+
+  Future<void> _launchSocialUrl(String? urlString) async {
+    if (urlString == null || urlString.isEmpty) return;
+    final url = Uri.parse(urlString);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildThemeToggle() {

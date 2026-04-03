@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:feedback/feedback.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/supabase_service.dart';
@@ -13,28 +16,48 @@ import 'services/admob_service.dart';
 import 'providers/theme_provider.dart';
 import 'services/deep_link_service.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await AdMobService().initialize();
-  AdMobService().loadRewardedAd();
-  await rive.RiveNative.init();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await AdMobService().initialize();
+    AdMobService().loadRewardedAd();
+    await rive.RiveNative.init();
 
-  try {
-    await Firebase.initializeApp(
-      options: kIsWeb ? const FirebaseOptions(
-        apiKey: "AIzaSyDLTwqiaptfxY0zwj2VUUjHZ_KaVPZ5xMo",
-        appId: "1:858669470500:web:abcdef1234567890", // Placeholder for web app ID
-        messagingSenderId: "858669470500",
-        projectId: "boskale-d00cc",
-      ) : null,
+    try {
+      await Firebase.initializeApp(
+        options: kIsWeb ? const FirebaseOptions(
+          apiKey: "AIzaSyDLTwqiaptfxY0zwj2VUUjHZ_KaVPZ5xMo",
+          appId: "1:858669470500:web:abcdef1234567890", // Placeholder for web app ID
+          messagingSenderId: "858669470500",
+          projectId: "boskale-d00cc",
+        ) : null,
+      );
+      if (!kIsWeb) {
+        FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+        PlatformDispatcher.instance.onError = (error, stack) {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+          return true;
+        };
+      }
+    } catch (e) {
+      debugPrint("App: Firebase init failed: $e");
+    }
+    await SupabaseService.initialize();
+    await RevenueCatService.initialize();
+    await DeepLinkService().initialize();
+    runApp(
+      ProviderScope(
+        child: const BetterFeedback(
+          child: MyApp(),
+        ),
+      ),
     );
-  } catch (e) {
-    debugPrint("App: Firebase init failed: $e");
-  }
-  await SupabaseService.initialize();
-  await RevenueCatService.initialize();
-  await DeepLinkService().initialize();
-  runApp(const ProviderScope(child: MyApp()));
+  }, (error, stack) {
+    if (!kIsWeb && Firebase.apps.isNotEmpty) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
+    debugPrint('Zoned error: $error\n$stack');
+  });
 }
 
 class MyApp extends ConsumerStatefulWidget {
