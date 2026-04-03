@@ -6,6 +6,7 @@ import GoalkeeperReflex from './games/GoalkeeperReflex';
 import FlappyBall from './games/FlappyBall';
 import HeaderHero from './games/HeaderHero';
 import GoalCelebrationRhythm from './games/GoalCelebrationRhythm';
+import TestGame from './games/TestGame';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -81,6 +82,8 @@ function App() {
         return <GoalCelebrationRhythm roomId={roomId} gameId={gameId} />;
       case 'play_keepy_uppy':
         return <KeepyUppy roomId={roomId} gameId={gameId} />;
+      case 'test_game':
+        return <TestGame roomId={roomId} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-white p-6 text-center">

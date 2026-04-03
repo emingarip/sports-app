@@ -6,7 +6,12 @@ declare global {
   interface Window { MiniGameBridge?: { postMessage: (message: string) => void; }; }
 }
 
-interface FlappyBallProps { roomId: string; gameId: string; }
+interface FlappyBallProps { readonly roomId: string; readonly gameId: string; }
+
+interface Star { x: number; y: number; radius: number; collected: boolean; }
+interface Pipe { x: number; width: number; topHeight: number; bottomHeight: number; passed: boolean; vy?: number; offset?: number; }
+interface LeaderboardEntry { id: string; score: number; username: string; user_id?: string; }
+interface BotPersona { user_id: string; team: string; }
 
 export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,17 +22,17 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
   useEffect(() => { scoreRef.current = score; }, [score]);
   
   const [isGameOver, setIsGameOver] = useState(false);
-  const [, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [overallTimeLeft, setOverallTimeLeft] = useState(120);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const lastSavedScoreRef = useRef(0);
-  const [topScores, setTopScores] = useState<any[]>([]);
+  const [topScores, setTopScores] = useState<LeaderboardEntry[]>([]);
   const [myHighScore, setMyHighScore] = useState(0);
   const [gameKey, setGameKey] = useState(0);
 
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
-  const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 500;
+  const screenWidth = globalThis.window === undefined ? 300 : globalThis.window.innerWidth;
+  const screenHeight = globalThis.window === undefined ? 500 : globalThis.window.innerHeight;
 
   // Game specific state
   const ball = useRef({
@@ -48,30 +53,38 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
   const trailRef = useRef<{x: number, y: number}[]>([]);
 
   const difficulty = useRef(new DifficultyScaler(10));
-  const stars = useRef<Array<{ x: number, y: number, radius: number, collected: boolean }>>([]);
-  const pipes = useRef<Array<{ x: number, width: number, topHeight: number, bottomHeight: number, passed: boolean, vy?: number, offset?: number }>>([]);
-  const gap = 140; // Gap between top and bottom pipe
+  const stars = useRef<Star[]>([]);
+  const pipes = useRef<Pipe[]>([]);
+  const baseGap = 220; 
 
   useEffect(() => {
     if (!gameId) return;
     const fetchLeaderboard = async () => {
       const { data } = await supabase.from('mini_game_logs').select('id, user_id, score, users(username)').eq('game_id', gameId).order('score', { ascending: false }).limit(3);
       if (data) {
-        // Resolve bot usernames for 'Anonim' entries
-        const anonIds = data.filter((d: any) => !d.users?.username).map((d: any) => d.user_id);
-        let botLogos: Record<string, string> = {};
+        const rawData = data as unknown as { id: string; user_id: string; score: number; users: { username: string } | { username: string }[] | null }[];
+        const anonIds = rawData.filter(d => {
+            const user = Array.isArray(d.users) ? d.users[0] : d.users;
+            return !user?.username;
+        }).map(d => d.user_id);
+        
+        const botLogos: Record<string, string> = {};
         if (anonIds.length > 0) {
             const { data: bots } = await supabase.from('bot_personas').select('user_id, team').in('user_id', anonIds);
             if (bots) {
-                bots.forEach((b: any) => { botLogos[b.user_id] = (b.team || 'Anonim') + ' Bot'; });
+                (bots as unknown as BotPersona[]).forEach((b) => { botLogos[b.user_id] = (b.team || 'Anonim') + ' Bot'; });
             }
         }
 
-        setTopScores(data.map((d: any) => ({
-          id: d.id,
-          score: d.score,
-          username: d.users?.username || botLogos[d.user_id] || 'Anonim'
-        })));
+        setTopScores(rawData.map(d => {
+            const user = Array.isArray(d.users) ? d.users[0] : d.users;
+            return {
+              id: d.id,
+              user_id: d.user_id,
+              score: d.score,
+              username: user?.username || botLogos[d.user_id] || 'Anonim'
+            };
+        }));
       }
       const { data: authData } = await supabase.auth.getUser();
       if (authData?.user) {
@@ -98,8 +111,8 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     let duration = 120; let startTime = Date.now();
     const parts = gameId.split('_');
     if (parts.length >= 4) {
-      if (!isNaN(parseInt(parts[2], 10))) startTime = parseInt(parts[2], 10);
-      if (!isNaN(parseInt(parts[3], 10))) duration = parseInt(parts[3], 10);
+      if (!Number.isNaN(Number.parseInt(parts[2], 10))) startTime = Number.parseInt(parts[2], 10);
+      if (!Number.isNaN(Number.parseInt(parts[3], 10))) duration = Number.parseInt(parts[3], 10);
     }
     const calc = () => Math.max(0, duration - Math.floor((Date.now() - startTime) / 1000));
     setOverallTimeLeft(calc());
@@ -128,166 +141,134 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
 
-    let frames = 0;
+    let lastGameTime = 0;
+    let gameFrames = 0;
 
-    const render = () => {
-      const currentLevel = difficulty.current.level;
-      const pipeSpeed = 3 + (currentLevel * 0.5);
-      const gapSize = Math.max(100, gap - (currentLevel * 5));
-
-      ctx.clearRect(0, 0, screenWidth, screenHeight);
-
-      // Background moving lines
-      ctx.save();
-      engineRef.current.shake.apply(ctx);
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-      ctx.lineWidth = 1;
-      for (let i = 0; i < screenWidth; i += 40) {
-         ctx.beginPath(); ctx.moveTo(i - (frames % 40), 0); ctx.lineTo(i - (frames % 40), screenHeight); ctx.stroke();
-      }
-
-      // Update ball
+    const updateBall = () => {
       ball.current.dy += ball.current.gravity;
       ball.current.y += ball.current.dy;
-
-      // Draw trail
       trailRef.current.push({ x: ball.current.x, y: ball.current.y });
       if (trailRef.current.length > 10) trailRef.current.shift();
-      
-      if (trailRef.current.length > 1) {
-        ctx.beginPath();
-        for (let i = 0; i < trailRef.current.length; i++) {
-          const pt = trailRef.current[i];
-          if (i === 0) ctx.moveTo(pt.x, pt.y);
-          else ctx.lineTo(pt.x, pt.y);
+      return ball.current.y + ball.current.radius <= screenHeight && ball.current.y - ball.current.radius >= 0;
+    };
+
+    const spawnPipesAndStars = (f: number, level: number, gap: number) => {
+      const spawnInterval = Math.max(70, 110 - level * 5);
+      if (f % spawnInterval === 0) {
+        const topHeight = Math.random() * (screenHeight - gap - 120) + 60;
+        pipes.current.push({ 
+          x: screenWidth, width: 55, topHeight, 
+          bottomHeight: screenHeight - gap - topHeight, 
+          passed: false, 
+          vy: level >= 3 ? (Math.random() - 0.5) * 1.5 : 0, 
+          offset: 0 
+        });
+        if (Math.random() > 0.4) {
+          stars.current.push({ x: screenWidth + 27, y: topHeight + gap / 2, radius: 11, collected: false });
         }
-        ctx.lineWidth = ball.current.radius * 0.8;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.stroke();
       }
+    };
 
-      // Draw ball
-      const rAngle = frames * 0.05;
-      drawSoccerBall(ctx, ball.current.x, ball.current.y, ball.current.radius, rAngle);
-
-      // Pipes
-      if (frames % Math.max(60, 100 - currentLevel * 5) === 0) {
-         const topHeight = Math.random() * (screenHeight - gapSize - 100) + 50;
-         pipes.current.push({ 
-           x: screenWidth, 
-           width: 50, 
-           topHeight, 
-           bottomHeight: screenHeight - gapSize - topHeight, 
-           passed: false,
-           vy: currentLevel >= 3 ? (Math.random() - 0.5) * 2 : 0,
-           offset: 0
-         });
-
-         // Occasional star between pipes
-         if (Math.random() > 0.4) {
-           stars.current.push({
-             x: screenWidth + 25,
-             y: topHeight + gapSize / 2,
-             radius: 10,
-             collected: false
-           });
-         }
-      }
-
-      // Update Difficulty
-      if (difficulty.current.update(score)) {
-        engineRef.current.audio.playLevelUp();
-        engineRef.current.texts.add(screenWidth / 2, screenHeight / 2, `LEVEL ${difficulty.current.level}`, '#FACC15', 30);
-      }
-
-      // Stars
+    const updateStars = (speed: number) => {
       for (let i = stars.current.length - 1; i >= 0; i--) {
         const s = stars.current[i];
-        s.x -= pipeSpeed;
-        
+        s.x -= speed;
         if (!s.collected) {
-          // Draw Star (Simple diamond for ball-like style)
-          ctx.fillStyle = '#FACC15';
-          ctx.beginPath();
-          ctx.moveTo(s.x, s.y - s.radius);
-          ctx.lineTo(s.x + s.radius, s.y);
-          ctx.lineTo(s.x, s.y + s.radius);
-          ctx.lineTo(s.x - s.radius, s.y);
-          ctx.closePath();
-          ctx.fill();
-          // Glow
-          ctx.shadowBlur = 10; ctx.shadowColor = '#FACC15'; ctx.stroke(); ctx.shadowBlur = 0;
-
-          // Collision
           const dist = Math.hypot(ball.current.x - s.x, ball.current.y - s.y);
           if (dist < ball.current.radius + s.radius) {
             s.collected = true;
             setScore(prev => prev + 5);
             engineRef.current.audio.playGoal();
             engineRef.current.particles.emit(s.x, s.y, '#FACC15', 10, 2);
-            engineRef.current.texts.add(s.x, s.y, '+5 STAR!', '#FACC15');
+            engineRef.current.texts.add(s.x, s.y, '+5 YILDIZ!', '#FACC15');
           }
         }
         if (s.x + s.radius < 0) stars.current.splice(i, 1);
       }
+    };
 
+    const updatePipes = (speed: number, gap: number) => {
       for (let i = pipes.current.length - 1; i >= 0; i--) {
-         const p = pipes.current[i];
-         p.x -= pipeSpeed;
-
-         // Moving pipes logic
-         if (p.vy) {
-           p.offset = (p.offset || 0) + p.vy;
-           if (Math.abs(p.offset) > 50) p.vy *= -1;
-         }
-
-         const drawTopHeight = p.topHeight + (p.offset || 0);
-         const drawBottomY = drawTopHeight + gapSize;
-
-         // Draw top pipe (Red Card)
-         ctx.fillStyle = '#D92D20'; ctx.fillRect(p.x, 0, p.width, drawTopHeight);
-         ctx.strokeStyle = '#912018'; ctx.strokeRect(p.x, 0, p.width, drawTopHeight);
-
-         // Draw bottom pipe (Yellow Card)
-         ctx.fillStyle = '#FDB022'; ctx.fillRect(p.x, drawBottomY, p.width, screenHeight - drawBottomY);
-         ctx.strokeStyle = '#B54708'; ctx.strokeRect(p.x, drawBottomY, p.width, screenHeight - drawBottomY);
-
-         // Collision detection
-         if (ball.current.x + ball.current.radius > p.x && ball.current.x - ball.current.radius < p.x + p.width) {
-            if (ball.current.y - ball.current.radius < drawTopHeight || ball.current.y + ball.current.radius > drawBottomY) {
-               engineRef.current.audio.playCrash();
-               handleGameOver(false); return;
-            }
-         }
-
-         // Score
-         if (!p.passed && ball.current.x > p.x + p.width) {
-            p.passed = true;
-            setScore(s => s + 1);
-            engineRef.current.audio.playGoal();
-            engineRef.current.particles.emit(p.x + p.width, ball.current.y, '#FDB022', 15, 3);
-            engineRef.current.texts.add(p.x + p.width, ball.current.y - 20, '+1', '#FDB022');
-         }
-
-         if (p.x + p.width < 0) { pipes.current.splice(i, 1); }
+        const p = pipes.current[i];
+        p.x -= speed;
+        if (p.vy) {
+          p.offset = (p.offset || 0) + p.vy;
+          if (Math.abs(p.offset) > 60) p.vy *= -1;
+        }
+        const topH = p.topHeight + (p.offset || 0);
+        const botY = topH + gap;
+        if (ball.current.x + ball.current.radius > p.x && ball.current.x - ball.current.radius < p.x + p.width) {
+          if (ball.current.y - ball.current.radius < topH || ball.current.y + ball.current.radius > botY) return false;
+        }
+        if (!p.passed && ball.current.x > p.x + p.width) {
+          p.passed = true;
+          setScore(s => s + 1);
+          engineRef.current.audio.playGoal();
+          engineRef.current.particles.emit(p.x + p.width, ball.current.y, '#FDB022', 15, 3);
+          engineRef.current.texts.add(p.x + p.width, ball.current.y - 20, '+1', '#FDB022');
+        }
+        if (p.x + p.width < 0) pipes.current.splice(i, 1);
       }
+      return true;
+    };
 
-      // Ground collision
-      if (ball.current.y + ball.current.radius > screenHeight || ball.current.y - ball.current.radius < 0) {
-         engineRef.current.audio.playCrash();
-         handleGameOver(false); return;
+    const updateGame = (f: number) => {
+      const level = difficulty.current.level;
+      const speed = 3 + (level * 0.5);
+      const gap = Math.max(180, baseGap - (level * 4));
+      if (!updateBall()) { engineRef.current.audio.playCrash(); handleGameOver(false); return false; }
+      spawnPipesAndStars(f, level, gap);
+      updateStars(speed);
+      if (!updatePipes(speed, gap)) { engineRef.current.audio.playCrash(); handleGameOver(false); return false; }
+      if (difficulty.current.update(scoreRef.current)) {
+        engineRef.current.audio.playLevelUp();
+        engineRef.current.texts.add(screenWidth / 2, screenHeight / 2, `SEVİYE ${level}`, '#FACC15', 30);
       }
+      return true;
+    };
 
-      // Engine Update
+    const drawGame = (f: number) => {
+      const level = difficulty.current.level;
+      const gap = Math.max(180, baseGap - (level * 4));
+      ctx.clearRect(0, 0, screenWidth, screenHeight);
+      ctx.save();
+      engineRef.current.shake.apply(ctx);
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < screenWidth; i += 40) {
+        ctx.beginPath(); ctx.moveTo(i - (f % 40), 0); ctx.lineTo(i - (f % 40), screenHeight); ctx.stroke();
+      }
+      if (trailRef.current.length > 1) {
+        ctx.beginPath();
+        trailRef.current.forEach((pt, i) => { if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y); });
+        ctx.lineWidth = ball.current.radius * 0.8; ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+      }
+      drawSoccerBall(ctx, ball.current.x, ball.current.y, ball.current.radius, f * 0.05);
+      stars.current.forEach(s => {
+        if (!s.collected) {
+          ctx.fillStyle = '#FACC15'; ctx.beginPath(); ctx.moveTo(s.x, s.y - s.radius); ctx.lineTo(s.x + s.radius, s.y); ctx.lineTo(s.x, s.y + s.radius); ctx.lineTo(s.x - s.radius, s.y); ctx.closePath(); ctx.fill();
+          ctx.shadowBlur = 10; ctx.shadowColor = '#FACC15'; ctx.stroke(); ctx.shadowBlur = 0;
+        }
+      });
+      for (const p of pipes.current) {
+        const topH = p.topHeight + (p.offset || 0);
+        const botY = topH + gap;
+        ctx.fillStyle = '#D92D20'; ctx.fillRect(p.x, 0, p.width, topH);
+        ctx.strokeStyle = '#912018'; ctx.strokeRect(p.x, 0, p.width, topH);
+        ctx.fillStyle = '#FDB022'; ctx.fillRect(p.x, botY, p.width, screenHeight - botY);
+        ctx.strokeStyle = '#B54708'; ctx.strokeRect(p.x, botY, p.width, screenHeight - botY);
+      }
       engineRef.current.particles.updateAndDraw(ctx);
       engineRef.current.texts.updateAndDraw(ctx);
-      
       ctx.restore();
+    };
 
-      frames++;
+    const render = (timestamp: number) => {
+      if (!lastGameTime) lastGameTime = timestamp;
+      lastGameTime = timestamp;
+      if (!updateGame(gameFrames)) return;
+      drawGame(gameFrames);
+      gameFrames++;
       requestRef.current = requestAnimationFrame(render);
     };
 
@@ -295,57 +276,86 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
     return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
   }, [countdown, isGameOver, isTimeUp, screenWidth, screenHeight]);
 
-  const autoSaveScore = async (finalScore: number) => {
-    if (finalScore > myHighScore || myHighScore === 0) {
-       if (finalScore > myHighScore) setMyHighScore(finalScore);
-       try { await supabase.functions.invoke('process-mini-game', { body: { gameId, roomId, score: finalScore } }); } catch (err) {}
+  const handleGameOver = async (fromTimeout = false) => {
+    if (isGameOver || isSubmitting) return;
+    setIsGameOver(true);
+    setIsSubmitting(true);
+    
+    if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    engineRef.current.audio.playCrash();
+    
+    const finalScore = scoreRef.current;
+    if (fromTimeout) {
+      engineRef.current.texts.add(screenWidth / 2, screenHeight / 2, "SÜRE DOLDU!", "#EF4444", 40);
+    }
+
+    try {
+      await autoSaveScore(finalScore);
+    } catch (err) {
+      console.error("Score submission failed:", err);
+    } finally {
+      setIsSubmitting(false);
+      const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(finalScore, myHighScore), roomId, gameId });
+      if (globalThis.window.MiniGameBridge) globalThis.window.MiniGameBridge.postMessage(payload);
+      globalThis.window.parent.postMessage(payload, globalThis.window.location.origin);
     }
   };
 
-  const handleGameOver = async (_fromTimeout = false) => {
-    setIsGameOver(true);
-    if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    await autoSaveScore(scoreRef.current);
+  const autoSaveScore = async (finalScore: number) => {
+    if (finalScore > myHighScore || myHighScore === 0) {
+       if (finalScore > myHighScore) setMyHighScore(finalScore);
+       await supabase.functions.invoke('process-mini-game', { body: { gameId, roomId, score: finalScore } });
+    }
   };
 
   const playAgain = () => {
+    if (isSubmitting) return;
     setScore(0); lastSavedScoreRef.current = 0; setIsGameOver(false); setCountdown(3); setGameKey(k => k + 1);
     ball.current = { x: 100, y: screenHeight / 2, radius: 15, dy: 0, gravity: 0.25, bounce: -6 };
-    pipes.current = [];
-    stars.current = [];
-    difficulty.current.reset();
-    trailRef.current = [];
-    engineRef.current.particles.particles = [];
-    engineRef.current.texts.texts = [];
+    pipes.current = []; stars.current = []; difficulty.current.reset(); trailRef.current = [];
+    engineRef.current.particles.particles = []; engineRef.current.texts.texts = [];
   };
 
   const exitGame = () => {
-    setIsSubmitting(true);
-    const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(score, myHighScore), roomId, gameId });
-    if (window.MiniGameBridge) window.MiniGameBridge.postMessage(payload);
-    window.parent.postMessage(payload, '*');
+    if (isSubmitting) return;
+    handleGameOver(false);
   };
 
-  const handleTap = (_e: React.TouchEvent | React.MouseEvent) => {
+  const handleTap = (_e: React.TouchEvent | React.MouseEvent | React.KeyboardEvent) => {
     if (countdown > 0 || isGameOver || isTimeUp) return;
     ball.current.dy = ball.current.bounce;
     engineRef.current.audio.playBounce();
     engineRef.current.particles.emit(ball.current.x, ball.current.y + ball.current.radius, '#ffffff', 5, 1);
   };
 
+  const getRankColor = (idx: number) => {
+    if (idx === 0) return 'text-yellow-400';
+    if (idx === 1) return 'text-gray-300';
+    if (idx === 2) return 'text-orange-300';
+    return 'text-white';
+  };
+
   const min = Math.floor(overallTimeLeft / 60);
   const sec = overallTimeLeft % 60;
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-gradient-to-b from-sky-400 to-sky-200 select-none touch-none font-sans" onMouseDown={handleTap} onTouchStart={handleTap}>
+    <div 
+      className="w-full h-full relative overflow-hidden bg-gradient-to-b from-sky-400 to-sky-200 select-none touch-none font-sans outline-none" 
+      onMouseDown={handleTap} 
+      onTouchStart={handleTap}
+      onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && handleTap(e)}
+      role="button"
+      tabIndex={0}
+      aria-label="Soccer Ball Flappy Game"
+    >
       <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2 pointer-events-none">
         <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-xl min-w-[140px] order-last">
           <h3 className="text-white/80 text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">Canlı Liderlik</h3>
           {topScores.length === 0 ? <p className="text-white/50 text-xs">Henüz skor yok</p> : (
              <div className="space-y-1">
                {topScores.map((ts, idx) => (
-                 <div key={ts.id} className="flex justify-between items-center text-sm">
-                   <span className={`font-medium ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-gray-300' : idx === 2 ? 'text-orange-300' : 'text-white'}`}>{idx + 1}. {ts.username.slice(0, 10)}</span>
+                 <div key={ts.user_id || ts.id} className="flex justify-between items-center text-sm">
+                   <span className={`font-medium ${getRankColor(idx)}`}>{idx + 1}. {(ts.username || 'Anonim').slice(0, 10)}</span>
                    <span className="font-bold text-white ml-3">{ts.score}</span>
                  </div>
                ))}
@@ -388,9 +398,18 @@ export default function FlappyBall({ roomId, gameId }: FlappyBallProps) {
             <p className="font-bold text-white text-2xl tabular-nums">{Math.max(score, myHighScore)}</p>
           </div>
           {!isTimeUp && (
-            <button onClick={(e) => { e.stopPropagation(); playAgain(); }} className="w-full max-w-sm mb-4 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 font-bold rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.4)] text-lg text-white">🔄 Tekrar Oyna</button>
+            <button onClick={(e) => { e.stopPropagation(); playAgain(); }} className="w-full max-w-sm mb-4 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 font-bold rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.4)] text-lg text-white outline-none">🔄 Tekrar Oyna</button>
           )}
-          <button onClick={() => exitGame()} className="w-full max-w-sm py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl border border-white/20 text-lg">🚪 Çıkış ve Maça Dön</button>
+          <button onClick={() => exitGame()} className="w-full max-w-sm py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl border border-white/20 text-lg flex items-center justify-center gap-3 outline-none">
+             {isSubmitting ? (
+               <>
+                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                 <span>Yükleniyor...</span>
+               </>
+             ) : (
+               <>🚪 Çıkış ve Maça Dön</>
+             )}
+          </button>
         </div>
       )}
     </div>
