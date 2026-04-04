@@ -394,7 +394,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       n.type == 'GOAL'
                           ? Icons.sports_soccer
                           : Icons.notifications_active,
-                      color: Colors.white),
+                      color: context.colors.onPrimaryContainer),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -402,17 +402,20 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(n.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white)),
+                                color: context.colors.onPrimaryContainer)),
                         Text(n.message,
-                            style: const TextStyle(color: Colors.white70)),
+                            style: TextStyle(
+                              color: context.colors.onPrimaryContainer
+                                  .withValues(alpha: 0.78),
+                            )),
                       ],
                     ),
                   ),
                 ],
               ),
-              backgroundColor: context.colors.primary,
+              backgroundColor: context.colors.primaryContainer,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -794,9 +797,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 8)),
+            color: context.colors.cardShadow.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -889,11 +893,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       decoration: BoxDecoration(
                           color: context.colors.primaryContainer,
                           shape: BoxShape.circle,
-                          boxShadow: const [
+                          boxShadow: [
                             BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 4,
-                                offset: Offset(0, 2))
+                              color:
+                                  context.colors.cardShadow.withValues(alpha: 0.12),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
                           ]),
                       child: Icon(Icons.star,
                           color: context.colors.onPrimaryContainer),

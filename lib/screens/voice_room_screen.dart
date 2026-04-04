@@ -8,7 +8,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:sports_app/providers/follow_provider.dart';
+import 'package:sports_app/services/navigation_service.dart';
 import 'package:sports_app/services/supabase_service.dart';
+import 'package:sports_app/theme/app_theme.dart';
 
 class VoiceRoomScreen extends ConsumerWidget {
   const VoiceRoomScreen({super.key});
@@ -17,11 +19,14 @@ class VoiceRoomScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Listen for room termination from host
     ref.listen<VoiceRoomState>(voiceRoomProvider, (previous, next) {
-      if (previous != null && previous.isConnected && !next.isConnected && next.error == 'room_ended') {
+      if (previous != null &&
+          previous.isConnected &&
+          !next.isConnected &&
+          next.error == 'room_ended') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Oda kapatıldı 👋'),
-            backgroundColor: Colors.blueAccent,
+            backgroundColor: context.colors.liveAccent,
           ),
         );
         if (Navigator.of(context).canPop()) {
@@ -40,7 +45,7 @@ class VoiceRoomScreen extends ConsumerWidget {
           body: Center(child: CircularProgressIndicator()),
         );
       }
-      
+
       return Scaffold(
         appBar: AppBar(title: const Text('Voice Room')),
         body: Center(
@@ -60,20 +65,28 @@ class VoiceRoomScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.2),
+                    color: context.colors.accent.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.amber, width: 1),
+                    border: Border.all(color: context.colors.accent, width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.lock_person, size: 16, color: Colors.amber),
+                      Icon(
+                        Icons.lock_person,
+                        size: 16,
+                        color: context.colors.accent,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'PIN: ${state.pinCode}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.accent,
+                        ),
                       ),
                     ],
                   ),
@@ -81,15 +94,16 @@ class VoiceRoomScreen extends ConsumerWidget {
               ),
             ),
           IconButton(
-            icon: const Icon(Icons.share, color: Colors.blueAccent),
+            icon: Icon(Icons.share, color: context.colors.primary),
             onPressed: () async {
-              final roomNameEscaped = Uri.encodeComponent(state.currentRoomName ?? '');
+              final roomNameEscaped =
+                  Uri.encodeComponent(state.currentRoomName ?? '');
               var shareText = 'Spor odama katıl! Oda: ${state.currentRoomName}';
-              
+
               if (state.isPrivate && state.pinCode != null) {
                 shareText += '\nOda Şifresi: ${state.pinCode}';
               }
-              
+
               String link;
               if (kIsWeb) {
                 final baseUri = Uri.base;
@@ -106,14 +120,14 @@ class VoiceRoomScreen extends ConsumerWidget {
               }
 
               shareText += '\n\nKatılmak için tıkla:\n$link';
-              
+
               if (kIsWeb) {
                 await Clipboard.setData(ClipboardData(text: shareText));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('Davet linki panoya kopyalandı!'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: context.colors.success,
                     ),
                   );
                 }
@@ -140,7 +154,7 @@ class VoiceRoomScreen extends ConsumerWidget {
               onPressed: () => _showModerationSheet(context, state, notifier),
             ),
           IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
+            icon: Icon(Icons.exit_to_app, color: context.colors.error),
             onPressed: () {
               notifier.leaveRoom();
               Navigator.of(context).pop();
@@ -176,12 +190,20 @@ class VoiceRoomScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildControlPanel(BuildContext context, VoiceRoomState state, VoiceRoomNotifier notifier) {
+  Widget _buildControlPanel(
+      BuildContext context, VoiceRoomState state, VoiceRoomNotifier notifier) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: context.colors.cardShadow.withValues(alpha: 0.16),
+            blurRadius: 18,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         child: Row(
@@ -191,10 +213,14 @@ class VoiceRoomScreen extends ConsumerWidget {
               FloatingActionButton(
                 heroTag: 'mute_btn',
                 onPressed: () => notifier.toggleMute(),
-                backgroundColor: state.isMuted ? Colors.redAccent : Theme.of(context).primaryColor,
+                backgroundColor: state.isMuted
+                    ? context.colors.error
+                    : context.colors.primaryContainer,
                 child: Icon(
                   state.isMuted ? Icons.mic_off : Icons.mic,
-                  color: Colors.white,
+                  color: state.isMuted
+                      ? context.colors.onErrorContainer
+                      : context.colors.onPrimaryContainer,
                 ),
               )
             else
@@ -202,22 +228,33 @@ class VoiceRoomScreen extends ConsumerWidget {
                 heroTag: 'raise_hand_btn',
                 onPressed: () {
                   notifier.raiseHand();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hand raised! Waiting for host...')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Hand raised! Waiting for host...'),
+                      backgroundColor: context.colors.accent,
+                    ),
+                  );
                 },
-                backgroundColor: Colors.orangeAccent,
-                child: const Icon(Icons.pan_tool, color: Colors.white),
+                backgroundColor: context.colors.accent,
+                child: Icon(
+                  Icons.pan_tool,
+                  color: context.colors.onPrimaryContainer,
+                ),
               ),
             FloatingActionButton(
               heroTag: 'chat_btn',
               onPressed: () => _showChatSheet(context),
-              backgroundColor: Colors.blueAccent,
-              child: const Icon(Icons.chat, color: Colors.white),
+              backgroundColor: context.colors.primary,
+              child: Icon(Icons.chat, color: context.colors.surface),
             ),
             FloatingActionButton(
               heroTag: 'emoji_btn',
               onPressed: () => notifier.sendEmojiReaction('🔥'),
-              backgroundColor: Colors.orange,
-              child: const Icon(Icons.local_fire_department, color: Colors.white),
+              backgroundColor: context.colors.liveAccentMuted,
+              child: Icon(
+                Icons.local_fire_department,
+                color: context.colors.onPrimaryContainer,
+              ),
             ),
             FloatingActionButton(
               heroTag: 'leave_btn',
@@ -225,8 +262,11 @@ class VoiceRoomScreen extends ConsumerWidget {
                 notifier.leaveRoom();
                 Navigator.of(context).pop();
               },
-              backgroundColor: Colors.red,
-              child: const Icon(Icons.call_end, color: Colors.white),
+              backgroundColor: context.colors.error,
+              child: Icon(
+                Icons.call_end,
+                color: context.colors.onErrorContainer,
+              ),
             ),
           ],
         ),
@@ -241,17 +281,20 @@ class VoiceRoomScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: const LiveChatPanel(),
         );
       },
     );
   }
 
-  void _showModerationSheet(BuildContext context, VoiceRoomState state, VoiceRoomNotifier notifier) {
+  void _showModerationSheet(
+      BuildContext context, VoiceRoomState state, VoiceRoomNotifier notifier) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(24),
@@ -259,10 +302,10 @@ class VoiceRoomScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Raised Hands', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('Raised Hands',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              if (state.raisedHands.isEmpty)
-                const Text('No pending requests.'),
+              if (state.raisedHands.isEmpty) const Text('No pending requests.'),
               ...state.raisedHands.map((identity) {
                 return ListTile(
                   leading: const CircleAvatar(child: Icon(Icons.person)),
@@ -294,42 +337,46 @@ class _ParticipantAvatar extends StatelessWidget {
     final isSpeaking = participant.isSpeaking;
 
     return GestureDetector(
-      onTap: () => _showUserProfile(context, participant.identity, participant.name),
+      onTap: () =>
+          _showUserProfile(context, participant.identity, participant.name),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSpeaking ? Colors.greenAccent : Colors.transparent,
-              width: 3,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSpeaking ? context.colors.success : Colors.transparent,
+                width: 3,
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 30,
+              backgroundColor: context.colors.surfaceContainerHighest,
+              child: Text(
+                participant.name.isNotEmpty
+                    ? participant.name[0].toUpperCase()
+                    : '?',
+                style: TextStyle(fontSize: 24, color: context.colors.textHigh),
+              ),
             ),
           ),
-          child: CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.grey.shade800,
-            child: Text(
-              participant.name.isNotEmpty ? participant.name[0].toUpperCase() : '?',
-              style: const TextStyle(fontSize: 24, color: Colors.white),
-            ),
+          const SizedBox(height: 8),
+          Text(
+            participant.name.isNotEmpty ? '@${participant.name}' : 'Unknown',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          participant.name.isNotEmpty ? '@${participant.name}' : 'Unknown',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        // End of Text widget
-      ],
+          // End of Text widget
+        ],
       ),
     );
   }
 
-  void _showUserProfile(BuildContext context, String userId, String displayName) {
+  void _showUserProfile(
+      BuildContext context, String userId, String displayName) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -339,9 +386,10 @@ class _ParticipantAvatar extends StatelessWidget {
             final followState = ref.watch(followProvider);
             final followingList = followState.value ?? [];
             final isFollowing = followingList.contains(userId);
-            
+
             final followerCountAsync = ref.watch(followerCountProvider(userId));
-            final followingCountAsync = ref.watch(followingCountProvider(userId));
+            final followingCountAsync =
+                ref.watch(followingCountProvider(userId));
 
             final followerCount = followerCountAsync.value ?? 0;
             final followingCount = followingCountAsync.value ?? 0;
@@ -352,7 +400,8 @@ class _ParticipantAvatar extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: SafeArea(
                 child: Column(
@@ -360,14 +409,21 @@ class _ParticipantAvatar extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundColor: Colors.blueAccent,
+                      backgroundColor: context.colors.primaryContainer,
                       child: Text(
-                        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 32, color: Colors.white),
+                        displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          fontSize: 32,
+                          color: context.colors.onPrimaryContainer,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(displayName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    Text(displayName,
+                        style: const TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -381,18 +437,26 @@ class _ParticipantAvatar extends StatelessWidget {
                     if (!isMe)
                       ElevatedButton.icon(
                         onPressed: () {
-                          ref.read(followProvider.notifier).toggleFollow(userId);
+                          ref
+                              .read(followProvider.notifier)
+                              .toggleFollow(userId);
                         },
-                        icon: Icon(isFollowing ? Icons.check : Icons.person_add),
+                        icon:
+                            Icon(isFollowing ? Icons.check : Icons.person_add),
                         label: Text(isFollowing ? 'Takipten Çık' : 'Takip Et'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isFollowing ? Colors.grey[800] : Colors.blueAccent,
-                          foregroundColor: Colors.white,
+                          backgroundColor: isFollowing
+                              ? context.colors.surfaceContainerHighest
+                              : context.colors.primaryContainer,
+                          foregroundColor: isFollowing
+                              ? context.colors.textHigh
+                              : context.colors.onPrimaryContainer,
                           minimumSize: const Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                       )
-                    else 
+                    else
                       const SizedBox(height: 50), // Spacer for self
                   ],
                 ),
@@ -405,11 +469,20 @@ class _ParticipantAvatar extends StatelessWidget {
   }
 
   Widget _buildStatCol(String label, String val) {
+    final currentContext = NavigationService.navigatorKey.currentContext;
+    final textLow = currentContext != null
+        ? currentContext.colors.textLow
+        : Colors.grey;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Text(val,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(color: textLow, fontSize: 12),
+        ),
       ],
     );
   }

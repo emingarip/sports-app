@@ -6,6 +6,7 @@ class UserProfile {
   final int reputationScore;
   final int kCoinBalance;
   final String? activeFrame;
+  final String activeThemeCode;
 
   UserProfile({
     required this.id,
@@ -15,6 +16,7 @@ class UserProfile {
     required this.reputationScore,
     required this.kCoinBalance,
     this.activeFrame,
+    this.activeThemeCode = 'classic',
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class UserProfile {
       reputationScore: json['reputation_score'] as int? ?? 0,
       kCoinBalance: json['k_coin_balance'] as int? ?? 0,
       activeFrame: json['active_frame'] as String?,
+      activeThemeCode: json['active_theme_code'] as String? ?? 'classic',
     );
   }
 
@@ -38,6 +41,7 @@ class UserProfile {
       'reputation_score': reputationScore,
       'k_coin_balance': kCoinBalance,
       'active_frame': activeFrame,
+      'active_theme_code': activeThemeCode,
     };
   }
 }

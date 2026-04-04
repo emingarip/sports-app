@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'app_theme_preferences.dart';
+
 class SupabaseService {
   static const String _devSupabaseUrl =
       'https://nigatikzsnxdqdwwqewr.supabase.co';
@@ -90,6 +92,7 @@ class SupabaseService {
 
   Future<void> signOut() async {
     await client.auth.signOut();
+    await AppThemePreferences.clearPremiumThemeCache();
   }
 
   User? getCurrentUser() {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ShoppingBag, Plus, Edit2, Trash2, Loader2, DollarSign, Clock, Infinity, Zap } from 'lucide-react';
+import { ShoppingBag, Plus, Edit2, Trash2, Loader2, DollarSign, Clock, InfinityIcon, Zap } from 'lucide-react';
+import { type ProductCategory } from '../lib/themeEditor';
 
 interface Product {
   id: string;
@@ -11,11 +12,24 @@ interface Product {
   product_type: 'subscription' | 'lifetime' | 'consumable';
   duration_days: number | null;
   is_active: boolean;
+  product_category: ProductCategory;
+  theme_code: string | null;
   created_at: string;
 }
 
+interface ThemeOption {
+  theme_code: string;
+  name: string;
+  status: string;
+  is_active: boolean;
+}
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Unknown error';
+
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [themes, setThemes] = useState<ThemeOption[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal State
@@ -29,11 +43,14 @@ export default function Products() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState(0);
   const [productType, setProductType] = useState<'subscription' | 'lifetime' | 'consumable'>('subscription');
+  const [productCategory, setProductCategory] = useState<ProductCategory>('general');
+  const [themeCode, setThemeCode] = useState('');
   const [durationDays, setDurationDays] = useState<number | ''>('');
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
     fetchProducts();
+    fetchThemes();
 
     const channel = supabase
       .channel('products_changes')
@@ -67,12 +84,28 @@ export default function Products() {
     }
   };
 
+  const fetchThemes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_themes')
+        .select('theme_code, name, status, is_active')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setThemes(data || []);
+    } catch (error) {
+      console.error('Error fetching themes:', error);
+    }
+  };
+
   const resetForm = () => {
     setProductCode('');
     setTitle('');
     setDescription('');
     setPrice(0);
     setProductType('subscription');
+    setProductCategory('general');
+    setThemeCode('');
     setDurationDays(30);
     setIsActive(true);
     setEditingId(null);
@@ -89,6 +122,8 @@ export default function Products() {
     setDescription(product.description || '');
     setPrice(product.price);
     setProductType(product.product_type);
+    setProductCategory(product.product_category ?? 'general');
+    setThemeCode(product.theme_code ?? '');
     setDurationDays(product.duration_days || '');
     setIsActive(product.is_active);
     setEditingId(product.id);
@@ -106,6 +141,17 @@ export default function Products() {
         return;
     }
 
+    if (productCategory === 'app_theme') {
+      if (!themeCode) {
+        alert('Tema kategorisindeki urunler icin yayin bir tema secmelisiniz.');
+        return;
+      }
+      if (productType !== 'lifetime') {
+        alert('Tema urunleri yalnizca kalici kilit acma tipinde olabilir.');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -114,6 +160,8 @@ export default function Products() {
         description: description.trim() || null,
         price: Number(price),
         product_type: productType,
+        product_category: productCategory,
+        theme_code: productCategory === 'app_theme' ? themeCode : null,
         duration_days: productType === 'subscription' ? Number(durationDays) : null,
         is_active: isActive
       };
@@ -133,9 +181,9 @@ export default function Products() {
       
       setIsModalOpen(false);
       resetForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving product:', error);
-      alert('Kaydedilirken hata oluştu: ' + error.message);
+      alert('Kaydedilirken hata oluştu: ' + getErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -151,9 +199,9 @@ export default function Products() {
         .eq('id', id);
         
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting product:', error);
-      alert('Silinirken hata oluştu: ' + error.message);
+      alert('Silinirken hata oluştu: ' + getErrorMessage(error));
     }
   };
 
@@ -165,16 +213,16 @@ export default function Products() {
         .eq('id', id);
         
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error toggling status:', error);
-      alert('Durum güncellenirken hata oluştu: ' + error.message);
+      alert('Durum güncellenirken hata oluştu: ' + getErrorMessage(error));
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch(type) {
       case 'subscription': return <Clock className="w-5 h-5 text-indigo-500" />;
-      case 'lifetime': return <Infinity className="w-5 h-5 text-emerald-500" />;
+      case 'lifetime': return <InfinityIcon className="w-5 h-5 text-emerald-500" />;
       case 'consumable': return <Zap className="w-5 h-5 text-orange-500" />;
       default: return <ShoppingBag className="w-5 h-5 text-blue-500" />;
     }
@@ -252,6 +300,11 @@ export default function Products() {
                            {product.duration_days} Gün
                         </span>
                       )}
+                      {product.product_category === 'app_theme' && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          Theme Product
+                        </span>
+                      )}
                       {product.is_active ? (
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                           SATIŞTA
@@ -270,6 +323,11 @@ export default function Products() {
                     <div className="mt-1 text-xs text-muted-foreground">
                        Kod: <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{product.product_code}</code>
                     </div>
+                    {product.theme_code && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Theme: <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{product.theme_code}</code>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -316,6 +374,26 @@ export default function Products() {
             </div>
             
             <div className="p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium mb-1.5 text-card-foreground">ÃœrÃ¼n Kategorisi</label>
+                <select
+                  value={productCategory}
+                  onChange={(e) => {
+                    const nextCategory = e.target.value as ProductCategory;
+                    setProductCategory(nextCategory);
+                    if (nextCategory === 'app_theme') {
+                      setProductType('lifetime');
+                    } else {
+                      setThemeCode('');
+                    }
+                  }}
+                  className="w-full border border-border bg-background rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="general">Genel ÃœrÃ¼n</option>
+                  <option value="app_theme">Premium Tema</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1.5 text-card-foreground">Ürün Kodu <span className="text-destructive">*</span></label>
@@ -367,8 +445,9 @@ export default function Products() {
                   <label className="block text-sm font-medium mb-1.5 text-card-foreground">Ürün Tipi</label>
                   <select
                     value={productType}
-                    onChange={(e) => setProductType(e.target.value as any)}
-                    className="w-full border border-border bg-background rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={(e) => setProductType(e.target.value as 'subscription' | 'lifetime' | 'consumable')}
+                    disabled={productCategory === 'app_theme'}
+                    className="w-full border border-border bg-background rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   >
                     <option value="subscription">Abonelik (Süreli)</option>
                     <option value="lifetime">Kalıcı Kilit Açma</option>
@@ -376,7 +455,7 @@ export default function Products() {
                   </select>
                 </div>
                 
-                {productType === 'subscription' && (
+                {productType === 'subscription' && productCategory !== 'app_theme' && (
                   <div>
                     <label className="block text-sm font-medium mb-1.5 text-card-foreground">Süre (Gün) <span className="text-destructive">*</span></label>
                     <input
@@ -389,6 +468,26 @@ export default function Products() {
                   </div>
                 )}
               </div>
+
+              {productCategory === 'app_theme' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1.5 text-card-foreground">BaÄŸlÄ± Tema <span className="text-destructive">*</span></label>
+                  <select
+                    value={themeCode}
+                    onChange={(e) => setThemeCode(e.target.value)}
+                    className="w-full border border-border bg-background rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Tema seÃ§in</option>
+                    {themes
+                      .filter((theme) => theme.is_active && theme.status !== 'archived')
+                      .map((theme) => (
+                        <option key={theme.theme_code} value={theme.theme_code}>
+                          {theme.name} ({theme.theme_code})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
 
               <div className="pt-2">
                 <label className="block text-sm font-medium mb-1.5 text-card-foreground">Durum</label>

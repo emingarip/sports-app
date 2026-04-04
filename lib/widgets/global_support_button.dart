@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/support_providers.dart';
 import '../screens/private_chat_screen.dart';
+import '../theme/app_theme.dart';
 
 class GlobalSupportButton extends ConsumerStatefulWidget {
   const GlobalSupportButton({super.key, required this.child});
@@ -132,20 +133,23 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
       width: buttonSize,
       height: buttonSize,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFACC15)],
+        gradient: LinearGradient(
+          colors: [
+            context.colors.supportFabStart,
+            context.colors.supportFabEnd,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: context.colors.cardShadow.withValues(alpha: 0.28),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+            color: context.colors.supportFabStart.withValues(alpha: 0.42),
             blurRadius: 20,
             spreadRadius: -5,
           ),
@@ -154,9 +158,9 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.headset_mic_rounded,
-            color: Color(0xFF5B4B00),
+            color: context.colors.supportFabIcon,
             size: 28,
           ),
           Positioned(
@@ -165,8 +169,8 @@ class _GlobalSupportButtonState extends ConsumerState<GlobalSupportButton> {
             child: Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(
-                color: Colors.green,
+              decoration: BoxDecoration(
+                color: context.colors.success,
                 shape: BoxShape.circle,
               ),
             ),

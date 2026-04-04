@@ -11,6 +11,7 @@ import Matches from './pages/Matches';
 import Bots from './pages/Bots';
 import Announcements from './pages/Announcements';
 import Products from './pages/Products';
+import Themes from './pages/Themes';
 import Settings from './pages/Settings';
 import Feedbacks from './pages/Feedbacks';
 import SupportChat from './pages/SupportChat';
@@ -51,6 +52,7 @@ function App() {
           <Route path="bots" element={<Bots />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="products" element={<Products />} />
+          <Route path="themes" element={<Themes />} />
           <Route path="settings" element={<Settings />} />
           <Route path="feedbacks" element={<Feedbacks />} />
           <Route path="support-chat" element={<SupportChat />} />

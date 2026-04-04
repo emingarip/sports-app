@@ -38,11 +38,12 @@ class _AvatarFramesScreenState extends ConsumerState<AvatarFramesScreen> {
 
   Future<void> _handleEquip(String frameCode) async {
     if (_profile == null) return;
-    
+
     setState(() => _isLoading = true);
-    
-    final success = await SupabaseService().equipUserFrame(_profile!.id, frameCode);
-    
+
+    final success =
+        await SupabaseService().equipUserFrame(_profile!.id, frameCode);
+
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Çerçeve başarıyla kuşanıldı!')),
@@ -59,7 +60,7 @@ class _AvatarFramesScreenState extends ConsumerState<AvatarFramesScreen> {
   Future<void> _handleUnequip() async {
     if (_profile == null) return;
     setState(() => _isLoading = true);
-    
+
     // Pass null to unequip
     final success = await SupabaseService().equipUserFrame(_profile!.id, null);
     if (success && mounted) {
@@ -71,16 +72,18 @@ class _AvatarFramesScreenState extends ConsumerState<AvatarFramesScreen> {
 
   Future<void> _handleBuy(String productCode, int price) async {
     setState(() => _isLoading = true);
-    
+
     try {
       final storeService = ref.read(storeServiceProvider);
-      final success = await storeService.buyStoreItem(productCode);
-      
-      if (success && mounted) {
+      final result = await storeService.buyStoreItem(productCode);
+
+      if (result.success && mounted) {
         // Refresh entitlements
         await ref.read(entitlementsProvider.notifier).refresh();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Satın alma başarılı! Artık çerçeveyi kuşanabilirsiniz.')),
+          const SnackBar(
+              content: Text(
+                  'Satın alma başarılı! Artık çerçeveyi kuşanabilirsiniz.')),
         );
       }
     } catch (e) {
@@ -102,125 +105,154 @@ class _AvatarFramesScreenState extends ConsumerState<AvatarFramesScreen> {
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
-        title: const Text('My Avatar Frames', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('My Avatar Frames',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: context.colors.surfaceContainer,
       ),
-      body: _isLoading 
-        ? Center(child: CircularProgressIndicator(color: context.colors.primary))
-        : storeProductsAsync.when(
-            loading: () => Center(child: CircularProgressIndicator(color: context.colors.primary)),
-            error: (err, stack) => Center(child: Text('Error: $err')),
-            data: (products) {
-              // Filter products to only show frames
-              final frames = products.where((p) => p.productCode.startsWith('frame_')).toList();
-              
-              if (frames.isEmpty) {
-                return const Center(child: Text('Mağazada hiç çerçeve bulunmuyor.'));
-              }
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(color: context.colors.primary))
+          : storeProductsAsync.when(
+              loading: () => Center(
+                  child:
+                      CircularProgressIndicator(color: context.colors.primary)),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+              data: (products) {
+                // Filter products to only show frames
+                final frames = products
+                    .where((p) => p.productCode.startsWith('frame_'))
+                    .toList();
 
-              return entitlementsAsync.when(
-                loading: () => Center(child: CircularProgressIndicator(color: context.colors.primary)),
-                error: (err, stack) => Center(child: Text('Error: $err')),
-                data: (entitlements) {
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: frames.length,
-                    itemBuilder: (context, index) {
-                      final frame = frames[index];
-                      // Check if user owns it
-                      final isOwned = entitlements.any((e) => e.productCode == frame.productCode && e.isValid);
-                      final isEquipped = _profile?.activeFrame == frame.productCode;
+                if (frames.isEmpty) {
+                  return const Center(
+                      child: Text('Mağazada hiç çerçeve bulunmuyor.'));
+                }
 
-                      return Card(
-                        color: context.colors.surfaceContainer,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              // Preview Avatar
-                              FrameAvatar(
-                                avatarUrl: _profile?.avatarUrl,
-                                activeFrame: frame.productCode,
-                                radius: 36,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      frame.title, 
-                                      style: TextStyle(
-                                        color: context.colors.textHigh,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      )
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      frame.description,
-                                      style: TextStyle(
-                                        color: context.colors.textMedium,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (!isOwned)
-                                      Row(
-                                        children: [
-                                          Icon(Icons.monetization_on, size: 14, color: context.colors.primary),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${frame.price} K-Coins',
-                                            style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.bold),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              // Action Button
-                              Column(
+                return entitlementsAsync.when(
+                    loading: () => Center(
+                        child: CircularProgressIndicator(
+                            color: context.colors.primary)),
+                    error: (err, stack) => Center(child: Text('Error: $err')),
+                    data: (entitlements) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: frames.length,
+                        itemBuilder: (context, index) {
+                          final frame = frames[index];
+                          // Check if user owns it
+                          final isOwned = entitlements.any((e) =>
+                              e.productCode == frame.productCode && e.isValid);
+                          final isEquipped =
+                              _profile?.activeFrame == frame.productCode;
+
+                          return Card(
+                            color: context.colors.surfaceContainer,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
                                 children: [
-                                  if (isEquipped)
-                                    ElevatedButton(
-                                      onPressed: _handleUnequip,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: context.colors.surfaceContainerHighest,
-                                      ),
-                                      child: Text('Çıkar', style: TextStyle(color: context.colors.textHigh)),
-                                    )
-                                  else if (isOwned)
-                                    ElevatedButton(
-                                      onPressed: () => _handleEquip(frame.productCode),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: context.colors.primary,
-                                      ),
-                                      child: Text('Kuşan', style: TextStyle(color: context.colors.background)),
-                                    )
-                                  else
-                                    ElevatedButton.icon(
-                                      onPressed: () => _handleBuy(frame.productCode, frame.price),
-                                      icon: const Icon(Icons.shopping_cart, size: 16),
-                                      label: const Text('Satın Al'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: context.colors.primaryContainer,
-                                        foregroundColor: context.colors.onPrimaryContainer,
-                                      ),
-                                    )
+                                  // Preview Avatar
+                                  FrameAvatar(
+                                    avatarUrl: _profile?.avatarUrl,
+                                    activeFrame: frame.productCode,
+                                    radius: 36,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(frame.title,
+                                            style: TextStyle(
+                                              color: context.colors.textHigh,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            )),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          frame.description,
+                                          style: TextStyle(
+                                            color: context.colors.textMedium,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        if (!isOwned)
+                                          Row(
+                                            children: [
+                                              Icon(Icons.monetization_on,
+                                                  size: 14,
+                                                  color:
+                                                      context.colors.primary),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${frame.price} K-Coins',
+                                                style: TextStyle(
+                                                    color:
+                                                        context.colors.primary,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                            ],
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Action Button
+                                  Column(
+                                    children: [
+                                      if (isEquipped)
+                                        ElevatedButton(
+                                          onPressed: _handleUnequip,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: context
+                                                .colors.surfaceContainerHighest,
+                                          ),
+                                          child: Text('Çıkar',
+                                              style: TextStyle(
+                                                  color:
+                                                      context.colors.textHigh)),
+                                        )
+                                      else if (isOwned)
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              _handleEquip(frame.productCode),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                context.colors.primary,
+                                          ),
+                                          child: Text('Kuşan',
+                                              style: TextStyle(
+                                                  color: context
+                                                      .colors.background)),
+                                        )
+                                      else
+                                        ElevatedButton.icon(
+                                          onPressed: () => _handleBuy(
+                                              frame.productCode, frame.price),
+                                          icon: const Icon(Icons.shopping_cart,
+                                              size: 16),
+                                          label: const Text('Satın Al'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                context.colors.primaryContainer,
+                                            foregroundColor: context
+                                                .colors.onPrimaryContainer,
+                                          ),
+                                        )
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       );
-                    },
-                  );
-                }
-              );
-            },
-          ),
+                    });
+              },
+            ),
     );
   }
 }

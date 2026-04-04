@@ -2,9 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../models/app_theme_definition.dart';
 import '../models/user_profile.dart';
 import '../services/supabase_service.dart';
-import '../providers/theme_provider.dart';
+import '../providers/app_theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'notification_preferences_screen.dart';
@@ -22,6 +23,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:feedback/feedback.dart';
 import '../data/repositories/support/bug_report_service.dart';
+import '../widgets/theme_preview_card.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -54,13 +56,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         });
       } else {
         setState(() {
-          _isLoading = false; 
+          _isLoading = false;
         });
       }
     } else {
       if (mounted) {
         setState(() {
-           _isLoading = false;
+          _isLoading = false;
         });
       }
     }
@@ -84,7 +86,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           constraints: const BoxConstraints(maxWidth: 600),
           decoration: BoxDecoration(
             color: context.colors.background,
-            border: Border.symmetric(vertical: BorderSide(color: context.colors.surfaceContainerLow, width: 2)),
+            border: Border.symmetric(
+                vertical: BorderSide(
+                    color: context.colors.surfaceContainerLow, width: 2)),
           ),
           child: CustomScrollView(
             slivers: [
@@ -95,7 +99,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 )
               else if (_profile == null)
                 const SliverFillRemaining(
-                  child: Center(child: Text("Could not load profile. Please sign in again.")),
+                  child: Center(
+                      child: Text(
+                          "Could not load profile. Please sign in again.")),
                 )
               else ...[
                 _buildHeroSection(),
@@ -104,13 +110,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 _buildEconomyActions(),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                _buildThemeStudio(),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 _buildBadgeShowcase(),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 _buildSettingsMenu(),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 _buildSupportMenu(),
                 _buildRecentActivityHeader(),
-                if (_bets.isEmpty) _buildEmptyActivityState() else _buildBetsList(),
+                if (_bets.isEmpty)
+                  _buildEmptyActivityState()
+                else
+                  _buildBetsList(),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
             ],
@@ -163,7 +174,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             GestureDetector(
               onTap: () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (_) => const AvatarFramesScreen()));
+                await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AvatarFramesScreen()));
                 await _fetchProfile();
                 ref.invalidate(leaderboardProvider);
               },
@@ -183,7 +197,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       decoration: BoxDecoration(
                         color: context.colors.primaryContainer,
                         shape: BoxShape.circle,
-                        border: Border.all(color: context.colors.background, width: 2),
+                        border: Border.all(
+                            color: context.colors.background, width: 2),
                       ),
                       child: Icon(
                         Icons.palette,
@@ -209,7 +224,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: context.colors.surfaceContainerHigh.withValues(alpha: 0.5),
+                color:
+                    context.colors.surfaceContainerHigh.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -241,10 +257,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     title: 'K-COINS',
                     value: balance.toString(),
                     icon: Icons.monetization_on,
-                    bgColor: context.colors.primaryContainer.withValues(alpha: 0.15),
+                    bgColor:
+                        context.colors.primaryContainer.withValues(alpha: 0.15),
                     iconColor: context.colors.primaryContainer,
                     textColor: context.colors.textHigh,
-                    borderColor: context.colors.primaryContainer.withValues(alpha: 0.3),
+                    borderColor:
+                        context.colors.primaryContainer.withValues(alpha: 0.3),
                   );
                 },
               ),
@@ -255,7 +273,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 title: 'REPUTATION',
                 value: _profile!.reputationScore.toString(),
                 icon: Icons.star,
-                bgColor: context.colors.surfaceContainerHigh.withValues(alpha: 0.5),
+                bgColor:
+                    context.colors.surfaceContainerHigh.withValues(alpha: 0.5),
                 iconColor: Colors.amber,
                 textColor: context.colors.textHigh,
                 borderColor: context.colors.outline.withValues(alpha: 0.1),
@@ -326,7 +345,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
+            border: Border.all(
+                color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: [
@@ -335,15 +355,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 iconColor: Colors.orangeAccent,
                 title: 'K-Coin Store',
                 subtitle: 'Buy K-Coins & Premium items',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StoreFrontScreen())),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const StoreFrontScreen())),
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.receipt_long,
                 iconColor: Colors.greenAccent,
                 title: 'Purchase History',
                 subtitle: 'View your past transactions',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseHistoryScreen())),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PurchaseHistoryScreen())),
               ),
             ],
           ),
@@ -360,7 +389,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
+            border: Border.all(
+                color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: [
@@ -369,25 +399,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 iconColor: Colors.blueAccent,
                 title: 'Edit Profile',
                 onTap: () async {
-                  final didUpdate = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(profile: _profile!)));
+                  final didUpdate = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              EditProfileScreen(profile: _profile!)));
                   if (didUpdate == true) _fetchProfile();
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.notifications_active,
                 iconColor: Colors.pinkAccent,
                 title: 'Notification Settings',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen())),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationPreferencesScreen())),
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
-              _buildSettingsTile(
-                icon: Icons.dark_mode,
-                iconColor: Colors.indigoAccent,
-                title: 'Theme Settings',
-                trailing: _buildThemeToggle(),
-              ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.logout,
                 iconColor: Colors.redAccent,
@@ -410,29 +446,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
+            border: Border.all(
+                color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Padding(
-                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                 child: Row(
-                   children: [
-                     Icon(Icons.headset_mic_rounded, size: 20, color: context.colors.primary),
-                     const SizedBox(width: 8),
-                     Text(
-                       'DESTEK & YARDIM',
-                       style: TextStyle(
-                         color: context.colors.primary,
-                         fontSize: 13,
-                         fontWeight: FontWeight.w800,
-                         letterSpacing: 1.2,
-                       ),
-                     ),
-                   ],
-                 ),
-               ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.headset_mic_rounded,
+                        size: 20, color: context.colors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'DESTEK & YARDIM',
+                      style: TextStyle(
+                        color: context.colors.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               _buildSettingsTile(
                 icon: Icons.chat_bubble_outline,
                 iconColor: Colors.blueAccent,
@@ -440,11 +478,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const HelpCenterScreen()),
                   );
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.help_outline,
                 iconColor: Colors.orangeAccent,
@@ -452,25 +494,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const HelpCenterScreen()),
                   );
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.bug_report_outlined,
                 iconColor: Colors.redAccent,
                 title: 'Sorun Bildir',
                 onTap: () {
-                  BetterFeedback.of(context).show((UserFeedback feedback) async {
+                  BetterFeedback.of(context)
+                      .show((UserFeedback feedback) async {
                     try {
                       await ref.read(bugReportServiceProvider).submitFeedback(
-                        feedback.text,
-                        feedback.screenshot,
-                      );
+                            feedback.text,
+                            feedback.screenshot,
+                          );
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Geri bildiriminiz başarıyla iletildi!')),
+                          const SnackBar(
+                              content: Text(
+                                  'Geri bildiriminiz başarıyla iletildi!')),
                         );
                       }
                     } catch (e) {
@@ -483,7 +532,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   });
                 },
               ),
-              Divider(height: 1, indent: 64, color: context.colors.outline.withValues(alpha: 0.1)),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.contact_mail_outlined,
                 iconColor: Colors.green,
@@ -502,36 +554,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-         decoration: BoxDecoration(
-           color: context.colors.surfaceContainer,
-           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-         ),
-         child: SafeArea(
-           child: Column(
-             mainAxisSize: MainAxisSize.min,
-             children: [
-               const SizedBox(height: 12),
-               Container(width: 40, height: 4, decoration: BoxDecoration(color: context.colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
-               const SizedBox(height: 24),
-               Text('Bize Ulaşın', style: TextStyle(color: context.colors.textHigh, fontSize: 20, fontWeight: FontWeight.bold)),
-               const SizedBox(height: 16),
-               _buildContactOption(Icons.message, 'WhatsApp', Colors.green, () => _launchSocialUrl(const String.fromEnvironment('WHATSAPP_URL'))),
-               _buildContactOption(Icons.send, 'Telegram', Colors.blue, () => _launchSocialUrl(const String.fromEnvironment('TELEGRAM_URL'))),
-               _buildContactOption(Icons.email, 'E-Posta', Colors.redAccent, () => _launchSocialUrl('mailto:${const String.fromEnvironment('SUPPORT_EMAIL')}')),
-               _buildContactOption(Icons.camera_alt, 'Instagram', Colors.purpleAccent, () => _launchSocialUrl(const String.fromEnvironment('INSTAGRAM_URL'))),
-               const SizedBox(height: 24),
-             ],
-           ),
-         ),
+        decoration: BoxDecoration(
+          color: context.colors.surfaceContainer,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: context.colors.outline.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 24),
+              Text('Bize Ulaşın',
+                  style: TextStyle(
+                      color: context.colors.textHigh,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              _buildContactOption(
+                  Icons.message,
+                  'WhatsApp',
+                  Colors.green,
+                  () => _launchSocialUrl(
+                      const String.fromEnvironment('WHATSAPP_URL'))),
+              _buildContactOption(
+                  Icons.send,
+                  'Telegram',
+                  Colors.blue,
+                  () => _launchSocialUrl(
+                      const String.fromEnvironment('TELEGRAM_URL'))),
+              _buildContactOption(
+                  Icons.email,
+                  'E-Posta',
+                  Colors.redAccent,
+                  () => _launchSocialUrl(
+                      'mailto:${const String.fromEnvironment('SUPPORT_EMAIL')}')),
+              _buildContactOption(
+                  Icons.camera_alt,
+                  'Instagram',
+                  Colors.purpleAccent,
+                  () => _launchSocialUrl(
+                      const String.fromEnvironment('INSTAGRAM_URL'))),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildContactOption(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildContactOption(
+      IconData icon, String title, Color color, VoidCallback onTap) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
         child: Icon(icon, color: color, size: 24),
       ),
       title: Text(title, style: TextStyle(color: context.colors.textHigh)),
@@ -550,31 +633,261 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Widget _buildThemeToggle() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final currentMode = ref.watch(themeModeNotifierProvider);
-        return SegmentedButton<ThemeMode>(
-          showSelectedIcon: false,
-          style: SegmentedButton.styleFrom(
-            backgroundColor: context.colors.surfaceContainerLowest,
-            foregroundColor: context.colors.textMedium,
-            selectedForegroundColor: context.colors.textHigh,
-            selectedBackgroundColor: context.colors.primaryContainer,
-            padding: EdgeInsets.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
-          segments: const [
-            ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode, size: 16)),
-            ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.settings_suggest, size: 16)),
-            ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode, size: 16)),
-          ],
-          selected: {currentMode},
-          onSelectionChanged: (Set<ThemeMode> newSelection) {
-            ref.read(themeModeNotifierProvider.notifier).setThemeMode(newSelection.first);
+  Widget _buildThemeStudio() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Consumer(
+          builder: (context, ref, child) {
+            final themeState = ref.watch(appThemeControllerProvider);
+            final themeCatalog = ref.watch(themeCatalogProvider);
+            final ownedThemeCodes = ref.watch(ownedThemeCodesProvider);
+
+            return Container(
+              decoration: BoxDecoration(
+                color: context.colors.surfaceContainer,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: context.colors.outline.withValues(alpha: 0.05),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.palette_outlined,
+                          size: 20,
+                          color: context.colors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'THEME STUDIO',
+                          style: TextStyle(
+                            color: context.colors.primary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (themeState.isSyncing)
+                          SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: context.colors.primaryContainer,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildThemeModeToggle(themeState.themeMode),
+                    const SizedBox(height: 16),
+                    themeCatalog.when(
+                      loading: () => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: context.colors.primaryContainer,
+                          ),
+                        ),
+                      ),
+                      error: (error, _) => Text(
+                        'Theme catalog could not be loaded.',
+                        style: TextStyle(color: context.colors.error),
+                      ),
+                      data: (themes) {
+                        final ownedDefinitions = <AppThemeDefinition>[
+                          AppTheme.classicDefinition,
+                          ...themes.where(
+                            (theme) =>
+                                ownedThemeCodes.contains(theme.themeCode),
+                          ),
+                        ];
+
+                        final activeDefinition = ownedDefinitions.firstWhere(
+                          (theme) =>
+                              theme.themeCode == themeState.activeThemeCode,
+                          orElse: () => AppTheme.classicDefinition,
+                        );
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: context.colors.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: context.colors.primaryContainer
+                                          .withValues(alpha: 0.14),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.auto_awesome_rounded,
+                                      color: context.colors.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Current Theme',
+                                          style: TextStyle(
+                                            color: context.colors.textMedium,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          activeDefinition.name,
+                                          style: TextStyle(
+                                            color: context.colors.textHigh,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const StoreFrontScreen(),
+                                      ),
+                                    ),
+                                    icon:
+                                        const Icon(Icons.storefront, size: 16),
+                                    label: const Text('Store'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Owned Themes',
+                              style: TextStyle(
+                                color: context.colors.textHigh,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 340,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: ownedDefinitions.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 12),
+                                itemBuilder: (context, index) {
+                                  final definition = ownedDefinitions[index];
+                                  final isActive = themeState.activeThemeCode ==
+                                      definition.themeCode;
+
+                                  return ThemePreviewCard(
+                                    definition: definition,
+                                    compact: true,
+                                    owned: true,
+                                    active: isActive,
+                                    primaryLabel:
+                                        isActive ? 'Active' : 'Apply Theme',
+                                    onPrimaryTap: isActive ||
+                                            themeState.isSyncing
+                                        ? null
+                                        : () async {
+                                            try {
+                                              await ref
+                                                  .read(
+                                                    appThemeControllerProvider
+                                                        .notifier,
+                                                  )
+                                                  .applyTheme(
+                                                    definition.themeCode,
+                                                  );
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      e.toString().replaceAll(
+                                                            'Exception: ',
+                                                            '',
+                                                          ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
           },
-        );
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeModeToggle(ThemeMode currentMode) {
+    return SegmentedButton<ThemeMode>(
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        backgroundColor: context.colors.surfaceContainerLowest,
+        foregroundColor: context.colors.textMedium,
+        selectedForegroundColor: context.colors.textHigh,
+        selectedBackgroundColor: context.colors.primaryContainer,
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
+      segments: const [
+        ButtonSegment(
+          value: ThemeMode.light,
+          icon: Icon(Icons.light_mode, size: 16),
+        ),
+        ButtonSegment(
+          value: ThemeMode.system,
+          icon: Icon(Icons.settings_suggest, size: 16),
+        ),
+        ButtonSegment(
+          value: ThemeMode.dark,
+          icon: Icon(Icons.dark_mode, size: 16),
+        ),
+      ],
+      selected: {currentMode},
+      onSelectionChanged: (Set<ThemeMode> newSelection) {
+        ref
+            .read(appThemeControllerProvider.notifier)
+            .setThemeMode(newSelection.first);
       },
     );
   }
@@ -633,7 +946,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             if (trailing != null)
               trailing
             else if (onTap != null)
-              Icon(Icons.chevron_right, color: context.colors.textMedium, size: 20),
+              Icon(Icons.chevron_right,
+                  color: context.colors.textMedium, size: 20),
           ],
         ),
       ),
@@ -643,7 +957,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildRecentActivityHeader() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 40.0, bottom: 16.0),
+        padding: const EdgeInsets.only(
+            left: 24.0, right: 24.0, top: 40.0, bottom: 16.0),
         child: Text(
           "RECENT PREDICTIONS",
           style: TextStyle(
@@ -666,12 +981,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
+            border: Border.all(
+                color: context.colors.outline.withValues(alpha: 0.05)),
           ),
           child: Center(
             child: Column(
               children: [
-                Icon(Icons.history, size: 48, color: context.colors.surfaceContainerHigh),
+                Icon(Icons.history,
+                    size: 48, color: context.colors.surfaceContainerHigh),
                 const SizedBox(height: 16),
                 Text(
                   "No activity yet.",
@@ -707,12 +1024,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           (context, index) {
             final bet = _bets[index];
             final prediction = bet['predictions'] as Map<String, dynamic>?;
-            final predictionText = prediction?['prediction_type'] ?? 'Unknown Prediction';
-            
+            final predictionText =
+                prediction?['prediction_type'] ?? 'Unknown Prediction';
+
             final status = bet['status'] as String;
             Color statusColor = context.colors.textMedium;
             IconData statusIcon = Icons.hourglass_top;
-            
+
             if (status == 'won') {
               statusColor = context.colors.success;
               statusIcon = Icons.check_circle;
@@ -730,7 +1048,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               decoration: BoxDecoration(
                 color: context.colors.surfaceContainer,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: context.colors.outline.withValues(alpha: 0.05)),
+                border: Border.all(
+                    color: context.colors.outline.withValues(alpha: 0.05)),
               ),
               child: Row(
                 children: [
@@ -749,7 +1068,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         Text(
                           predictionText,
-                          style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.textHigh, fontSize: 13),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: context.colors.textHigh,
+                              fontSize: 13),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -758,16 +1080,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           children: [
                             Text(
                               'Staked: ${bet['amount_staked']} ',
-                              style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.textMedium, fontSize: 11),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: context.colors.textMedium,
+                                  fontSize: 11),
                             ),
-                            Icon(Icons.monetization_on, size: 10, color: context.colors.textMedium),
+                            Icon(Icons.monetization_on,
+                                size: 10, color: context.colors.textMedium),
                             Text(
                               ' • ',
-                              style: TextStyle(color: context.colors.surfaceContainerHigh),
+                              style: TextStyle(
+                                  color: context.colors.surfaceContainerHigh),
                             ),
                             Text(
                               status.toUpperCase(),
-                              style: TextStyle(fontWeight: FontWeight.w900, color: statusColor, fontSize: 10, letterSpacing: 0.5),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: statusColor,
+                                  fontSize: 10,
+                                  letterSpacing: 0.5),
                             ),
                           ],
                         ),
@@ -779,17 +1110,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       Text(
                         'TO WIN',
-                        style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.textMedium, fontSize: 9, letterSpacing: 1),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: context.colors.textMedium,
+                            fontSize: 9,
+                            letterSpacing: 1),
                       ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
                             '+${bet['potential_payout']}',
-                            style: TextStyle(fontWeight: FontWeight.w900, color: context.colors.primary, fontSize: 14),
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: context.colors.primary,
+                                fontSize: 14),
                           ),
                           const SizedBox(width: 4),
-                          Icon(Icons.monetization_on, size: 12, color: context.colors.primaryContainer),
+                          Icon(Icons.monetization_on,
+                              size: 12, color: context.colors.primaryContainer),
                         ],
                       ),
                     ],
@@ -806,7 +1145,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildBadgeShowcase() {
     final badgeState = ref.watch(badgeProvider);
-    if (badgeState.isLoading) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    if (badgeState.isLoading)
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
 
     final recentBadges = badgeState.recentlyUnlocked;
     final unlockedCount = badgeState.unlockedCount;
@@ -824,7 +1164,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.military_tech, size: 18, color: context.colors.accent),
+                    Icon(Icons.military_tech,
+                        size: 18, color: context.colors.accent),
                     const SizedBox(width: 6),
                     Text(
                       'Rozetler',
@@ -836,7 +1177,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: context.colors.accent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
@@ -867,7 +1209,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Icon(Icons.chevron_right, size: 16, color: context.colors.accent),
+                      Icon(Icons.chevron_right,
+                          size: 16, color: context.colors.accent),
                     ],
                   ),
                 ),
@@ -880,16 +1223,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: context.colors.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.colors.outline.withValues(alpha: 0.2)),
+                  border: Border.all(
+                      color: context.colors.outline.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.emoji_events_outlined, size: 32, color: context.colors.textMedium),
+                    Icon(Icons.emoji_events_outlined,
+                        size: 32, color: context.colors.textMedium),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Henüz rozet kazanmadın. Uygulama kullanarak rozet aç!',
-                        style: TextStyle(color: context.colors.textMedium, fontSize: 13),
+                        style: TextStyle(
+                            color: context.colors.textMedium, fontSize: 13),
                       ),
                     ),
                   ],
@@ -957,10 +1303,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Color _badgeTierColor(int tier) {
     switch (tier) {
-      case 1: return const Color(0xFFCD7F32);
-      case 2: return const Color(0xFFC0C0C0);
-      case 3: return const Color(0xFFFFD700);
-      default: return Colors.grey;
+      case 1:
+        return const Color(0xFFCD7F32);
+      case 2:
+        return const Color(0xFFC0C0C0);
+      case 3:
+        return const Color(0xFFFFD700);
+      default:
+        return Colors.grey;
     }
   }
 

@@ -7,17 +7,17 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:feedback/feedback.dart';
 
 import 'screens/splash_screen.dart';
-import 'theme/app_theme.dart';
 import 'services/supabase_service.dart';
 import 'services/revenuecat_service.dart';
 import 'package:rive/rive.dart' as rive;
 
 import 'widgets/global_support_button.dart';
 import 'services/admob_service.dart';
-import 'providers/theme_provider.dart';
+import 'providers/app_theme_provider.dart';
 import 'services/deep_link_service.dart';
 import 'services/navigation_service.dart';
 import 'services/support_navigator_observer.dart';
+import 'services/app_theme_preferences.dart';
 
 const String _firebaseWebApiKey =
     String.fromEnvironment('FIREBASE_WEB_API_KEY');
@@ -66,6 +66,7 @@ void main() {
     } catch (e) {
       debugPrint("App: Firebase init failed: $e");
     }
+    await AppThemePreferences.initialize();
     await SupabaseService.initialize();
     await RevenueCatService.initialize();
     await DeepLinkService().initialize();
@@ -88,7 +89,9 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeNotifierProvider);
+    final themeState = ref.watch(appThemeControllerProvider);
+    final lightTheme = ref.watch(resolvedLightThemeProvider);
+    final darkTheme = ref.watch(resolvedDarkThemeProvider);
 
     return MaterialApp(
       title: 'Sports App',
@@ -97,9 +100,9 @@ class MyApp extends ConsumerWidget {
       navigatorObservers: [
         SupportNavigatorObserver(ref),
       ],
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeState.themeMode,
       builder: (context, child) {
         return GlobalSupportButton(
           child: child ?? const SizedBox.shrink(),

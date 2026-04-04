@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/store_product.dart';
+import '../models/store_purchase_result.dart';
 import '../models/user_entitlement.dart';
 
 class StoreService {
@@ -7,7 +9,6 @@ class StoreService {
 
   StoreService(this._supabase);
 
-  // Get active products for the store
   Future<List<StoreProduct>> getActiveProducts() async {
     final response = await _supabase
         .from('store_products')
@@ -15,41 +16,67 @@ class StoreService {
         .eq('is_active', true)
         .order('price', ascending: true);
 
-    return (response as List).map((json) => StoreProduct.fromJson(json)).toList();
+    return (response as List)
+        .map((json) => StoreProduct.fromJson(json))
+        .toList();
   }
 
-  // Get valid entitlements for the current user
   Future<List<UserEntitlement>> getMyEntitlements() async {
     final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return [];
+    if (userId == null) {
+      return [];
+    }
 
     final response = await _supabase
         .from('user_entitlements')
         .select()
         .eq('user_id', userId)
         .eq('is_active', true)
-        .or('expires_at.is.null,expires_at.gte.now()'); // Filtering expired dynamically
+        .or('expires_at.is.null,expires_at.gte.now()');
 
-    return (response as List).map((json) => UserEntitlement.fromJson(json)).toList();
+    return (response as List)
+        .map((json) => UserEntitlement.fromJson(json))
+        .toList();
   }
 
-  // Purchase a store item via the atomic RPC transaction
-  Future<bool> buyStoreItem(String productCode) async {
+  Future<StorePurchaseResult> buyStoreItem(String productCode) async {
     final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) throw Exception('Kullanıcı girişi yapılmamış.');
+    if (userId == null) {
+      throw Exception('Kullanici girisi yapilmamis.');
+    }
 
     try {
-      final response = await _supabase.functions.invoke('buy-store-item', body: {
-        'p_product_code': productCode,
-      });
+      final response = await _supabase.functions.invoke(
+        'buy-store-item',
+        body: {'p_product_code': productCode},
+      );
 
-      final data = response.data as Map<String, dynamic>;
-      return data['success'] == true;
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final result = StorePurchaseResult.fromJson(data);
+      if (!result.success) {
+        throw Exception('Satin alma basarisiz oldu.');
+      }
+
+      return result;
+    } on FunctionException catch (e) {
+      final details = e.details;
+      if (details is Map && details['error'] is String) {
+        throw Exception(details['error'] as String);
+      }
+
+      final reason = e.reasonPhrase;
+      if (reason != null && reason.isNotEmpty) {
+        throw Exception(reason);
+      }
+
+      throw Exception('Satin alma servisi gecici olarak kullanilamiyor.');
     } catch (e) {
       if (e.toString().contains('Insufficient K-Coin balance')) {
-         throw Exception('Yetersiz bakiye. K-Coin satın almalısınız veya kazanmalısınız.');
+        throw Exception(
+          'Yetersiz bakiye. K-Coin satin almalisiniz veya kazanmalisiniz.',
+        );
       }
-      throw Exception('Satın alma başarısız oldu: $e');
+      throw Exception('Satin alma basarisiz oldu: $e');
     }
   }
 }

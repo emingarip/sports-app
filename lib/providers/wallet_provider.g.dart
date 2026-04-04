@@ -47,7 +47,7 @@ final class KCoinRepositoryProvider extends $FunctionalProvider<KCoinRepository,
   }
 }
 
-String _$kCoinRepositoryHash() => r'8633b1a95b649fa367d94b816286368c9ad8ff91';
+String _$kCoinRepositoryHash() => r'7dc1745c561b08c34d355da433df52c535ee5cf4';
 
 @ProviderFor(kCoinPackages)
 final kCoinPackagesProvider = KCoinPackagesProvider._();
@@ -85,7 +85,7 @@ final class KCoinPackagesProvider extends $FunctionalProvider<
   }
 }
 
-String _$kCoinPackagesHash() => r'ffed6d43e0dc48d9c94816367204c47af6dd644a';
+String _$kCoinPackagesHash() => r'991cdcf7cc5ddd06200ac741301a100b7c325e98';
 
 @ProviderFor(WalletBalance)
 final walletBalanceProvider = WalletBalanceProvider._();
@@ -119,7 +119,7 @@ final class WalletBalanceProvider
   }
 }
 
-String _$walletBalanceHash() => r'd600a0fae0c6e2f7c77e4153f190447e64b8d0e5';
+String _$walletBalanceHash() => r'af7a289b574d9ae2b75bd40819f4d7398efad206';
 
 abstract class _$WalletBalance extends $Notifier<int> {
   int build();

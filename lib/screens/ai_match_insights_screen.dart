@@ -12,7 +12,8 @@ class AiMatchInsightsScreen extends ConsumerStatefulWidget {
   const AiMatchInsightsScreen({super.key});
 
   @override
-  ConsumerState<AiMatchInsightsScreen> createState() => _AiMatchInsightsScreenState();
+  ConsumerState<AiMatchInsightsScreen> createState() =>
+      _AiMatchInsightsScreenState();
 }
 
 class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
@@ -43,17 +44,17 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
       _loadedMatchId = matchId;
       _insights = [];
     });
-    
+
     try {
       var insights = await _insightService.getInsightsForMatch(matchId);
-      
+
       // If no insights exist, ask the edge function to generate some (if possible)
       // and re-fetch.
       if (insights.isEmpty) {
         await _insightService.generateInsights(matchId);
         insights = await _insightService.getInsightsForMatch(matchId);
       }
-      
+
       if (mounted) {
         setState(() {
           _insights = insights;
@@ -68,7 +69,8 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
   }
 
   int get _completedCount => _insights.where((i) => i.isAnswered).length;
-  double get _progress => _insights.isEmpty ? 0 : _completedCount / _insights.length;
+  double get _progress =>
+      _insights.isEmpty ? 0 : _completedCount / _insights.length;
 
   void _onVoteChanged(MatchInsight insight, UserVoteType vote) async {
     setState(() {
@@ -78,11 +80,12 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
         insight.customReason = null;
       }
     });
-    
+
     try {
       final activeMatch = ref.read(matchStateProvider.notifier).activeLiveMatch;
       if (activeMatch != null) {
-        await _insightService.voteInsight(insight.id, activeMatch.id, vote, reason: insight.disagreeReason, customReason: insight.customReason);
+        await _insightService.voteInsight(insight.id, activeMatch.id, vote,
+            reason: insight.disagreeReason, customReason: insight.customReason);
       }
     } catch (e) {
       // Handle error gracefully
@@ -92,7 +95,8 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(entitlementsProvider); // Rebuild when entitlements change
-    final hasPremium = ref.watch(entitlementsProvider.notifier).hasAccess('ai_premium_base');
+    final hasPremium =
+        ref.watch(entitlementsProvider.notifier).hasAccess('ai_premium_base');
 
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -112,7 +116,11 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
               ),
               title: Text(
                 'AI Match Insights',
-                style: TextStyle(fontFamily: 'Lexend', fontSize: 18, fontWeight: FontWeight.bold, color: context.colors.textHigh),
+                style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textHigh),
               ),
               centerTitle: true,
               actions: [
@@ -127,135 +135,176 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
       ),
       body: SafeArea(
         bottom: false,
-        child: _isLoading 
-            ? Center(child: CircularProgressIndicator(color: context.colors.primary))
+        child: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(color: context.colors.primary))
             : CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: MatchSummaryCard(
-                  completedCount: _completedCount,
-                  totalCount: _insights.length,
-                  progress: _progress,
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                     final insight = _insights[index];
-                     // Free insights (first 2) or Premium user
-                     if (hasPremium || index < 2) {
-                       return Padding(
-                         padding: const EdgeInsets.only(bottom: 12),
-                         child: InsightCard(
-                           insight: insight,
-                           onVoteChanged: (vote) => _onVoteChanged(insight, vote),
-                         ),
-                       );
-                     }
-                     
-                     // For non-premium users, blur the remaining insights
-                     // Only show the "Lock" widget on the very first restricted insight
-                     final isFirstRestricted = index == 2;
-                     
-                     return Padding(
-                       padding: const EdgeInsets.only(bottom: 12),
-                       child: Stack(
-                         children: [
-                           ImageFiltered(
-                             imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                             child: IgnorePointer(
-                               child: InsightCard(
-                                 insight: insight,
-                                 onVoteChanged: (_) {},
-                               ),
-                             ),
-                           ),
-                           if (isFirstRestricted)
-                             Positioned.fill(
-                               child: Center(
-                                 child: Container(
-                                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-                                   padding: const EdgeInsets.all(24),
-                                   decoration: BoxDecoration(
-                                     color: context.colors.surfaceContainerHighest.withValues(alpha: 0.95),
-                                     borderRadius: BorderRadius.circular(24),
-                                     border: Border.all(color: context.colors.primaryContainer.withValues(alpha: 0.5), width: 2),
-                                   ),
-                                   child: Column(
-                                     mainAxisSize: MainAxisSize.min,
-                                     children: [
-                                       Icon(Icons.lock_person, color: context.colors.primaryContainer, size: 48),
-                                       const SizedBox(height: 16),
-                                       Text(
-                                         'Premium Insights Locked', 
-                                         style: TextStyle(fontFamily: 'Lexend', fontSize: 18, fontWeight: FontWeight.bold, color: context.colors.textHigh),
-                                         textAlign: TextAlign.center,
-                                       ),
-                                       const SizedBox(height: 8),
-                                       Text(
-                                         'Unlock all advanced algorithms and AI insights for this match.', 
-                                         textAlign: TextAlign.center, 
-                                         style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: context.colors.textMedium)
-                                       ),
-                                       const SizedBox(height: 20),
-                                       SizedBox(
-                                         width: double.infinity,
-                                         child: FilledButton.icon(
-                                           onPressed: () {
-                                             _showPremiumPurchaseBottomSheet(context, ref);
-                                           },
-                                           icon: const Icon(Icons.workspace_premium),
-                                           label: const Text('Unlock via Store', style: TextStyle(fontWeight: FontWeight.bold)),
-                                           style: FilledButton.styleFrom(
-                                             padding: const EdgeInsets.symmetric(vertical: 16),
-                                             backgroundColor: context.colors.primaryContainer,
-                                             foregroundColor: context.colors.background,
-                                           ),
-                                         ),
-                                       )
-                                     ],
-                                   ),
-                                 ),
-                               ),
-                             ),
-                         ],
-                       ),
-                     );
-                  },
-                  childCount: _insights.length,
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                 padding: const EdgeInsets.only(top: 12, bottom: 140),
-                child: Center(
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: context.colors.surfaceContainerHigh,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                    ),
-                    onPressed: () {},
-                    child: Text(
-                      'LOAD MORE INSIGHTS',
-                      style: TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: FontWeight.bold, color: context.colors.textHigh, letterSpacing: 1),
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: MatchSummaryCard(
+                        completedCount: _completedCount,
+                        totalCount: _insights.length,
+                        progress: _progress,
+                      ),
                     ),
                   ),
-                ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final insight = _insights[index];
+                          // Free insights (first 2) or Premium user
+                          if (hasPremium || index < 2) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: InsightCard(
+                                insight: insight,
+                                onVoteChanged: (vote) =>
+                                    _onVoteChanged(insight, vote),
+                              ),
+                            );
+                          }
+
+                          // For non-premium users, blur the remaining insights
+                          // Only show the "Lock" widget on the very first restricted insight
+                          final isFirstRestricted = index == 2;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Stack(
+                              children: [
+                                ImageFiltered(
+                                  imageFilter:
+                                      ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                  child: IgnorePointer(
+                                    child: InsightCard(
+                                      insight: insight,
+                                      onVoteChanged: (_) {},
+                                    ),
+                                  ),
+                                ),
+                                if (isFirstRestricted)
+                                  Positioned.fill(
+                                    child: Center(
+                                      child: Container(
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 32),
+                                        padding: const EdgeInsets.all(24),
+                                        decoration: BoxDecoration(
+                                          color: context
+                                              .colors.surfaceContainerHighest
+                                              .withValues(alpha: 0.95),
+                                          borderRadius:
+                                              BorderRadius.circular(24),
+                                          border: Border.all(
+                                              color: context
+                                                  .colors.primaryContainer
+                                                  .withValues(alpha: 0.5),
+                                              width: 2),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.lock_person,
+                                                color: context
+                                                    .colors.primaryContainer,
+                                                size: 48),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'Premium Insights Locked',
+                                              style: TextStyle(
+                                                  fontFamily: 'Lexend',
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color:
+                                                      context.colors.textHigh),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                                'Unlock all advanced algorithms and AI insights for this match.',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 13,
+                                                    color: context
+                                                        .colors.textMedium)),
+                                            const SizedBox(height: 20),
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: FilledButton.icon(
+                                                onPressed: () {
+                                                  _showPremiumPurchaseBottomSheet(
+                                                      context, ref);
+                                                },
+                                                icon: const Icon(
+                                                    Icons.workspace_premium),
+                                                label: const Text(
+                                                    'Unlock via Store',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                style: FilledButton.styleFrom(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(vertical: 16),
+                                                  backgroundColor: context
+                                                      .colors.primaryContainer,
+                                                  foregroundColor:
+                                                      context.colors.background,
+                                                ),
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                        childCount: _insights.length,
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 140),
+                      child: Center(
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                                context.colors.surfaceContainerHigh,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(32)),
+                          ),
+                          onPressed: () {},
+                          child: Text(
+                            'LOAD MORE INSIGHTS',
+                            style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.textHigh,
+                                letterSpacing: 1),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
+
   void _showPremiumPurchaseBottomSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
@@ -271,7 +320,8 @@ class _PremiumPurchaseModal extends ConsumerStatefulWidget {
   const _PremiumPurchaseModal({required this.parentRef});
 
   @override
-  ConsumerState<_PremiumPurchaseModal> createState() => _PremiumPurchaseModalState();
+  ConsumerState<_PremiumPurchaseModal> createState() =>
+      _PremiumPurchaseModalState();
 }
 
 class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
@@ -282,12 +332,14 @@ class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
     try {
       await ref.read(storeServiceProvider).buyStoreItem(product.productCode);
       await ref.read(entitlementsProvider.notifier).refresh();
-      
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Kilit Açıldı! Premium ayrıcalıkların keyfini çıkarın.', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: Text(
+                'Kilit Açıldı! Premium ayrıcalıkların keyfini çıkarın.',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -323,22 +375,39 @@ class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: context.colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: context.colors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
-            Icon(Icons.workspace_premium, color: context.colors.primaryContainer, size: 64),
+            Icon(Icons.workspace_premium,
+                color: context.colors.primaryContainer, size: 64),
             const SizedBox(height: 16),
-            Text('Premium K-Coin Paketi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: context.colors.textHigh, fontWeight: FontWeight.bold)),
+            Text('Premium K-Coin Paketi',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: context.colors.textHigh,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('Hesabınızı yükseltin ve gelişmiş yapay zeka analizlerinin tamamına anında erişin.', textAlign: TextAlign.center, style: TextStyle(color: context.colors.textMedium)),
+            Text(
+                'Hesabınızı yükseltin ve gelişmiş yapay zeka analizlerinin tamamına anında erişin.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.textMedium)),
             const SizedBox(height: 32),
             productsAsync.when(
               data: (products) {
                 // Find ai_premium_base or ai_premium_1m
-                final p = products.where((p) => p.productCode.contains('premium_base') || p.productCode.contains('premium')).firstOrNull;
+                final p = products
+                    .where((p) =>
+                        p.productCode.contains('premium_base') ||
+                        p.productCode.contains('premium'))
+                    .firstOrNull;
                 if (p == null) {
-                  return Text('Mağazada uygun paket bulunamadı.', style: TextStyle(color: context.colors.error));
+                  return Text('Mağazada uygun paket bulunamadı.',
+                      style: TextStyle(color: context.colors.error));
                 }
-                
+
                 return SizedBox(
                   width: double.infinity,
                   child: FilledButton(
@@ -346,17 +415,25 @@ class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: context.colors.primaryContainer,
                       foregroundColor: context.colors.background,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: _isPurchasing ? null : () => _buyProduct(p),
-                    child: _isPurchasing 
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('Satın Al (${p.price} K-Coin)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: _isPurchasing
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Text('Satın Al (${p.price} K-Coin)',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 );
               },
               loading: () => const CircularProgressIndicator(),
-              error: (e, st) => Text('Paketler yüklenemedi.', style: TextStyle(color: context.colors.error)),
+              error: (e, st) => Text('Paketler yüklenemedi.',
+                  style: TextStyle(color: context.colors.error)),
             ),
           ],
         ),
@@ -384,7 +461,9 @@ class MatchSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
+        border: Border.all(
+            color:
+                context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -400,32 +479,65 @@ class MatchSummaryCard extends StatelessWidget {
             children: [
               Column(
                 children: [
-                  Container(width: 56, height: 56, color: Colors.grey[200]), // Placeholder for team logo
+                  Container(
+                      width: 56,
+                      height: 56,
+                      color: Colors.grey[200]), // Placeholder for team logo
                   const SizedBox(height: 8),
-                  Text('LIVERPOOL', style: TextStyle(fontFamily: 'Lexend', fontSize: 14, fontWeight: FontWeight.bold, color: context.colors.textHigh)),
+                  Text('LIVERPOOL',
+                      style: TextStyle(
+                          fontFamily: 'Lexend',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.textHigh)),
                 ],
               ),
               Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFD8863),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    child: const Text('LIVE',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1)),
                   ),
                   const SizedBox(height: 8),
-                  Text('2 - 1', style: TextStyle(fontFamily: 'Lexend', fontSize: 36, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
+                  Text('2 - 1',
+                      style: TextStyle(
+                          fontFamily: 'Lexend',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          color: context.colors.textHigh)),
                   const SizedBox(height: 4),
-                  Text("74' MINS", style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textMedium, letterSpacing: 0.5)),
+                  Text("74' MINS",
+                      style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.textMedium,
+                          letterSpacing: 0.5)),
                 ],
               ),
               Column(
                 children: [
-                  Container(width: 56, height: 56, color: Colors.grey[200]), // Placeholder for team logo
+                  Container(
+                      width: 56,
+                      height: 56,
+                      color: Colors.grey[200]), // Placeholder for team logo
                   const SizedBox(height: 8),
-                  Text('R. MADRID', style: TextStyle(fontFamily: 'Lexend', fontSize: 14, fontWeight: FontWeight.bold, color: context.colors.textHigh)),
+                  Text('R. MADRID',
+                      style: TextStyle(
+                          fontFamily: 'Lexend',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.textHigh)),
                 ],
               ),
             ],
@@ -437,8 +549,18 @@ class MatchSummaryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('AI generated 10 key insights for this match', style: TextStyle(fontFamily: 'Inter', fontSize: 12, color: context.colors.textMedium, fontWeight: FontWeight.w500)),
-              Text('$completedCount / $totalCount COMPLETED', style: TextStyle(fontFamily: 'Lexend', fontSize: 10, color: context.colors.primary, fontWeight: FontWeight.bold)),
+              Text('AI generated 10 key insights for this match',
+                  style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: context.colors.textMedium,
+                      fontWeight: FontWeight.w500)),
+              Text('$completedCount / $totalCount COMPLETED',
+                  style: TextStyle(
+                      fontFamily: 'Lexend',
+                      fontSize: 10,
+                      color: context.colors.primary,
+                      fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -447,7 +569,8 @@ class MatchSummaryCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: context.colors.surfaceContainer,
-              valueColor: AlwaysStoppedAnimation<Color>(context.colors.primaryContainer),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  context.colors.primaryContainer),
               minHeight: 6,
             ),
           ),
@@ -471,10 +594,11 @@ class InsightCard extends StatefulWidget {
   State<InsightCard> createState() => _InsightCardState();
 }
 
-class _InsightCardState extends State<InsightCard> with SingleTickerProviderStateMixin {
+class _InsightCardState extends State<InsightCard>
+    with SingleTickerProviderStateMixin {
   bool get _isAnswered => widget.insight.isAnswered;
   bool get _isDisagree => widget.insight.userVote == UserVoteType.disagree;
-  
+
   final List<String> _quickReasons = [
     'Stats misleading',
     'Form not relevant',
@@ -501,7 +625,9 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
         color: context.colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _isDisagree ? context.colors.error.withValues(alpha: 0.3) : context.colors.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: _isDisagree
+              ? context.colors.error.withValues(alpha: 0.3)
+              : context.colors.surfaceContainerHighest.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -513,26 +639,44 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: context.colors.primaryContainer.withValues(alpha: 0.2),
+                      color: context.colors.primaryContainer
+                          .withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text('AI INSIGHT', style: TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1, color: context.colors.primary)),
+                    child: Text('AI INSIGHT',
+                        style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                            color: context.colors.primary)),
                   ),
                   if (widget.insight.consensusData?.fanLabel != null) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: context.colors.secondaryContainer.withValues(alpha: 0.3),
+                        color: context.colors.secondaryContainer
+                            .withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.local_fire_department, size: 10, color: context.colors.secondary),
+                          Icon(Icons.local_fire_department,
+                              size: 10, color: context.colors.secondary),
                           const SizedBox(width: 4),
-                          Text(widget.insight.consensusData!.fanLabel!.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.bold, color: context.colors.secondary)),
+                          Text(
+                              widget.insight.consensusData!.fanLabel!
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: context.colors.secondary)),
                         ],
                       ),
                     ),
@@ -544,9 +688,14 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
             ],
           ),
           const SizedBox(height: 12),
-          Text(widget.insight.text, style: TextStyle(fontFamily: 'Lexend', fontSize: 14, fontWeight: FontWeight.w500, color: context.colors.textHigh, height: 1.4)),
+          Text(widget.insight.text,
+              style: TextStyle(
+                  fontFamily: 'Lexend',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: context.colors.textHigh,
+                  height: 1.4)),
           const SizedBox(height: 16),
-          
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
             child: _isAnswered ? _buildAnsweredState() : _buildActionRow(),
@@ -559,11 +708,23 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
   Widget _buildActionRow() {
     return Row(
       children: [
-        Expanded(child: _VoteButton(icon: Icons.thumb_up, label: 'Agree', onTap: () => _handleVote(UserVoteType.agree))),
+        Expanded(
+            child: _VoteButton(
+                icon: Icons.thumb_up,
+                label: 'Agree',
+                onTap: () => _handleVote(UserVoteType.agree))),
         const SizedBox(width: 8),
-        Expanded(child: _VoteButton(icon: Icons.question_mark, label: 'Not sure', onTap: () => _handleVote(UserVoteType.unsure))),
+        Expanded(
+            child: _VoteButton(
+                icon: Icons.question_mark,
+                label: 'Not sure',
+                onTap: () => _handleVote(UserVoteType.unsure))),
         const SizedBox(width: 8),
-        Expanded(child: _VoteButton(icon: Icons.thumb_down, label: 'Disagree', onTap: () => _handleVote(UserVoteType.disagree))),
+        Expanded(
+            child: _VoteButton(
+                icon: Icons.thumb_down,
+                label: 'Disagree',
+                onTap: () => _handleVote(UserVoteType.disagree))),
       ],
     );
   }
@@ -584,7 +745,9 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
                 FractionallySizedBox(
                   widthFactor: widget.insight.consensusData!.agreePercent / 100,
                   child: Container(
-                    decoration: BoxDecoration(color: context.colors.primaryContainer, borderRadius: BorderRadius.circular(16)),
+                    decoration: BoxDecoration(
+                        color: context.colors.primaryContainer,
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
                 Padding(
@@ -594,16 +757,34 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.check_circle, size: 12, color: context.colors.onPrimaryContainer),
+                          Icon(Icons.check_circle,
+                              size: 12,
+                              color: context.colors.onPrimaryContainer),
                           const SizedBox(width: 4),
-                          Text('${widget.insight.consensusData!.agreePercent}% AGREE', style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.onPrimaryContainer)),
+                          Text(
+                              '${widget.insight.consensusData!.agreePercent}% AGREE',
+                              style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: context.colors.onPrimaryContainer)),
                         ],
                       ),
                       Row(
                         children: [
-                          Text('${widget.insight.consensusData!.unsurePercent}% Unsure', style: TextStyle(fontFamily: 'Inter', fontSize: 10, color: context.colors.textMedium)),
+                          Text(
+                              '${widget.insight.consensusData!.unsurePercent}% Unsure',
+                              style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 10,
+                                  color: context.colors.textMedium)),
                           const SizedBox(width: 12),
-                          Text('${widget.insight.consensusData!.disagreePercent}% Disagree', style: TextStyle(fontFamily: 'Inter', fontSize: 10, color: context.colors.textMedium)),
+                          Text(
+                              '${widget.insight.consensusData!.disagreePercent}% Disagree',
+                              style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 10,
+                                  color: context.colors.textMedium)),
                         ],
                       ),
                     ],
@@ -613,7 +794,6 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
             ),
           ),
         ],
-        
         if (_isDisagree)
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
@@ -628,7 +808,13 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('WHY DO YOU DISAGREE?', style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.textMedium, letterSpacing: 1)),
+                  Text('WHY DO YOU DISAGREE?',
+                      style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.textMedium,
+                          letterSpacing: 1)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -638,15 +824,29 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
                       return GestureDetector(
                         onTap: () => _selectReason(r),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isSelected ? context.colors.errorContainer : context.colors.surfaceContainerHighest,
+                            color: isSelected
+                                ? context.colors.errorContainer
+                                : context.colors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: isSelected ? context.colors.error.withValues(alpha: 0.3) : context.colors.outline.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: isSelected
+                                    ? context.colors.error
+                                        .withValues(alpha: 0.3)
+                                    : context.colors.outline
+                                        .withValues(alpha: 0.3)),
                           ),
                           child: Text(
-                            r, 
-                            style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? context.colors.onErrorContainer : context.colors.textHigh),
+                            r,
+                            style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? context.colors.onErrorContainer
+                                    : context.colors.textHigh),
                           ),
                         ),
                       );
@@ -659,13 +859,15 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
                     decoration: BoxDecoration(
                       color: context.colors.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: context.colors.surfaceContainer),
+                      border:
+                          Border.all(color: context.colors.surfaceContainer),
                     ),
                     child: TextField(
                       style: const TextStyle(fontSize: 12),
                       decoration: InputDecoration(
                         hintText: 'Add your own...',
-                        hintStyle: TextStyle(fontSize: 12, color: context.colors.textLow),
+                        hintStyle: TextStyle(
+                            fontSize: 12, color: context.colors.textLow),
                         border: InputBorder.none,
                         focusedBorder: InputBorder.none,
                       ),
@@ -675,13 +877,18 @@ class _InsightCardState extends State<InsightCard> with SingleTickerProviderStat
               ),
             ),
           ),
-          
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
           child: GestureDetector(
             onTap: () => _handleVote(UserVoteType.none),
-            child: Text('CHANGE VOTE', style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.bold, color: context.colors.primary, decoration: TextDecoration.underline)),
+            child: Text('CHANGE VOTE',
+                style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.primary,
+                    decoration: TextDecoration.underline)),
           ),
         ),
       ],
@@ -715,7 +922,12 @@ class _VoteButton extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: context.colors.textHigh),
             const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: FontWeight.bold, color: context.colors.textHigh)),
+            Text(label,
+                style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textHigh)),
           ],
         ),
       ),

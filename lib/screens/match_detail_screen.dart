@@ -441,18 +441,18 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: isHighHype
-                ? const Color(0xFFE11D48).withValues(alpha: 0.8)
-                : Colors.black.withValues(alpha: 0.3),
+                ? context.colors.liveAccent.withValues(alpha: 0.82)
+                : context.colors.overlayScrim.withValues(alpha: 0.42),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isHighHype
-                  ? Colors.white.withValues(alpha: 0.5)
-                  : Colors.white.withValues(alpha: 0.1),
+                  ? context.colors.surface.withValues(alpha: 0.5)
+                  : context.colors.surface.withValues(alpha: 0.1),
             ),
             boxShadow: isHighHype
                 ? [
                     BoxShadow(
-                      color: const Color(0xFFE11D48).withValues(alpha: 0.6),
+                      color: context.colors.liveAccent.withValues(alpha: 0.55),
                       blurRadius: 12,
                       spreadRadius: 2,
                     )
@@ -469,8 +469,8 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
               const SizedBox(width: 6),
               Text(
                 "Nabız: %$percentage",
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: context.colors.surface,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                     fontFamily: 'Lexend'),
@@ -808,7 +808,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(
                   "Etkinlikten çıkıldı. En Yüksek Skorun: ${result['score']} 🏆"),
-              backgroundColor: Colors.green,
+              backgroundColor: context.colors.success,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 5),
             ));
@@ -818,15 +818,18 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFE11D48), Color(0xFF9333EA)],
+          gradient: LinearGradient(
+            colors: [
+              context.colors.heroGradientStart,
+              context.colors.heroGradientEnd,
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE11D48).withValues(alpha: 0.4),
+              color: context.colors.heroGlow.withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             )
@@ -836,31 +839,40 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Colors.white24,
+              decoration: BoxDecoration(
+                color: context.colors.surface.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.videogame_asset,
-                  color: Colors.white, size: 24),
+              child: Icon(
+                Icons.videogame_asset,
+                color: context.colors.surface,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Canlı Etkinlik Başladı!",
                       style: TextStyle(
-                          color: Colors.white,
+                          color: context.colors.surface,
                           fontWeight: FontWeight.bold,
                           fontSize: 14)),
                   Text("Hemen katıl ve K-Coin kazan",
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      style: TextStyle(
+                        color: context.colors.surface.withValues(alpha: 0.78),
+                        fontSize: 12,
+                      )),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                color: Colors.white54, size: 16),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: context.colors.surface.withValues(alpha: 0.64),
+              size: 16,
+            ),
           ],
         ),
       ),
@@ -885,12 +897,12 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                 gradient: LinearGradient(
                   colors: _isDrivingModeActive
                       ? [
-                          const Color(0xFFEF4444),
-                          const Color(0xFFB91C1C)
+                          context.colors.liveAccent,
+                          context.colors.heroGradientStart
                         ] // Kırmızı (Aktif)
                       : [
-                          const Color(0xFF1E293B),
-                          const Color(0xFF0F172A)
+                          context.colors.navBackgroundOverlay,
+                          context.colors.navBackground
                         ], // Koyu Lacivert (Pasif)
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -898,13 +910,15 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                 boxShadow: _isDrivingModeActive
                     ? [
                         BoxShadow(
-                            color: Colors.red.withValues(alpha: 0.4),
+                            color: context.colors.liveAccent
+                                .withValues(alpha: 0.4),
                             blurRadius: 20,
                             offset: const Offset(0, 8))
                       ]
                     : [
                         BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: context.colors.cardShadow
+                                .withValues(alpha: 0.2),
                             blurRadius: 10,
                             offset: const Offset(0, 4))
                       ],
@@ -914,14 +928,14 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: context.colors.surface.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       _isDrivingModeActive
                           ? Icons.directions_car
                           : Icons.directions_car_outlined,
-                      color: Colors.white,
+                      color: context.colors.surface,
                       size: 28,
                     ),
                   ),
@@ -934,8 +948,8 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                           _isDrivingModeActive
                               ? "Sürüş Modu Aktif"
                               : "Sürüş Modunu Aç",
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.colors.surface,
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
@@ -947,7 +961,8 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                               ? "Maçın skoru her 60 saniyede bir sesli tam otomatik okunacak."
                               : "Direksiyon başındayken maçın skorunu yapay zeka seslendirir.",
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color:
+                                context.colors.surface.withValues(alpha: 0.82),
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -960,7 +975,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                     _isDrivingModeActive
                         ? Icons.graphic_eq
                         : Icons.play_arrow_rounded,
-                    color: Colors.white,
+                    color: context.colors.surface,
                     size: 28,
                   ),
                 ],
@@ -1744,16 +1759,16 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
         aScore != null &&
         (isLive || match.status == model.MatchStatus.finished)) {
       if (hScore > aScore) {
-        homeBarColor = Colors.greenAccent;
-        awayBarColor = Colors.redAccent.withValues(alpha: 0.6);
+        homeBarColor = context.colors.success;
+        awayBarColor = context.colors.error.withValues(alpha: 0.6);
         homeGlow = true;
       } else if (hScore < aScore) {
-        homeBarColor = Colors.redAccent.withValues(alpha: 0.6);
-        awayBarColor = Colors.greenAccent;
+        homeBarColor = context.colors.error.withValues(alpha: 0.6);
+        awayBarColor = context.colors.success;
         awayGlow = true;
       } else {
-        homeBarColor = Colors.amberAccent;
-        awayBarColor = Colors.amberAccent;
+        homeBarColor = context.colors.liveAccentMuted;
+        awayBarColor = context.colors.liveAccentMuted;
         homeGlow = isLive;
         awayGlow = isLive;
       }

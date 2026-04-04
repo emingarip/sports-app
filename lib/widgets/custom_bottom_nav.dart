@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/match_provider.dart';
 import 'package:intl/intl.dart';
+import '../theme/app_theme.dart';
 
 class CustomBottomNav extends ConsumerStatefulWidget {
   const CustomBottomNav({super.key});
@@ -132,10 +133,12 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                     padding:
                         const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E).withValues(alpha: 0.95),
+                      color:
+                          context.colors.navBackground.withValues(alpha: 0.95),
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
+                            color: context.colors.cardShadow
+                                .withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                             offset: const Offset(0, 5))
@@ -187,12 +190,15 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
           child: Container(
             height: 64,
             decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E).withValues(alpha: 0.85),
+                color:
+                    context.colors.navBackgroundOverlay.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(
+                  color: context.colors.navInactive.withValues(alpha: 0.08),
+                ),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
+                      color: context.colors.cardShadow.withValues(alpha: 0.2),
                       blurRadius: 10,
                       offset: const Offset(0, -4)),
                 ]),
@@ -313,8 +319,9 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                           ? FontWeight.w900
                                           : FontWeight.w700,
                                       color: isSelected
-                                          ? const Color(0xFFFACC15)
-                                          : Colors.white.withValues(alpha: 0.5),
+                                          ? context.colors.navSelected
+                                          : context.colors.navInactive
+                                              .withValues(alpha: 0.6),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -324,8 +331,9 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                       fontSize: 16,
                                       fontWeight: FontWeight.w900,
                                       color: isSelected
-                                          ? const Color(0xFFFACC15)
-                                          : Colors.white.withValues(alpha: 0.9),
+                                          ? context.colors.navSelected
+                                          : context.colors.navInactive
+                                              .withValues(alpha: 0.92),
                                     ),
                                   ),
                                 ],
@@ -342,10 +350,11 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                     width: 56,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFACC15).withValues(alpha: 0.15),
+                      color: context.colors.navAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: const Color(0xFFFACC15).withValues(alpha: 0.5),
+                          color:
+                              context.colors.navAccent.withValues(alpha: 0.5),
                           width: 1.5),
                     ),
                   ),
@@ -460,14 +469,17 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFACC15).withValues(alpha: fillOpacity),
+                  color:
+                      context.colors.navAccent.withValues(alpha: fillOpacity),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: const Color(0xFFFACC15).withValues(alpha: borderOpacity),
+                    color: context.colors.navAccent
+                        .withValues(alpha: borderOpacity),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFACC15).withValues(alpha: glowOpacity),
+                      color:
+                          context.colors.navGlow.withValues(alpha: glowOpacity),
                       blurRadius: lerpDouble(10, 18, hintProgress)!,
                       spreadRadius: lerpDouble(0.0, 1.0, hintProgress)!,
                       offset: const Offset(0, 8),
@@ -487,11 +499,11 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  const Color(0xFFFFF4AE).withOpacity(
-                                    highlightOpacity,
+                                  context.colors.navSelected.withValues(
+                                    alpha: highlightOpacity,
                                   ),
-                                  const Color(0xFFFACC15).withOpacity(
-                                    highlightOpacity * 0.65,
+                                  context.colors.navAccent.withValues(
+                                    alpha: highlightOpacity * 0.65,
                                   ),
                                   Colors.transparent,
                                 ],
@@ -508,23 +520,23 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                           children: [
                             Text(
                               dayPrefix,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 8,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.7,
-                                color: Color(0xFFFACC15),
+                                color: context.colors.navSelected,
                               ),
                             ),
                             const SizedBox(height: 1),
                             Text(
                               "$dayNumber $monthStr",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.3,
-                                color: Color(0xFFFACC15),
+                                color: context.colors.navSelected,
                               ),
                             ),
                           ],
@@ -576,7 +588,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
             scale: scale,
             child: Icon(
               Icons.keyboard_arrow_up_rounded,
-              color: const Color(0xFFFACC15),
+              color: context.colors.navAccent,
               size: size,
             ),
           ),
@@ -604,7 +616,7 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFFACC15).withValues(alpha: 0.15)
+              ? context.colors.navAccent.withValues(alpha: 0.15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(30),
         ),
@@ -613,8 +625,8 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
           children: [
             Icon(icon,
                 color: isSelected
-                    ? const Color(0xFFFACC15)
-                    : Colors.white.withValues(alpha: 0.6),
+                    ? context.colors.navSelected
+                    : context.colors.navInactive.withValues(alpha: 0.65),
                 size: isSelected ? 22 : 20),
             const SizedBox(height: 4),
             Text(
@@ -625,8 +637,8 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
                 color: isSelected
-                    ? const Color(0xFFFACC15)
-                    : Colors.white.withValues(alpha: 0.6),
+                    ? context.colors.navSelected
+                    : context.colors.navInactive.withValues(alpha: 0.65),
               ),
               overflow: TextOverflow.ellipsis,
             ),
