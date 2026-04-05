@@ -17,6 +17,8 @@ class _FilterRowState extends ConsumerState<FilterRow> {
 
   late final TextEditingController _searchController;
   late final FocusNode _searchFocusNode;
+  late final ScrollController _controlsScrollController;
+  bool _lastInlineSearchOpen = false;
 
   @override
   void initState() {
@@ -24,6 +26,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     final matchState = ref.read(matchStateProvider);
     _searchController =
         TextEditingController(text: matchState.inlineSearchQuery);
+    _controlsScrollController = ScrollController();
     _searchFocusNode = FocusNode()
       ..addListener(() {
         if (!_searchFocusNode.hasFocus &&
@@ -38,6 +41,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _controlsScrollController.dispose();
     super.dispose();
   }
 
@@ -50,6 +54,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     final resultCount = ref.watch(matchListItemsProvider).length;
 
     _syncSearchInput(matchState);
+    _syncControlsPosition(isInlineSearchOpen);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -57,6 +62,8 @@ class _FilterRowState extends ConsumerState<FilterRow> {
         children: [
           Expanded(
             child: SingleChildScrollView(
+              controller: _controlsScrollController,
+              clipBehavior: Clip.hardEdge,
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
@@ -329,6 +336,43 @@ class _FilterRowState extends ConsumerState<FilterRow> {
         _searchFocusNode.requestFocus();
       }
     });
+  }
+
+  void _syncControlsPosition(bool isInlineSearchOpen) {
+    if (_lastInlineSearchOpen == isInlineSearchOpen) {
+      return;
+    }
+
+    _lastInlineSearchOpen = isInlineSearchOpen;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_controlsScrollController.hasClients) {
+        return;
+      }
+
+      _animateControlsToTarget(isInlineSearchOpen);
+
+      if (isInlineSearchOpen) {
+        Future<void>.delayed(const Duration(milliseconds: 120), () {
+          if (!mounted || !_controlsScrollController.hasClients) {
+            return;
+          }
+          _animateControlsToTarget(true);
+        });
+      }
+    });
+  }
+
+  void _animateControlsToTarget(bool isInlineSearchOpen) {
+    final target = isInlineSearchOpen
+        ? _controlsScrollController.position.maxScrollExtent
+        : _controlsScrollController.position.minScrollExtent;
+
+    _controlsScrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Widget _buildStatusToggle(
