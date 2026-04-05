@@ -554,7 +554,7 @@ class _FilterRowLayout {
     if (isUltraCompact) {
       return _FilterRowLayout(
         controlGap: 5,
-        searchGap: 4,
+        searchGap: 10,
         closedSearchWidth: 36,
         openSearchWidth: math.min(164, availableWidth * 0.48),
         statusGroupPadding: 3,
@@ -584,7 +584,7 @@ class _FilterRowLayout {
     if (isCompact) {
       return _FilterRowLayout(
         controlGap: 5,
-        searchGap: 4,
+        searchGap: 12,
         closedSearchWidth: 38,
         openSearchWidth: math.min(180, availableWidth * 0.50),
         statusGroupPadding: 3,

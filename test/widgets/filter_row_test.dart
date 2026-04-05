@@ -184,6 +184,7 @@ void main() {
           tester.getRect(find.byKey(const ValueKey('inline-search-toggle')));
 
       expect(searchToggleRect.overlaps(countRectBeforeOpen), isFalse);
+      expect(searchToggleRect.left - countRectBeforeOpen.right, greaterThanOrEqualTo(8));
       expect(tester.getSize(find.byType(FilterRow)).height, lessThanOrEqualTo(60));
 
       await tester.tap(find.byKey(const ValueKey('inline-search-toggle')));
@@ -195,6 +196,7 @@ void main() {
 
       expect(find.byKey(const ValueKey('inline-search-field')), findsOneWidget);
       expect(searchFieldRect.overlaps(countRectAfterOpen), isFalse);
+      expect(searchFieldRect.left - countRectAfterOpen.right, greaterThanOrEqualTo(8));
       expect(tester.getSize(find.byType(FilterRow)).height, lessThanOrEqualTo(60));
 
       container.dispose();
