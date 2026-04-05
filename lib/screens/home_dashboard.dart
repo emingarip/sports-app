@@ -766,10 +766,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   Widget _buildStickyContext(BuildContext context) {
-    final isInlineSearchOpen = ref.watch(
-      matchStateProvider.select((state) => state.isInlineSearchOpen),
-    );
-    final dynamicHeight = isInlineSearchOpen ? 112.0 : 88.0;
+    const dynamicHeight = 88.0;
 
     return SliverPersistentHeader(
       pinned: true,

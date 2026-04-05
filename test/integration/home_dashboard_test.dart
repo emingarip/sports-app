@@ -170,13 +170,15 @@ void main() {
         await tester.pump(const Duration(milliseconds: 700));
 
         expect(find.text('One Cikanlar'), findsOneWidget);
-        expect(find.text('Mac ara'), findsOneWidget);
+        expect(
+            find.byKey(const ValueKey('inline-search-toggle')), findsOneWidget);
 
-        await tester.tap(find.text('Mac ara'));
+        await tester.tap(find.byKey(const ValueKey('inline-search-toggle')));
         await tester.pumpAndSettle();
 
         expect(
-            find.text('Takim ve lig isimlerine gore filtrele'), findsOneWidget);
+            find.byKey(const ValueKey('inline-search-field')), findsOneWidget);
+        expect(find.text('Mac ara'), findsOneWidget);
 
         await tester.enterText(find.byType(TextField), 'Real');
         await tester.pumpAndSettle();

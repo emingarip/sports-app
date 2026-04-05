@@ -62,31 +62,29 @@ void main() {
       expect(find.text('Canli'), findsOneWidget);
       expect(find.text('Biten'), findsOneWidget);
       expect(find.text('Favoriler'), findsOneWidget);
-      expect(find.text('Mac ara'), findsOneWidget);
       expect(find.text('2 mac'), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('inline-search-toggle')), findsOneWidget);
 
-      await tester.tap(find.text('Mac ara'));
-      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('inline-search-toggle')));
+      await tester.pumpAndSettle();
 
       expect(container.read(matchStateProvider).isInlineSearchOpen, isTrue);
-      expect(
-          find.text('Takim ve lig isimlerine gore filtrele'), findsOneWidget);
+      expect(find.byKey(const ValueKey('inline-search-field')), findsOneWidget);
+      expect(find.text('Mac ara'), findsOneWidget);
+      expect(find.text('2 mac'), findsNothing);
 
       await tester.enterText(find.byType(TextField), 'Real');
       await tester.pump();
 
       expect(container.read(matchStateProvider).inlineSearchQuery, 'Real');
-      expect(find.text('1 mac bulundu'), findsOneWidget);
-
-      await tester.tap(find.byTooltip('Aramayi temizle'));
-      await tester.pump();
-
-      expect(container.read(matchStateProvider).inlineSearchQuery, isEmpty);
+      expect(find.text('Mac ara'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Aramayi kapat'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(container.read(matchStateProvider).isInlineSearchOpen, isFalse);
+      expect(find.text('2 mac'), findsOneWidget);
 
       container.dispose();
     });
