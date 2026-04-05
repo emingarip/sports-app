@@ -35,26 +35,9 @@ class MatchCard extends ConsumerWidget {
     final isFavorite = ref.watch(favoritesProvider).contains(match.id);
     final effectiveStatusLabel = statusLabel ?? _defaultStatusLabel(match);
     final normalizedHighlightQuery = highlightQuery?.trim() ?? '';
-    final highlightContexts = <_SearchHighlightContext>[
-      if (_hasHighlightMatch(match.homeTeam, normalizedHighlightQuery))
-        _SearchHighlightContext(
-          label: 'Takim',
-          value: match.homeTeam,
-          icon: Icons.shield_rounded,
-        ),
-      if (_hasHighlightMatch(match.awayTeam, normalizedHighlightQuery))
-        _SearchHighlightContext(
-          label: 'Takim',
-          value: match.awayTeam,
-          icon: Icons.shield_rounded,
-        ),
-      if (_hasHighlightMatch(match.leagueName ?? '', normalizedHighlightQuery))
-        _SearchHighlightContext(
-          label: 'Lig',
-          value: match.leagueName ?? '',
-          icon: Icons.emoji_events_rounded,
-        ),
-    ];
+    final leagueName = match.leagueName?.trim() ?? '';
+    final showLeagueContext =
+        normalizedHighlightQuery.isNotEmpty && leagueName.isNotEmpty;
     final teamNameStyle = const TextStyle(
       fontSize: 10,
       fontWeight: FontWeight.bold,
@@ -87,76 +70,67 @@ class MatchCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (highlightContexts.isNotEmpty) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final contextItem in highlightContexts)
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.sizeOf(context).width - 56,
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.colors.primaryContainer
-                              .withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color:
-                                context.colors.primary.withValues(alpha: 0.18),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              contextItem.icon,
-                              size: 12,
-                              color: context.colors.primary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${contextItem.label}: ',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: context.colors.textMedium,
-                              ),
-                            ),
-                            Flexible(
-                              child: _buildHighlightedText(
-                                context,
-                                contextItem.value,
-                                query: normalizedHighlightQuery,
-                                baseStyle: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: context.colors.textHigh,
-                                ),
-                                highlightStyle: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  color: context.colors.onPrimaryContainer,
-                                  backgroundColor:
-                                      context.colors.primaryContainer,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: context.colors.primary,
-                                  decorationThickness: 2,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+            if (showLeagueContext) ...[
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width - 56,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        context.colors.primaryContainer.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: context.colors.primary.withValues(alpha: 0.18),
                     ),
-                ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.emoji_events_rounded,
+                        size: 12,
+                        color: context.colors.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Lig: ',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: context.colors.textMedium,
+                        ),
+                      ),
+                      Flexible(
+                        child: _buildHighlightedText(
+                          context,
+                          leagueName,
+                          query: normalizedHighlightQuery,
+                          baseStyle: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.textHigh,
+                          ),
+                          highlightStyle: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: context.colors.onPrimaryContainer,
+                            backgroundColor: context.colors.primaryContainer,
+                            decoration: TextDecoration.underline,
+                            decorationColor: context.colors.primary,
+                            decorationThickness: 2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
             ],
@@ -527,18 +501,6 @@ class MatchCard extends ConsumerWidget {
 
     return highlights;
   }
-}
-
-class _SearchHighlightContext {
-  final String label;
-  final String value;
-  final IconData icon;
-
-  const _SearchHighlightContext({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
 }
 
 class _ReasonChip extends StatelessWidget {

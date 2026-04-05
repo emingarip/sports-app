@@ -185,7 +185,8 @@ void main() {
 
         expect(find.text('Arama Sonuclari'), findsOneWidget);
         expect(find.text('Real Madrid'), findsWidgets);
-        expect(find.text('Takim: '), findsOneWidget);
+        expect(find.text('Lig: '), findsOneWidget);
+        expect(find.text('Takim: '), findsNothing);
         expect(find.text('Arsenal'), findsNothing);
 
         await tester.tap(find.byTooltip('Aramayi kapat'));
