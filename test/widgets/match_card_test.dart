@@ -114,5 +114,30 @@ void main() {
         expect(find.text('1 fark'), findsOneWidget);
       });
     });
+
+    testWidgets('shows highlighted team and league context during search',
+        (WidgetTester tester) async {
+      await mockNetworkImagesFor(() async {
+        final match = createTestMatch(
+          homeTeam: 'Arsenal',
+          awayTeam: 'Chelsea',
+          leagueName: 'Premier Arsenal League',
+          status: model.MatchStatus.upcoming,
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(
+            MatchCard(
+              match: match,
+              hasBorder: false,
+              highlightQuery: 'Arsenal',
+            ),
+          ),
+        );
+
+        expect(find.text('Arsenal'), findsOneWidget);
+        expect(find.text('Premier Arsenal League'), findsOneWidget);
+      });
+    });
   });
 }

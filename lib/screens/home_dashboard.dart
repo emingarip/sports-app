@@ -228,7 +228,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 '"$inlineSearchQuery" icin ${matchItems.length} mac bulundu.',
           ),
         ),
-        _buildCardListSliver(matchItems),
+        _buildCardListSliver(
+          matchItems,
+          highlightQuery: inlineSearchQuery,
+        ),
       ];
     }
 
@@ -854,7 +857,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     );
   }
 
-  Widget _buildCardListSliver(List<MatchListItemViewModel> items) {
+  Widget _buildCardListSliver(
+    List<MatchListItemViewModel> items, {
+    String? highlightQuery,
+  }) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       sliver: SliverList(
@@ -884,6 +890,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   reasonLabel: item.reasonLabel,
                   statusLabel: item.statusLabel,
                   secondaryLabel: item.secondaryLabel,
+                  highlightQuery: highlightQuery,
                 ),
               ),
             );

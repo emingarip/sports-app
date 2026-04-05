@@ -335,6 +335,7 @@ class _DebouncedSearchDelegateWidgetState
               reasonLabel: item.reasonLabel,
               statusLabel: item.statusLabel,
               secondaryLabel: item.secondaryLabel,
+              highlightQuery: widget.query,
             ),
           ),
         ),
