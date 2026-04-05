@@ -769,7 +769,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   Widget _buildStickyContext(BuildContext context) {
-    const dynamicHeight = 88.0;
+    final dynamicHeight =
+        MediaQuery.sizeOf(context).width < 420 ? 128.0 : 88.0;
 
     return SliverPersistentHeader(
       pinned: true,

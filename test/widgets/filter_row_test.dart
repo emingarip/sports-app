@@ -140,5 +140,60 @@ void main() {
 
       container.dispose();
     });
+
+    testWidgets('uses stacked mobile layout without overlapping count and search',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          matchRepositoryProvider.overrideWithValue(mockRepo),
+          favoritesProvider.overrideWith(() => MockFavoritesNotifier()),
+        ],
+      );
+
+      mockRepo.setMatches([
+        createTestMatch(id: '1', homeTeam: 'Arsenal', awayTeam: 'Chelsea'),
+        createTestMatch(
+          id: '2',
+          homeTeam: 'Real Madrid',
+          awayTeam: 'Barcelona',
+        ),
+      ]);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(body: FilterRow()),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      final countRectBeforeOpen = tester.getRect(find.text('2 mac'));
+      final searchToggleRect =
+          tester.getRect(find.byKey(const ValueKey('inline-search-toggle')));
+
+      expect(searchToggleRect.top, greaterThanOrEqualTo(countRectBeforeOpen.bottom));
+
+      await tester.tap(find.byKey(const ValueKey('inline-search-toggle')));
+      await tester.pumpAndSettle();
+
+      final countRectAfterOpen = tester.getRect(find.text('2 mac'));
+      final searchFieldRect =
+          tester.getRect(find.byKey(const ValueKey('inline-search-field')));
+
+      expect(searchFieldRect.top, greaterThanOrEqualTo(countRectAfterOpen.bottom));
+
+      container.dispose();
+    });
   });
 }

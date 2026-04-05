@@ -14,6 +14,7 @@ class FilterRow extends ConsumerStatefulWidget {
 }
 
 class _FilterRowState extends ConsumerState<FilterRow> {
+  static const _compactLayoutBreakpoint = 420.0;
   static const _closedSearchWidth = 44.0;
   static const _openSearchWidth = 232.0;
 
@@ -22,6 +23,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   late final ScrollController _controlsScrollController;
   Timer? _searchDebounce;
   bool _lastInlineSearchOpen = false;
+  bool _lastCompactLayout = false;
 
   @override
   void initState() {
@@ -60,254 +62,66 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     final resultCount = ref.watch(matchListItemsProvider).length;
 
     _syncSearchInput(matchState);
-    _syncControlsPosition(isInlineSearchOpen);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompactLayout =
+            constraints.maxWidth < _compactLayoutBreakpoint;
+        _syncControlsLayout(
+          isCompactLayout: isCompactLayout,
+          isInlineSearchOpen: isInlineSearchOpen,
+        );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              controller: _controlsScrollController,
-              clipBehavior: Clip.hardEdge,
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: context.colors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(24),
-                      border:
-                          Border.all(color: context.colors.surfaceContainer),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: isCompactLayout
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildControlsScroller(
+                      context,
+                      ref,
+                      statusFilter: statusFilter,
+                      isStarred: isStarred,
+                      resultCount: resultCount,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildStatusToggle(
-                          context,
-                          ref,
-                          label: 'Canli',
-                          icon: Icons.fiber_manual_record,
-                          iconColor: Colors.redAccent,
-                          isActive: statusFilter == StatusFilter.live,
-                          targetFilter: StatusFilter.live,
-                        ),
-                        const SizedBox(width: 4),
-                        _buildStatusToggle(
-                          context,
-                          ref,
-                          label: 'Biten',
-                          icon: Icons.check_circle,
-                          iconColor: context.colors.textMedium,
-                          isActive: statusFilter == StatusFilter.finished,
-                          targetFilter: StatusFilter.finished,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      ref.read(matchStateProvider.notifier).toggleStarred();
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isStarred
-                            ? context.colors.primaryContainer
-                            : context.colors.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: isStarred
-                              ? context.colors.primary
-                              : context.colors.surfaceContainer,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isStarred ? Icons.star : Icons.star_border,
-                            size: 16,
-                            color: isStarred
-                                ? context.colors.onPrimaryContainer
-                                : context.colors.textMedium,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Favoriler',
-                            style: TextStyle(
-                              color: isStarred
-                                  ? context.colors.onPrimaryContainer
-                                  : context.colors.textMedium,
-                              fontWeight:
-                                  isStarred ? FontWeight.w600 : FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _buildSearchContainer(
+                        context,
+                        ref,
+                        isInlineSearchOpen: isInlineSearchOpen,
+                        width: isInlineSearchOpen
+                            ? constraints.maxWidth - 32
+                            : _closedSearchWidth,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: context.colors.surfaceContainerLow,
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: _buildControlsScroller(
+                        context,
+                        ref,
+                        statusFilter: statusFilter,
+                        isStarred: isStarred,
+                        resultCount: resultCount,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.format_list_bulleted_rounded,
-                          size: 16,
-                          color: context.colors.textMedium,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '$resultCount mac',
-                          style: TextStyle(
-                            color: context.colors.textMedium,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(width: 8),
+                    _buildSearchContainer(
+                      context,
+                      ref,
+                      isInlineSearchOpen: isInlineSearchOpen,
+                      width: isInlineSearchOpen
+                          ? _openSearchWidth
+                          : _closedSearchWidth,
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          AnimatedContainer(
-            key: const ValueKey('inline-search-container'),
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            width: isInlineSearchOpen ? _openSearchWidth : _closedSearchWidth,
-            height: 42,
-            decoration: BoxDecoration(
-              color: context.colors.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isInlineSearchOpen
-                    ? context.colors.primary.withValues(alpha: 0.28)
-                    : context.colors.surfaceContainerLow,
-              ),
-              boxShadow: isInlineSearchOpen
-                  ? [
-                      BoxShadow(
-                        color:
-                            context.colors.cardShadow.withValues(alpha: 0.06),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : null,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final showExpandedSearch =
-                    isInlineSearchOpen && constraints.maxWidth > 132;
-
-                if (!showExpandedSearch) {
-                  return Material(
-                    key: const ValueKey('inline-search-closed'),
-                    color: Colors.transparent,
-                    child: InkWell(
-                      key: const ValueKey('inline-search-toggle'),
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: () {
-                        if (!isInlineSearchOpen) {
-                          ref
-                              .read(matchStateProvider.notifier)
-                              .openInlineSearch();
-                        }
-                      },
-                      child: Center(
-                        child: Icon(
-                          Icons.search_rounded,
-                          size: 18,
-                          color: isInlineSearchOpen
-                              ? context.colors.primary
-                              : context.colors.textMedium,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                return Padding(
-                  key: const ValueKey('inline-search-open'),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search_rounded,
-                        size: 18,
-                        color: context.colors.primary,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          key: const ValueKey('inline-search-field'),
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          textInputAction: TextInputAction.search,
-                          onChanged: _handleInlineSearchChanged,
-                          decoration: InputDecoration(
-                            hintText: 'Mac ara',
-                            hintStyle: TextStyle(
-                              color: context.colors.textLow,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                          style: TextStyle(
-                            color: context.colors.textHigh,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        key: const ValueKey('inline-search-close'),
-                        tooltip: 'Aramayi kapat',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () {
-                          _closeInlineSearch();
-                        },
-                        icon: Icon(
-                          Icons.close_rounded,
-                          size: 18,
-                          color: context.colors.textMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                  ],
+                ),
+        );
+      },
     );
   }
 
@@ -350,6 +164,30 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     ref.read(matchStateProvider.notifier).closeInlineSearch();
   }
 
+  void _syncControlsLayout({
+    required bool isCompactLayout,
+    required bool isInlineSearchOpen,
+  }) {
+    if (isCompactLayout) {
+      if (!_lastCompactLayout) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_controlsScrollController.hasClients) {
+            return;
+          }
+          _controlsScrollController.jumpTo(
+            _controlsScrollController.position.minScrollExtent,
+          );
+        });
+      }
+      _lastCompactLayout = true;
+      _lastInlineSearchOpen = isInlineSearchOpen;
+      return;
+    }
+
+    _lastCompactLayout = false;
+    _syncControlsPosition(isInlineSearchOpen);
+  }
+
   void _syncControlsPosition(bool isInlineSearchOpen) {
     if (_lastInlineSearchOpen == isInlineSearchOpen) {
       return;
@@ -384,6 +222,256 @@ class _FilterRowState extends ConsumerState<FilterRow> {
       target,
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
+    );
+  }
+
+  Widget _buildControlsScroller(
+    BuildContext context,
+    WidgetRef ref, {
+    required StatusFilter statusFilter,
+    required bool isStarred,
+    required int resultCount,
+  }) {
+    return SingleChildScrollView(
+      controller: _controlsScrollController,
+      clipBehavior: Clip.hardEdge,
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: context.colors.surfaceContainer),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildStatusToggle(
+                  context,
+                  ref,
+                  label: 'Canli',
+                  icon: Icons.fiber_manual_record,
+                  iconColor: Colors.redAccent,
+                  isActive: statusFilter == StatusFilter.live,
+                  targetFilter: StatusFilter.live,
+                ),
+                const SizedBox(width: 4),
+                _buildStatusToggle(
+                  context,
+                  ref,
+                  label: 'Biten',
+                  icon: Icons.check_circle,
+                  iconColor: context.colors.textMedium,
+                  isActive: statusFilter == StatusFilter.finished,
+                  targetFilter: StatusFilter.finished,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () {
+              ref.read(matchStateProvider.notifier).toggleStarred();
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: isStarred
+                    ? context.colors.primaryContainer
+                    : context.colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isStarred
+                      ? context.colors.primary
+                      : context.colors.surfaceContainer,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isStarred ? Icons.star : Icons.star_border,
+                    size: 16,
+                    color: isStarred
+                        ? context.colors.onPrimaryContainer
+                        : context.colors.textMedium,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Favoriler',
+                    style: TextStyle(
+                      color: isStarred
+                          ? context.colors.onPrimaryContainer
+                          : context.colors.textMedium,
+                      fontWeight:
+                          isStarred ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: context.colors.surfaceContainerLow,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.format_list_bulleted_rounded,
+                  size: 16,
+                  color: context.colors.textMedium,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '$resultCount mac',
+                  style: TextStyle(
+                    color: context.colors.textMedium,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchContainer(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isInlineSearchOpen,
+    required double width,
+  }) {
+    return AnimatedContainer(
+      key: const ValueKey('inline-search-container'),
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      width: width,
+      height: 42,
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isInlineSearchOpen
+              ? context.colors.primary.withValues(alpha: 0.28)
+              : context.colors.surfaceContainerLow,
+        ),
+        boxShadow: isInlineSearchOpen
+            ? [
+                BoxShadow(
+                  color: context.colors.cardShadow.withValues(alpha: 0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showExpandedSearch =
+              isInlineSearchOpen && constraints.maxWidth > 132;
+
+          if (!showExpandedSearch) {
+            return Material(
+              key: const ValueKey('inline-search-closed'),
+              color: Colors.transparent,
+              child: InkWell(
+                key: const ValueKey('inline-search-toggle'),
+                borderRadius: BorderRadius.circular(24),
+                onTap: () {
+                  if (!isInlineSearchOpen) {
+                    ref.read(matchStateProvider.notifier).openInlineSearch();
+                  }
+                },
+                child: Center(
+                  child: Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: isInlineSearchOpen
+                        ? context.colors.primary
+                        : context.colors.textMedium,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return Padding(
+            key: const ValueKey('inline-search-open'),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  size: 18,
+                  color: context.colors.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('inline-search-field'),
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    textInputAction: TextInputAction.search,
+                    onChanged: _handleInlineSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Mac ara',
+                      hintStyle: TextStyle(
+                        color: context.colors.textLow,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                    style: TextStyle(
+                      color: context.colors.textHigh,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('inline-search-close'),
+                  tooltip: 'Aramayi kapat',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    _closeInlineSearch();
+                  },
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: context.colors.textMedium,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
