@@ -424,31 +424,36 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                 ),
                 SizedBox(width: layout.searchContentGap),
                 Expanded(
-                  child: TextField(
-                    key: const ValueKey('inline-search-field'),
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    textInputAction: TextInputAction.search,
-                    onChanged: _handleInlineSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: 'Mac ara',
-                      hintStyle: TextStyle(
-                        color: context.colors.textLow,
-                        fontSize: layout.searchHintTextSize,
-                        fontWeight: FontWeight.w500,
-                        height: 1.0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextField(
+                      key: const ValueKey('inline-search-field'),
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      textInputAction: TextInputAction.search,
+                      textAlignVertical: TextAlignVertical.center,
+                      onChanged: _handleInlineSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Mac ara',
+                        hintStyle: TextStyle(
+                          color: context.colors.textLow,
+                          fontSize: layout.searchHintTextSize,
+                          fontWeight: FontWeight.w500,
+                          height: 1.15,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        isCollapsed: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: layout.searchInputVerticalPadding,
+                        ),
                       ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: layout.searchInputVerticalPadding,
+                      style: TextStyle(
+                        color: context.colors.textHigh,
+                        fontSize: layout.searchTextSize,
+                        fontWeight: FontWeight.w600,
+                        height: 1.15,
                       ),
-                    ),
-                    style: TextStyle(
-                      color: context.colors.textHigh,
-                      fontSize: layout.searchTextSize,
-                      fontWeight: FontWeight.w600,
-                      height: 1.0,
                     ),
                   ),
                 ),
@@ -456,6 +461,12 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                   key: const ValueKey('inline-search-close'),
                   tooltip: 'Aramayi kapat',
                   visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints.tightFor(
+                    width: layout.searchActionExtent,
+                    height: layout.searchActionExtent,
+                  ),
+                  splashRadius: layout.searchActionExtent * 0.5,
                   onPressed: () {
                     _closeInlineSearch();
                   },
@@ -550,6 +561,7 @@ class _FilterRowLayout {
   final double searchHintTextSize;
   final double searchContainerHeight;
   final double searchInputVerticalPadding;
+  final double searchActionExtent;
   final double trailingControlsInset;
   final String favoritesLabel;
   final String resultCountLabel;
@@ -578,6 +590,7 @@ class _FilterRowLayout {
     required this.searchHintTextSize,
     required this.searchContainerHeight,
     required this.searchInputVerticalPadding,
+    required this.searchActionExtent,
     required this.trailingControlsInset,
     required this.favoritesLabel,
     required this.resultCountLabel,
@@ -595,7 +608,7 @@ class _FilterRowLayout {
         controlGap: 4,
         searchGap: 8,
         closedSearchWidth: 36,
-        openSearchWidth: math.min(158, availableWidth * 0.46),
+        openSearchWidth: math.min(178, availableWidth * 0.50),
         statusGroupPadding: 2,
         statusItemGap: 2,
         toggleHorizontalPadding: 9,
@@ -609,12 +622,13 @@ class _FilterRowLayout {
         chipIconSize: 13,
         chipTextSize: 10.5,
         searchHorizontalPadding: 9,
-        searchContentGap: 7,
+        searchContentGap: 8,
         searchIconSize: 16,
-        searchTextSize: 12.5,
-        searchHintTextSize: 11.5,
-        searchContainerHeight: 40,
-        searchInputVerticalPadding: 2,
+        searchTextSize: 12.75,
+        searchHintTextSize: 11.75,
+        searchContainerHeight: 42,
+        searchInputVerticalPadding: 4,
+        searchActionExtent: 28,
         trailingControlsInset: 0,
         favoritesLabel: 'Fav',
         resultCountLabel: '$resultCount',
@@ -626,7 +640,7 @@ class _FilterRowLayout {
         controlGap: 4,
         searchGap: 8,
         closedSearchWidth: 36,
-        openSearchWidth: math.min(184, availableWidth * 0.50),
+        openSearchWidth: math.min(198, availableWidth * 0.54),
         statusGroupPadding: 2,
         statusItemGap: 2,
         toggleHorizontalPadding: 9,
@@ -640,12 +654,13 @@ class _FilterRowLayout {
         chipIconSize: 14,
         chipTextSize: 11,
         searchHorizontalPadding: 9,
-        searchContentGap: 7,
-        searchIconSize: 16,
-        searchTextSize: 12.5,
-        searchHintTextSize: 11.5,
-        searchContainerHeight: 40,
-        searchInputVerticalPadding: 2,
+        searchContentGap: 8,
+        searchIconSize: 17,
+        searchTextSize: 13.25,
+        searchHintTextSize: 12.25,
+        searchContainerHeight: 42,
+        searchInputVerticalPadding: 4,
+        searchActionExtent: 30,
         trailingControlsInset: 0,
         favoritesLabel: 'Favori',
         resultCountLabel: '$resultCount',
@@ -675,7 +690,8 @@ class _FilterRowLayout {
       searchTextSize: 14,
       searchHintTextSize: 13,
       searchContainerHeight: 42,
-      searchInputVerticalPadding: 1,
+      searchInputVerticalPadding: 3,
+      searchActionExtent: 32,
       trailingControlsInset: 4,
       favoritesLabel: 'Favoriler',
       resultCountLabel: '$resultCount mac',
