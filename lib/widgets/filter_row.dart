@@ -151,43 +151,37 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    child: isInlineSearchOpen
-                        ? const SizedBox.shrink()
-                        : Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.colors.surfaceContainerLowest,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: context.colors.surfaceContainerLow,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.format_list_bulleted_rounded,
-                                  size: 16,
-                                  color: context.colors.textMedium,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '$resultCount mac',
-                                  style: TextStyle(
-                                    color: context.colors.textMedium,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.colors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: context.colors.surfaceContainerLow,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.format_list_bulleted_rounded,
+                          size: 16,
+                          color: context.colors.textMedium,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$resultCount mac',
+                          style: TextStyle(
+                            color: context.colors.textMedium,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
                           ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

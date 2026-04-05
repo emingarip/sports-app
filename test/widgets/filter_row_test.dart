@@ -72,7 +72,7 @@ void main() {
       expect(container.read(matchStateProvider).isInlineSearchOpen, isTrue);
       expect(find.byKey(const ValueKey('inline-search-field')), findsOneWidget);
       expect(find.text('Mac ara'), findsOneWidget);
-      expect(find.text('2 mac'), findsNothing);
+      expect(find.text('2 mac'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'Real');
       await tester.pump();
