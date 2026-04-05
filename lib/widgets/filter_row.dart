@@ -20,6 +20,9 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   late final ScrollController _controlsScrollController;
   Timer? _searchDebounce;
   bool _lastInlineSearchOpen = false;
+  int? _lastResultCount;
+  bool? _lastDetachedResultCount;
+  bool _isLayoutRefreshQueued = false;
 
   @override
   void initState() {
@@ -67,6 +70,11 @@ class _FilterRowState extends ConsumerState<FilterRow> {
           final layout = _FilterRowLayout.resolve(
             availableWidth: constraints.maxWidth,
             resultCount: resultCount,
+          );
+          _syncInitialLayout(
+            isInlineSearchOpen: isInlineSearchOpen,
+            resultCount: resultCount,
+            detachedResultCount: layout.detachedResultCount,
           );
 
           return Row(
@@ -117,6 +125,39 @@ class _FilterRowState extends ConsumerState<FilterRow> {
       if (matchState.isInlineSearchOpen && !_searchFocusNode.hasFocus) {
         _searchFocusNode.requestFocus();
       }
+    });
+  }
+
+  void _syncInitialLayout({
+    required bool isInlineSearchOpen,
+    required int resultCount,
+    required bool detachedResultCount,
+  }) {
+    final resultCountChanged = _lastResultCount != resultCount;
+    final detachedModeChanged = _lastDetachedResultCount != detachedResultCount;
+
+    _lastResultCount = resultCount;
+    _lastDetachedResultCount = detachedResultCount;
+
+    if (!(resultCountChanged || detachedModeChanged) || _isLayoutRefreshQueued) {
+      return;
+    }
+
+    _isLayoutRefreshQueued = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isLayoutRefreshQueued = false;
+      if (!mounted) {
+        return;
+      }
+
+      if (_controlsScrollController.hasClients && !isInlineSearchOpen) {
+        _controlsScrollController.jumpTo(
+          _controlsScrollController.position.minScrollExtent,
+        );
+      }
+
+      setState(() {});
     });
   }
 
