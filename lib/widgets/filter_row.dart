@@ -630,7 +630,7 @@ class _FilterRowLayout {
         searchInputVerticalPadding: 4,
         searchActionExtent: 28,
         trailingControlsInset: 0,
-        favoritesLabel: 'Fav',
+        favoritesLabel: 'Favoriler',
         resultCountLabel: '$resultCount',
       );
     }
@@ -662,7 +662,7 @@ class _FilterRowLayout {
         searchInputVerticalPadding: 4,
         searchActionExtent: 30,
         trailingControlsInset: 0,
-        favoritesLabel: 'Favori',
+        favoritesLabel: 'Favoriler',
         resultCountLabel: '$resultCount',
       );
     }
