@@ -21,7 +21,6 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   Timer? _searchDebounce;
   bool _lastInlineSearchOpen = false;
   int? _lastResultCount;
-  bool? _lastDetachedResultCount;
   bool _isLayoutRefreshQueued = false;
 
   @override
@@ -74,7 +73,6 @@ class _FilterRowState extends ConsumerState<FilterRow> {
           _syncInitialLayout(
             isInlineSearchOpen: isInlineSearchOpen,
             resultCount: resultCount,
-            detachedResultCount: layout.detachedResultCount,
           );
 
           return Row(
@@ -88,10 +86,8 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                   layout: layout,
                 ),
               ),
-              if (layout.detachedResultCount) ...[
-                SizedBox(width: layout.controlGap),
-                _buildResultCountChip(context, layout),
-              ],
+              SizedBox(width: layout.controlGap),
+              _buildResultCountChip(context, layout),
               SizedBox(width: layout.searchGap),
               _buildSearchContainer(
                 context,
@@ -131,15 +127,12 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   void _syncInitialLayout({
     required bool isInlineSearchOpen,
     required int resultCount,
-    required bool detachedResultCount,
   }) {
     final resultCountChanged = _lastResultCount != resultCount;
-    final detachedModeChanged = _lastDetachedResultCount != detachedResultCount;
 
     _lastResultCount = resultCount;
-    _lastDetachedResultCount = detachedResultCount;
 
-    if (!(resultCountChanged || detachedModeChanged) || _isLayoutRefreshQueued) {
+    if (!resultCountChanged || _isLayoutRefreshQueued) {
       return;
     }
 
@@ -312,10 +305,6 @@ class _FilterRowState extends ConsumerState<FilterRow> {
               ),
             ),
           ),
-          if (!layout.detachedResultCount) ...[
-            SizedBox(width: layout.controlGap),
-            _buildResultCountChip(context, layout),
-          ],
           SizedBox(width: layout.trailingControlsInset),
         ],
       ),
@@ -553,7 +542,6 @@ class _FilterRowLayout {
   final double searchTextSize;
   final double searchHintTextSize;
   final double trailingControlsInset;
-  final bool detachedResultCount;
   final String favoritesLabel;
   final String resultCountLabel;
 
@@ -580,7 +568,6 @@ class _FilterRowLayout {
     required this.searchTextSize,
     required this.searchHintTextSize,
     required this.trailingControlsInset,
-    required this.detachedResultCount,
     required this.favoritesLabel,
     required this.resultCountLabel,
   });
@@ -616,7 +603,6 @@ class _FilterRowLayout {
         searchTextSize: 12.5,
         searchHintTextSize: 11.5,
         trailingControlsInset: 0,
-        detachedResultCount: true,
         favoritesLabel: 'Fav',
         resultCountLabel: '$resultCount',
       );
@@ -646,7 +632,6 @@ class _FilterRowLayout {
         searchTextSize: 13,
         searchHintTextSize: 12,
         trailingControlsInset: 0,
-        detachedResultCount: true,
         favoritesLabel: 'Favoriler',
         resultCountLabel: '$resultCount',
       );
@@ -675,7 +660,6 @@ class _FilterRowLayout {
       searchTextSize: 14,
       searchHintTextSize: 13,
       trailingControlsInset: 4,
-      detachedResultCount: false,
       favoritesLabel: 'Favoriler',
       resultCountLabel: '$resultCount mac',
     );
