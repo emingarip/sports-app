@@ -314,8 +314,8 @@ class _ReasonChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCritical = label == 'Canlı kritik';
-    final isSoon = label == 'Yakında başlıyor';
+    final isCritical = label == 'Canli kritik';
+    final isSoon = label == 'Yakinda basliyor';
 
     final backgroundColor = isCritical
         ? context.colors.error.withValues(alpha: 0.12)

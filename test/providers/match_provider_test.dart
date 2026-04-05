@@ -247,7 +247,7 @@ void main() {
         startingSoon!.items.map((item) => item.match.id).toList(),
         ['soon'],
       );
-      expect(startingSoon.items.single.reasonLabel, 'Yakında başlıyor');
+      expect(startingSoon.items.single.reasonLabel, 'Yakinda basliyor');
 
       final otherMatches = container.read(otherMatchesSectionProvider);
       expect(otherMatches, isNotNull);
@@ -312,6 +312,56 @@ void main() {
         'exact-team',
         'team-prefix',
         'substring',
+      ]);
+    });
+
+    test('inline list search ranks matches inside the current feed scope',
+        () async {
+      final now = DateTime.now();
+
+      mockRepository.setMatches([
+        createTestMatch(
+          id: 'arsenal-exact',
+          homeTeam: 'Arsenal',
+          awayTeam: 'Chelsea',
+          leagueName: 'Premier League',
+          status: MatchStatus.upcoming,
+          startTime: now.add(const Duration(hours: 1)),
+        ),
+        createTestMatch(
+          id: 'arsenal-prefix',
+          homeTeam: 'Arsenal Tula',
+          awayTeam: 'Zenit',
+          leagueName: 'Russian League',
+          status: MatchStatus.upcoming,
+          startTime: now.add(const Duration(hours: 2)),
+        ),
+        createTestMatch(
+          id: 'arsenal-substring',
+          homeTeam: 'Brighton',
+          awayTeam: 'Burnley',
+          leagueName: 'Arsenal Legends Cup',
+          status: MatchStatus.upcoming,
+          startTime: now.add(const Duration(hours: 3)),
+        ),
+      ]);
+
+      final container = buildContainer();
+      addTearDown(container.dispose);
+
+      container.read(matchStateProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      container.read(matchStateProvider.notifier).openInlineSearch();
+      container
+          .read(matchStateProvider.notifier)
+          .setInlineSearchQuery('Arsenal');
+
+      final items = container.read(matchListItemsProvider);
+      expect(items.map((item) => item.match.id).toList(), [
+        'arsenal-exact',
+        'arsenal-prefix',
+        'arsenal-substring',
       ]);
     });
   });

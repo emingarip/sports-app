@@ -170,6 +170,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   String _buildEmptyStateMessage(MatchState matchState) {
+    if (matchState.inlineSearchQuery.trim().isNotEmpty) {
+      return 'Aramana uygun mac bulunamadi';
+    }
     if (matchState.isStarredFilter) {
       return 'Favori mac bulunamadi';
     }
@@ -213,6 +216,20 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     final matchItems = ref.watch(matchListItemsProvider);
     if (matchItems.isEmpty) {
       return [EmptyState(message: _buildEmptyStateMessage(matchState))];
+    }
+
+    final inlineSearchQuery = matchState.inlineSearchQuery.trim();
+    if (inlineSearchQuery.isNotEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: _buildSectionHeader(
+            title: 'Arama Sonuclari',
+            subtitle:
+                '"$inlineSearchQuery" icin ${matchItems.length} mac bulundu.',
+          ),
+        ),
+        _buildCardListSliver(matchItems),
+      ];
     }
 
     final featuredItems = ref.watch(featuredMatchItemsProvider);
@@ -749,7 +766,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 
   Widget _buildStickyContext(BuildContext context) {
-    const dynamicHeight = 76.0;
+    final isInlineSearchOpen = ref.watch(
+      matchStateProvider.select((state) => state.isInlineSearchOpen),
+    );
+    final dynamicHeight = isInlineSearchOpen ? 112.0 : 88.0;
 
     return SliverPersistentHeader(
       pinned: true,
@@ -764,7 +784,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  FilterRow(onSearch: _openMatchSearch),
+                  const FilterRow(),
                   _buildPageIndicator(context),
                 ],
               ),

@@ -34,6 +34,8 @@ class MatchState {
   final List<model.Match> matches;
   final StatusFilter statusFilter;
   final bool isStarredFilter;
+  final bool isInlineSearchOpen;
+  final String inlineSearchQuery;
   final DateTime selectedDate;
   final bool isLoading;
 
@@ -41,6 +43,8 @@ class MatchState {
     required this.matches,
     required this.statusFilter,
     required this.isStarredFilter,
+    required this.isInlineSearchOpen,
+    required this.inlineSearchQuery,
     required this.selectedDate,
     this.isLoading = false,
   });
@@ -49,6 +53,8 @@ class MatchState {
     List<model.Match>? matches,
     StatusFilter? statusFilter,
     bool? isStarredFilter,
+    bool? isInlineSearchOpen,
+    String? inlineSearchQuery,
     DateTime? selectedDate,
     bool? isLoading,
   }) {
@@ -56,6 +62,8 @@ class MatchState {
       matches: matches ?? this.matches,
       statusFilter: statusFilter ?? this.statusFilter,
       isStarredFilter: isStarredFilter ?? this.isStarredFilter,
+      isInlineSearchOpen: isInlineSearchOpen ?? this.isInlineSearchOpen,
+      inlineSearchQuery: inlineSearchQuery ?? this.inlineSearchQuery,
       selectedDate: selectedDate ?? this.selectedDate,
       isLoading: isLoading ?? this.isLoading,
     );
@@ -81,6 +89,8 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
       matches: [],
       statusFilter: StatusFilter.all,
       isStarredFilter: false,
+      isInlineSearchOpen: false,
+      inlineSearchQuery: '',
       selectedDate: DateTime.now(),
     );
   }
@@ -132,6 +142,28 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
 
   void toggleStarred() {
     state = state.copyWith(isStarredFilter: !state.isStarredFilter);
+  }
+
+  void openInlineSearch() {
+    state = state.copyWith(isInlineSearchOpen: true);
+  }
+
+  void closeInlineSearch() {
+    state = state.copyWith(
+      isInlineSearchOpen: false,
+      inlineSearchQuery: '',
+    );
+  }
+
+  void clearInlineSearchQuery() {
+    state = state.copyWith(inlineSearchQuery: '');
+  }
+
+  void setInlineSearchQuery(String query) {
+    state = state.copyWith(
+      isInlineSearchOpen: true,
+      inlineSearchQuery: query,
+    );
   }
 
   Future<void> setDate(DateTime date) async {
@@ -270,7 +302,7 @@ String buildMatchStatusLabel(model.Match match) {
     case model.MatchStatus.upcoming:
       return _formatMatchTime(match.startTime);
     case model.MatchStatus.finished:
-      return 'Tamamlandı';
+      return 'Tamamlandi';
   }
 }
 
@@ -283,13 +315,13 @@ String? buildMatchReasonLabel(
     return 'Favori';
   }
   if (isLiveCriticalMatch(match)) {
-    return 'Canlı kritik';
+    return 'Canli kritik';
   }
   if (isStartingSoonMatch(match, now)) {
-    return 'Yakında başlıyor';
+    return 'Yakinda basliyor';
   }
   if (match.isFeatured) {
-    return 'Öne çıkan maç';
+    return 'One cikan mac';
   }
   return null;
 }
@@ -301,7 +333,7 @@ String? buildMatchSecondaryLabel(model.Match match, DateTime now) {
       final minute = parseLiveMinute(match.liveMinute) ?? 0;
       if (difference == 0) return 'Berabere';
       if (difference == 1) return '1 fark';
-      if (minute >= 75) return 'Geç bölüm';
+      if (minute >= 75) return 'Gec bolum';
       return null;
     case model.MatchStatus.upcoming:
       if (!isStartingSoonMatch(match, now)) return null;
@@ -533,7 +565,7 @@ List<SearchMatchResultViewModel> mergeRankedSearchResults(
   return results;
 }
 
-final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
+final baseFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
   final matchState = ref.watch(matchStateProvider);
   final favorites = ref.watch(favoritesProvider);
 
@@ -568,6 +600,37 @@ final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
   }).toList();
 });
 
+final inlineSearchResultsProvider =
+    Provider<List<SearchMatchResultViewModel>>((ref) {
+  final query = ref.watch(
+    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
+  );
+
+  if (query.isEmpty) {
+    return const [];
+  }
+
+  return rankMatchSearchResults(
+    matches: ref.watch(baseFilteredMatchesProvider),
+    query: query,
+  );
+});
+
+final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
+  final query = ref.watch(
+    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
+  );
+
+  if (query.isEmpty) {
+    return ref.watch(baseFilteredMatchesProvider);
+  }
+
+  return ref
+      .watch(inlineSearchResultsProvider)
+      .map((result) => result.match)
+      .toList();
+});
+
 final sortedFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
   final matches = [...ref.watch(filteredMatchesProvider)];
   matches.sort(compareMatches);
@@ -577,7 +640,16 @@ final sortedFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
 final matchListItemsProvider = Provider<List<MatchListItemViewModel>>((ref) {
   final favorites = ref.watch(favoritesProvider);
   final now = DateTime.now();
-  final items = ref.watch(filteredMatchesProvider).map((match) {
+  final query = ref.watch(
+    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
+  );
+
+  final items = (query.isEmpty
+          ? ref.watch(filteredMatchesProvider)
+          : ref
+              .watch(inlineSearchResultsProvider)
+              .map((result) => result.match))
+      .map((match) {
     return buildMatchListItemViewModel(
       match,
       favorites: favorites,
@@ -585,13 +657,15 @@ final matchListItemsProvider = Provider<List<MatchListItemViewModel>>((ref) {
     );
   }).toList();
 
-  items.sort(compareMatchListItems);
+  if (query.isEmpty) {
+    items.sort(compareMatchListItems);
+  }
   return items;
 });
 
 MatchListItemViewModel _ensureFeaturedReason(MatchListItemViewModel item) {
   if (item.reasonLabel != null) return item;
-  return item.copyWith(reasonLabel: 'Öne çıkan maç');
+  return item.copyWith(reasonLabel: 'One cikan mac');
 }
 
 final featuredMatchItemsProvider =
@@ -626,7 +700,7 @@ final liveNowSectionProvider = Provider<MatchSectionViewModel?>((ref) {
       .where((item) => item.match.status == model.MatchStatus.live)
       .toList();
   if (items.isEmpty) return null;
-  return MatchSectionViewModel(title: 'Canlı Şimdi', items: items);
+  return MatchSectionViewModel(title: 'Canli Simdi', items: items);
 });
 
 final startingSoonSectionProvider = Provider<MatchSectionViewModel?>((ref) {
@@ -636,7 +710,7 @@ final startingSoonSectionProvider = Provider<MatchSectionViewModel?>((ref) {
       .where((item) => isStartingSoonMatch(item.match, now))
       .toList();
   if (items.isEmpty) return null;
-  return MatchSectionViewModel(title: 'Yakında Başlıyor', items: items);
+  return MatchSectionViewModel(title: 'Yakinda Basliyor', items: items);
 });
 
 final otherMatchesSectionProvider = Provider<MatchSectionViewModel?>((ref) {
@@ -647,7 +721,7 @@ final otherMatchesSectionProvider = Provider<MatchSectionViewModel?>((ref) {
   }).toList();
   if (items.isEmpty) return null;
   return MatchSectionViewModel(
-    title: 'Diğer Maçlar',
+    title: 'Diger Maclar',
     items: items,
     groupedByLeague: true,
   );

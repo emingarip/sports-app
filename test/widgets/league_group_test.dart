@@ -74,7 +74,7 @@ void main() {
 
         expect(find.text('Test Super League'), findsOneWidget);
         expect(find.text('LIVE 2'), findsOneWidget);
-        expect(find.text('2 maç'), findsOneWidget);
+        expect(find.text('2 mac'), findsOneWidget);
         expect(find.text('Arsenal'), findsNothing);
       });
     });
@@ -99,7 +99,7 @@ void main() {
           ),
         );
 
-        await tester.tap(find.text('1 maç'));
+        await tester.tap(find.text('1 mac'));
         await tester.pump();
 
         expect(toggleCalled, isTrue);

@@ -170,36 +170,34 @@ void main() {
         await tester.pump(const Duration(milliseconds: 700));
 
         expect(find.text('One Cikanlar'), findsOneWidget);
-        await tester.dragUntilVisible(
-          find.text('Canlı Şimdi'),
-          find.byType(CustomScrollView).first,
-          const Offset(0, -250),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text('Canlı Şimdi'), findsOneWidget);
-        await tester.dragUntilVisible(
-          find.text('Real Madrid'),
-          find.byType(CustomScrollView).first,
-          const Offset(0, -250),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text('Real Madrid'), findsOneWidget);
-        await tester.dragUntilVisible(
-          find.text('League Later'),
-          find.byType(CustomScrollView).first,
-          const Offset(0, -250),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text('League Later'), findsOneWidget);
+        expect(find.text('Mac ara'), findsOneWidget);
 
-        await tester.tap(find.text('Canlı'));
+        await tester.tap(find.text('Mac ara'));
+        await tester.pumpAndSettle();
+
+        expect(
+            find.text('Takim ve lig isimlerine gore filtrele'), findsOneWidget);
+
+        await tester.enterText(find.byType(TextField), 'Real');
+        await tester.pumpAndSettle();
+
+        expect(find.text('Arama Sonuclari'), findsOneWidget);
+        expect(find.text('Real Madrid'), findsOneWidget);
+        expect(find.text('Arsenal'), findsNothing);
+
+        await tester.tap(find.byTooltip('Aramayi kapat'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('One Cikanlar'), findsOneWidget);
+
+        await tester.tap(find.text('Canli'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
         expect(find.text('Arsenal'), findsOneWidget);
         expect(find.text('Real Madrid'), findsNothing);
 
-        await tester.tap(find.text('Canlı'));
+        await tester.tap(find.text('Canli'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
@@ -226,7 +224,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
 
-        await tester.tap(find.text('Canlı'));
+        await tester.tap(find.text('Canli'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
 

@@ -98,7 +98,7 @@ class LeagueGroup extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '${items.length} maç',
+                          '${items.length} mac',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
