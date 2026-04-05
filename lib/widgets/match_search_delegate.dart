@@ -1,22 +1,27 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
+
 import '../models/match.dart' as model;
+import '../models/match_list_view_model.dart';
+import '../providers/favorites_provider.dart';
 import '../providers/match_provider.dart';
-import '../theme/app_theme.dart';
-import 'match_card.dart';
+import '../screens/league_profile_screen.dart';
 import '../screens/match_detail_screen.dart';
 import '../screens/team_profile_screen.dart';
-import '../screens/league_profile_screen.dart';
+import '../theme/app_theme.dart';
+import 'match_card.dart';
 
 class MatchSearchDelegate extends SearchDelegate<model.Match?> {
   final WidgetRef ref;
 
-  MatchSearchDelegate(this.ref) : super(
-    searchFieldLabel: 'Takım veya Lig ara...',
-    searchFieldStyle: const TextStyle(fontSize: 16),
-  );
+  MatchSearchDelegate(this.ref)
+      : super(
+          searchFieldLabel: 'Takım veya lig ara...',
+          searchFieldStyle: const TextStyle(fontSize: 16),
+        );
 
   @override
   ThemeData appBarTheme(BuildContext context) {
@@ -87,10 +92,12 @@ class _DebouncedSearchDelegateWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_DebouncedSearchDelegateWidget> createState() => _DebouncedSearchDelegateWidgetState();
+  ConsumerState<_DebouncedSearchDelegateWidget> createState() =>
+      _DebouncedSearchDelegateWidgetState();
 }
 
-class _DebouncedSearchDelegateWidgetState extends ConsumerState<_DebouncedSearchDelegateWidget> {
+class _DebouncedSearchDelegateWidgetState
+    extends ConsumerState<_DebouncedSearchDelegateWidget> {
   Timer? _debounce;
   String _debouncedQuery = '';
 
@@ -129,14 +136,14 @@ class _DebouncedSearchDelegateWidgetState extends ConsumerState<_DebouncedSearch
   Widget _buildSkeleton() {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      itemCount: 5, // Show 5 skeletons
+      itemCount: 5,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
           baseColor: Colors.white.withValues(alpha: 0.05),
           highlightColor: Colors.white.withValues(alpha: 0.15),
           child: Container(
-            height: 120, // MatchCard height
+            height: 140,
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(16),
@@ -147,194 +154,254 @@ class _DebouncedSearchDelegateWidgetState extends ConsumerState<_DebouncedSearch
     );
   }
 
-  Widget _buildList(List<model.Match> matches) {
-    if (matches.isEmpty) {
+  MatchListItemViewModel _buildSearchItem(model.Match match) {
+    return buildMatchListItemViewModel(
+      match,
+      favorites: ref.read(favoritesProvider),
+      now: DateTime.now(),
+    );
+  }
+
+  Widget _buildList(List<SearchMatchResultViewModel> results) {
+    if (results.isEmpty) {
       if (widget.query.trim().isEmpty) return const SizedBox.shrink();
       return Center(
         child: Text(
-          "Sonuç bulunamadı: \"${widget.query}\"",
+          'Sonuç bulunamadı: "${widget.query}"',
           style: TextStyle(color: context.colors.textMedium, fontSize: 16),
         ),
       );
     }
 
     final lowercaseQuery = widget.query.trim().toLowerCase();
-    final Set<String> matchedTeams = {};
-    final Set<String> matchedLeagues = {};
+    final matchedTeams = <String>{};
+    final matchedLeagues = <String>{};
 
-    if (lowercaseQuery.isNotEmpty) {
-      for (var m in matches) {
-        if (m.homeTeam.toLowerCase().contains(lowercaseQuery)) {
-          matchedTeams.add(m.homeTeam);
-        }
-        if (m.awayTeam.toLowerCase().contains(lowercaseQuery)) {
-          matchedTeams.add(m.awayTeam);
-        }
-        if ((m.leagueName ?? '').toLowerCase().contains(lowercaseQuery)) {
-          matchedLeagues.add(m.leagueName!);
-        }
+    for (final result in results) {
+      final match = result.match;
+      if (match.homeTeam.toLowerCase().contains(lowercaseQuery)) {
+        matchedTeams.add(match.homeTeam);
+      }
+      if (match.awayTeam.toLowerCase().contains(lowercaseQuery)) {
+        matchedTeams.add(match.awayTeam);
+      }
+      if ((match.leagueName ?? '').toLowerCase().contains(lowercaseQuery) &&
+          match.leagueName != null) {
+        matchedLeagues.add(match.leagueName!);
       }
     }
 
-    final List<Widget> children = [];
+    final children = <Widget>[];
 
-    // Leagues Section
     if (matchedLeagues.isNotEmpty) {
       children.add(
         Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 8),
-          child: Text("LİGLER", style: TextStyle(color: context.colors.textMedium, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-        )
+          padding:
+              const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 8),
+          child: Text(
+            'LİGLER',
+            style: TextStyle(
+              color: context.colors.textMedium,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
       );
-      for (var league in matchedLeagues) {
+      for (final league in matchedLeagues) {
         children.add(
           ListTile(
             leading: Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: context.colors.surfaceContainer, shape: BoxShape.circle),
-              child: Icon(Icons.emoji_events, color: context.colors.primary, size: 20),
+              decoration: BoxDecoration(
+                color: context.colors.surfaceContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.emoji_events,
+                color: context.colors.primary,
+                size: 20,
+              ),
             ),
-            title: Text(league, style: TextStyle(color: context.colors.textHigh, fontWeight: FontWeight.bold)),
-            trailing: Icon(Icons.chevron_right, color: context.colors.textMedium),
+            title: Text(
+              league,
+              style: TextStyle(
+                color: context.colors.textHigh,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            trailing:
+                Icon(Icons.chevron_right, color: context.colors.textMedium),
             onTap: () {
-               widget.delegate.close(context, null);
-               Navigator.push(context, MaterialPageRoute(builder: (c) => LeagueProfileScreen(leagueName: league)));
+              widget.delegate.close(context, null);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LeagueProfileScreen(leagueName: league),
+                ),
+              );
             },
-          )
+          ),
         );
       }
     }
 
-    // Teams Section
     if (matchedTeams.isNotEmpty) {
       children.add(
         Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
-          child: Text("TAKIMLAR", style: TextStyle(color: context.colors.textMedium, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-        )
+          padding:
+              const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+          child: Text(
+            'TAKIMLAR',
+            style: TextStyle(
+              color: context.colors.textMedium,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
       );
-      for (var team in matchedTeams) {
+      for (final team in matchedTeams) {
         children.add(
           ListTile(
             leading: Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: context.colors.surfaceContainer, shape: BoxShape.circle),
-              child: Icon(Icons.shield, color: context.colors.primary, size: 20),
+              decoration: BoxDecoration(
+                color: context.colors.surfaceContainer,
+                shape: BoxShape.circle,
+              ),
+              child:
+                  Icon(Icons.shield, color: context.colors.primary, size: 20),
             ),
-            title: Text(team, style: TextStyle(color: context.colors.textHigh, fontWeight: FontWeight.bold)),
-            trailing: Icon(Icons.chevron_right, color: context.colors.textMedium),
+            title: Text(
+              team,
+              style: TextStyle(
+                color: context.colors.textHigh,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            trailing:
+                Icon(Icons.chevron_right, color: context.colors.textMedium),
             onTap: () {
-               widget.delegate.close(context, null);
-               Navigator.push(context, MaterialPageRoute(builder: (c) => TeamProfileScreen(teamName: team)));
+              widget.delegate.close(context, null);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TeamProfileScreen(teamName: team),
+                ),
+              );
             },
-          )
+          ),
         );
       }
     }
 
-    // Matches Section
     children.add(
       Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
-        child: Text("MAÇLAR", style: TextStyle(color: context.colors.textMedium, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-      )
+        padding:
+            const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+        child: Text(
+          'MAÇLAR',
+          style: TextStyle(
+            color: context.colors.textMedium,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
     );
 
-    for (var match in matches) {
+    for (final result in results) {
+      final item = _buildSearchItem(result.match);
       children.add(
         Padding(
-           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-           child: GestureDetector(
-             onTap: () {
-               widget.delegate.close(context, match);
-               Navigator.push(context, MaterialPageRoute(builder: (c) => MatchDetailScreen(match: match)));
-             },
-             child: MatchCard(
-               match: match,
-               hasBorder: true,
-             ),
-           ),
-        )
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: GestureDetector(
+            onTap: () {
+              widget.delegate.close(context, result.match);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MatchDetailScreen(match: result.match),
+                ),
+              );
+            },
+            child: MatchCard(
+              match: result.match,
+              hasBorder: true,
+              reasonLabel: item.reasonLabel,
+              statusLabel: item.statusLabel,
+              secondaryLabel: item.secondaryLabel,
+            ),
+          ),
+        ),
       );
     }
-    
-    // Bottom padding
-    children.add(const SizedBox(height: 24));
 
+    children.add(const SizedBox(height: 24));
     return ListView(children: children);
   }
 
   @override
   Widget build(BuildContext context) {
-    final lowercaseQuery = widget.query.trim().toLowerCase();
+    final normalizedQuery = widget.query.trim().toLowerCase();
 
-    // If query is empty, show default hint
-    if (lowercaseQuery.isEmpty) {
-       return Center(
-         child: Column(
-           mainAxisAlignment: MainAxisAlignment.center,
-           children: [
-             Icon(Icons.search, size: 64, color: context.colors.surfaceContainer),
-             const SizedBox(height: 16),
-             Text(
-               "Takım veya lig ismine göre arayın", 
-               style: TextStyle(color: context.colors.textMedium, fontSize: 16)
-             ),
-           ],
-         ),
-       );
+    if (normalizedQuery.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search,
+                size: 64, color: context.colors.surfaceContainer),
+            const SizedBox(height: 16),
+            Text(
+              'Takım veya lig ismine göre arayın',
+              style: TextStyle(color: context.colors.textMedium, fontSize: 16),
+            ),
+          ],
+        ),
+      );
     }
 
-    // Always fetch local results instantly for zero-latency UX
     final allMatches = ref.read(matchStateProvider).matches;
-    final localResults = allMatches.where((match) {
-      final matchStr = '${match.homeTeam} ${match.awayTeam} ${match.leagueName}'.toLowerCase();
-      return matchStr.contains(lowercaseQuery);
-    }).toList();
+    final localResults = rankMatchSearchResults(
+      matches: allMatches,
+      query: widget.query,
+    );
 
-    // If debouncer is hunting down the SAME query we are typing, wait for backend. 
-    // If the input is fresh (still typing), we just return local results immediately!
     if (_debouncedQuery != widget.query) {
       return _buildList(localResults);
     }
 
-    // Debounce timer elapsed! We now hit the backend.
     final repository = ref.read(matchRepositoryProvider);
     return FutureBuilder<List<model.Match>>(
       future: repository.searchMatches(widget.query.trim()),
       builder: (context, snapshot) {
-         if (snapshot.connectionState == ConnectionState.waiting) {
-            // While backend is fetching, STILL show local results if we have them, 
-            // OR show skeleton if we have literally nothing locally.
-            if (localResults.isNotEmpty) {
-               return _buildList(localResults); 
-            }
-            return _buildSkeleton();
-         }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          if (localResults.isNotEmpty) {
+            return _buildList(localResults);
+          }
+          return _buildSkeleton();
+        }
 
-         if (snapshot.hasError) {
-             // Fallback to local on error
-             return _buildList(localResults);
-         }
+        if (snapshot.hasError) {
+          return _buildList(localResults);
+        }
 
-         // Merge backend results with local results to ensure no dupes
-         final backendResults = snapshot.data ?? [];
-         final Set<String> seenIds = {};
-         final List<model.Match> finalResults = [];
+        final backendResults = rankMatchSearchResults(
+          matches: snapshot.data ?? const [],
+          query: widget.query,
+        );
+        final mergedResults = mergeRankedSearchResults(
+          localResults,
+          backendResults,
+        );
 
-         for (var m in localResults) {
-            finalResults.add(m);
-            seenIds.add(m.id);
-         }
-         for (var m in backendResults) {
-            if (!seenIds.contains(m.id)) {
-               finalResults.add(m);
-               seenIds.add(m.id);
-            }
-         }
-
-         return _buildList(finalResults);
-      }
+        return _buildList(mergedResults);
+      },
     );
   }
 }

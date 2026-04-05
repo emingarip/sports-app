@@ -1,35 +1,36 @@
-import 'dart:ui';
-import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../models/match.dart' as model;
-import '../models/league.dart';
-import '../models/notification.dart';
-import '../widgets/league_group.dart';
-import '../widgets/filter_row.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/sticky_header_delegate.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/match_provider.dart';
-import '../widgets/match_search_delegate.dart';
-import 'package:shimmer/shimmer.dart';
-import '../widgets/match_card.dart';
-import '../providers/notification_provider.dart';
-import '../providers/navigation_provider.dart';
-import '../providers/knowledge_graph_provider.dart';
-import '../widgets/notification_bell.dart';
-import 'profile_screen.dart';
-import '../models/user_profile.dart';
-import '../widgets/frame_avatar.dart';
-import '../services/supabase_service.dart';
 import 'dart:async';
+import 'dart:ui';
+
 import 'package:app_links/app_links.dart';
-import 'voice_room_screen.dart';
-import '../providers/voice_room_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../widgets/global_announcement_card.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../models/match_list_view_model.dart';
+import '../models/notification.dart';
+import '../models/user_profile.dart';
 import '../providers/badge_provider.dart';
+import '../providers/knowledge_graph_provider.dart';
+import '../providers/match_provider.dart';
+import '../providers/navigation_provider.dart';
+import '../providers/notification_provider.dart';
+import '../providers/voice_room_provider.dart';
+import '../services/supabase_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/filter_row.dart';
+import '../widgets/frame_avatar.dart';
+import '../widgets/global_announcement_card.dart';
 import '../widgets/inbox_message_button.dart';
+import '../widgets/league_group.dart';
+import '../widgets/match_card.dart';
+import '../widgets/match_search_delegate.dart';
+import '../widgets/notification_bell.dart';
+import '../widgets/sticky_header_delegate.dart';
+import 'profile_screen.dart';
+import 'voice_room_screen.dart';
 
 class HomeDashboard extends ConsumerStatefulWidget {
   final DateTime? initialDateOverride;
@@ -68,7 +69,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     _initDeepLinks();
     _fetchProfile();
 
-    // Track global online user présence
     try {
       _onlinePresenceChannel = Supabase.instance.client.channel('online_users');
       _onlinePresenceChannel?.subscribe((status, [error]) async {
@@ -77,12 +77,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               'anonymous_${DateTime.now().millisecondsSinceEpoch}';
           await _onlinePresenceChannel?.track({
             'user_id': userId,
-            'online_at': DateTime.now().toIso8601String()
+            'online_at': DateTime.now().toIso8601String(),
           });
         }
       });
     } catch (_) {
-      // Ignored for widget tests environment
+      // Ignored in widget tests when Supabase is unavailable.
     }
   }
 
@@ -98,24 +98,22 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         }
       }
     } catch (_) {
-      // Ignore in tests if Supabase is not initialized
+      // Ignore in tests if Supabase is not initialized.
     }
   }
 
   Future<void> _initDeepLinks() async {
     _appLinks = AppLinks();
 
-    // Check initial link if app was cold-started
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
         _handleDeepLink(initialUri);
       }
     } catch (e) {
-      debugPrint("AppLinks init error: $e");
+      debugPrint('AppLinks init error: $e');
     }
 
-    // Listen to incoming links while app is open
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
       _handleDeepLink(uri);
     });
@@ -134,7 +132,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     }
 
     if (roomName != null && mounted) {
-      // Auto join the room utilizing the PIN from link
       ref.read(voiceRoomProvider.notifier).joinRoom(
             roomName,
             isPrivate: pinCode != null,
@@ -142,7 +139,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             forceIsHost: false,
           );
       Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const VoiceRoomScreen()));
+        context,
+        MaterialPageRoute(builder: (_) => const VoiceRoomScreen()),
+      );
     }
   }
 
@@ -154,7 +153,43 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     super.dispose();
   }
 
-  List<Widget> _buildLeagueSlivers() {
+  void _resetExpandedLeagues() {
+    _expandedLeagues.clear();
+    _hasInitializedExpansion = false;
+  }
+
+  Set<String> _defaultExpandedLeagueIds(List<LeagueMatchSection> sections) {
+    final liveLeagueIds = sections
+        .where((section) => section.hasLiveMatch)
+        .map((section) => section.league.id)
+        .toSet();
+    if (liveLeagueIds.isNotEmpty) {
+      return liveLeagueIds;
+    }
+    return {sections.first.league.id};
+  }
+
+  String _buildEmptyStateMessage(MatchState matchState) {
+    if (matchState.isStarredFilter) {
+      return 'Favori mac bulunamadi';
+    }
+    if (matchState.statusFilter == StatusFilter.live) {
+      return 'Su anda canli mac yok';
+    }
+    if (matchState.statusFilter == StatusFilter.finished) {
+      return 'Bu filtrede biten mac yok';
+    }
+    return 'Secili tarih icin mac bulunamadi';
+  }
+
+  void _openMatchSearch() {
+    showSearch(
+      context: context,
+      delegate: MatchSearchDelegate(ref),
+    );
+  }
+
+  List<Widget> _buildMainFeedSlivers() {
     final matchState = ref.watch(matchStateProvider);
 
     if (matchState.isLoading) {
@@ -171,171 +206,109 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               ),
             ),
           ),
-        )
+        ),
       ];
     }
 
-    final filtered = ref.watch(filteredMatchesProvider);
-    if (filtered.isEmpty) {
-      return [
-        const EmptyState(message: "No matches available for this filter")
-      ];
+    final matchItems = ref.watch(matchListItemsProvider);
+    if (matchItems.isEmpty) {
+      return [EmptyState(message: _buildEmptyStateMessage(matchState))];
     }
 
-    // We removed 'Senin İçin ✨' from here because it's now in Page 1 of the PageView
-    // _buildPersonalizedFeed handles that view.
-
-    // Flat Chronological Watchlist for Starred Filter
-    if (matchState.isStarredFilter) {
-      final starredList = List<model.Match>.from(filtered);
-      starredList.sort((a, b) {
-        if (a.status != b.status) {
-          if (a.status == model.MatchStatus.live) return -1;
-          if (b.status == model.MatchStatus.live) return 1;
-          if (a.status == model.MatchStatus.upcoming) return -1;
-          return 1;
-        }
-        return a.startTime.compareTo(b.startTime);
-      });
-
-      return [
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final match = starredList[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Container(
-                      decoration: BoxDecoration(
-                        color: context.colors.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: context.colors.surfaceContainerLow),
-                      ),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 12, top: 12, right: 12),
-                                child: Row(children: [
-                                  Image.network(
-                                      match.leagueLogoUrl ??
-                                          'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
-                                      width: 14,
-                                      height: 14,
-                                      errorBuilder: (ctx, err, _) =>
-                                          const Icon(Icons.shield, size: 14)),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                        match.leagueName ?? 'Unknown League',
-                                        style: TextStyle(
-                                            fontSize: 10,
-                                            color: context.colors.textLow,
-                                            fontWeight: FontWeight.bold),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                ])),
-                            MatchCard(match: match, hasBorder: false),
-                          ])),
-                );
-              },
-              childCount: starredList.length,
-            ),
-          ),
-        )
-      ];
-    }
-
-    final Map<String, List<model.Match>> leagueMap = {};
-    for (var m in filtered) {
-      if (m.isFeatured) {
-        continue; // Skip displaying featured matches inside leagues
-      }
-      leagueMap.putIfAbsent(m.leagueId, () => []).add(m);
-    }
-
-    final List<League> sortedLeagues = [];
-    for (var lId in leagueMap.keys) {
-      // Dynamically create League model from live API matches data stream
-      final representativeMatch = leagueMap[lId]!.first;
-      sortedLeagues.add(League(
-        id: lId,
-        name: representativeMatch.leagueName ?? 'League $lId',
-        logoUrl: representativeMatch.leagueLogoUrl ??
-            'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
-        tier: 3,
-      ));
-    }
-    sortedLeagues.sort((a, b) => a.tier.compareTo(b.tier));
+    final featuredItems = ref.watch(featuredMatchItemsProvider);
+    final liveNowSection = ref.watch(liveNowSectionProvider);
+    final startingSoonSection = ref.watch(startingSoonSectionProvider);
+    final otherMatchesSection = ref.watch(otherMatchesSectionProvider);
+    final leagueSections = ref.watch(leagueMatchSectionsProvider);
 
     if (!_hasInitializedExpansion &&
-        sortedLeagues.isNotEmpty &&
+        leagueSections.isNotEmpty &&
         matchState.statusFilter == StatusFilter.all &&
         !matchState.isStarredFilter) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _expandedLeagues.add(sortedLeagues.first.id);
-            _hasInitializedExpansion = true;
-          });
+        if (!mounted) {
+          return;
         }
+        setState(() {
+          _expandedLeagues.addAll(_defaultExpandedLeagueIds(leagueSections));
+          _hasInitializedExpansion = true;
+        });
       });
     }
 
-    List<Widget> slivers = [];
+    final slivers = <Widget>[];
 
-    for (var league in sortedLeagues) {
-      var matches = leagueMap[league.id]!;
+    if (featuredItems.isNotEmpty) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: _buildSectionHeader(
+            title: 'One Cikanlar',
+            subtitle: 'En hizli bulunmasi gereken maclar once burada.',
+          ),
+        ),
+      );
+      slivers.add(_buildCardListSliver(featuredItems));
+    }
 
-      // Priority Match Sorting: Live > Upcoming > Finished
-      matches.sort((a, b) {
-        if (a.status != b.status) {
-          if (a.status == model.MatchStatus.live) return -1;
-          if (b.status == model.MatchStatus.live) return 1;
-          if (a.status == model.MatchStatus.upcoming) return -1;
-          return 1;
-        }
-        return a.startTime.compareTo(b.startTime);
-      });
+    if (liveNowSection != null) {
+      slivers.addAll(
+        _buildFlatSectionSlivers(
+          liveNowSection,
+          subtitle: 'Canli ve oncelikli karsilasmalar.',
+        ),
+      );
+    }
 
-      slivers.add(LeagueGroup(
-        league: league,
-        matches: matches,
-        isExpanded: matchState.statusFilter != StatusFilter.all ||
-            matchState.isStarredFilter ||
-            _expandedLeagues.contains(league.id),
-        onToggle: () {
-          setState(() {
-            if (_expandedLeagues.contains(league.id)) {
-              _expandedLeagues.remove(league.id);
-            } else {
-              _expandedLeagues.add(league.id);
-            }
-          });
-        },
-      ));
+    if (startingSoonSection != null) {
+      slivers.addAll(
+        _buildFlatSectionSlivers(
+          startingSoonSection,
+          subtitle: 'Iki saat icinde baslayacak maclar.',
+        ),
+      );
+    }
+
+    if (otherMatchesSection != null) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: _buildSectionHeader(
+            title: otherMatchesSection.title,
+            subtitle: 'Tum diger maclar lig bazinda gruplanir.',
+          ),
+        ),
+      );
+
+      if (leagueSections.isEmpty) {
+        slivers.add(_buildCardListSliver(otherMatchesSection.items));
+      }
+    }
+
+    for (final section in leagueSections) {
+      slivers.add(
+        LeagueGroup(
+          league: section.league,
+          items: section.items,
+          isExpanded: matchState.statusFilter != StatusFilter.all ||
+              matchState.isStarredFilter ||
+              _expandedLeagues.contains(section.league.id),
+          onToggle: () {
+            setState(() {
+              if (_expandedLeagues.contains(section.league.id)) {
+                _expandedLeagues.remove(section.league.id);
+              } else {
+                _expandedLeagues.add(section.league.id);
+              }
+            });
+          },
+        ),
+      );
     }
 
     if (slivers.isEmpty) {
-      return [const EmptyState(message: "No non-featured matches available")];
+      return [EmptyState(message: _buildEmptyStateMessage(matchState))];
     }
-    return slivers;
-  }
 
-  model.Match? _getFeaturedMatch() {
-    try {
-      return ref
-          .watch(matchStateProvider)
-          .matches
-          .firstWhere((m) => m.isFeatured);
-    } catch (_) {
-      return null;
-    }
+    return slivers;
   }
 
   @override
@@ -344,29 +317,26 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         (previous, next) {
       if (previous != next) {
         setState(() {
-          _expandedLeagues.clear();
-          final allMatches = ref.read(matchStateProvider).matches;
-          if (next == StatusFilter.live) {
-            _expandedLeagues.addAll(allMatches
-                .where((m) => m.status == model.MatchStatus.live)
-                .map((m) => m.leagueId));
-          } else {
-            if (allMatches.isNotEmpty) {
-              _expandedLeagues.add(allMatches.first.leagueId);
-            }
-          }
+          _resetExpandedLeagues();
         });
       }
     });
 
     ref.listen<bool>(matchStateProvider.select((s) => s.isStarredFilter),
         (previous, next) {
-      if (previous != next && next) {
+      if (previous != next) {
         setState(() {
-          _expandedLeagues.clear();
-          final allMatches = ref.read(matchStateProvider).matches;
-          _expandedLeagues.addAll(
-              allMatches.where((m) => m.isFavorite).map((m) => m.leagueId));
+          _resetExpandedLeagues();
+        });
+      }
+    });
+
+    ref.listen<DateTime>(
+        matchStateProvider.select((state) => state.selectedDate),
+        (previous, next) {
+      if (previous != next) {
+        setState(() {
+          _resetExpandedLeagues();
         });
       }
     });
@@ -376,40 +346,46 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         final newNotifications =
             next.where((n) => !previous.any((p) => p.id == n.id)).toList();
 
-        for (var n in newNotifications) {
-          // Prevent historical notifications from flooding the screen on app startup
-          // Only show SnackBars for genuinely recent events (last 2 minutes).
+        for (final notification in newNotifications) {
           final ageInMinutes = DateTime.now()
               .toUtc()
-              .difference(n.createdAt.toUtc())
+              .difference(notification.createdAt.toUtc())
               .inMinutes
               .abs();
-          if (ageInMinutes > 2) continue;
+          if (ageInMinutes > 2) {
+            continue;
+          }
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
                 children: [
                   Icon(
-                      n.type == 'GOAL'
-                          ? Icons.sports_soccer
-                          : Icons.notifications_active,
-                      color: context.colors.onPrimaryContainer),
+                    notification.type == 'GOAL'
+                        ? Icons.sports_soccer
+                        : Icons.notifications_active,
+                    color: context.colors.onPrimaryContainer,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(n.title,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.onPrimaryContainer)),
-                        Text(n.message,
-                            style: TextStyle(
-                              color: context.colors.onPrimaryContainer
-                                  .withValues(alpha: 0.78),
-                            )),
+                        Text(
+                          notification.title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.onPrimaryContainer,
+                          ),
+                        ),
+                        Text(
+                          notification.message,
+                          style: TextStyle(
+                            color: context.colors.onPrimaryContainer
+                                .withValues(alpha: 0.78),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -418,17 +394,14 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               backgroundColor: context.colors.primaryContainer,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               duration: const Duration(seconds: 4),
             ),
           );
         }
       }
     });
-
-    var featured = _getFeaturedMatch();
-    final statusFilter = ref.watch(matchStateProvider).statusFilter;
-    final isStarredFilter = ref.watch(matchStateProvider).isStarredFilter;
 
     return Scaffold(
       backgroundColor: context.colors.surfaceContainerLow,
@@ -438,8 +411,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           decoration: BoxDecoration(
             color: context.colors.background,
             border: Border.symmetric(
-                vertical: BorderSide(
-                    color: context.colors.surfaceContainerLow, width: 2)),
+              vertical: BorderSide(
+                color: context.colors.surfaceContainerLow,
+                width: 2,
+              ),
+            ),
           ),
           child: Stack(
             children: [
@@ -468,7 +444,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       }
                     },
                     children: [
-                      // Page 0: Main Feed
                       CustomScrollView(
                         slivers: [
                           const SliverToBoxAdapter(
@@ -477,21 +452,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                               child: GlobalAnnouncementList(),
                             ),
                           ),
-                          if (featured != null &&
-                              statusFilter == StatusFilter.all &&
-                              !isStarredFilter)
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
-                              sliver: SliverToBoxAdapter(
-                                  child: _buildFeaturedMatchCard(featured)),
-                            ),
-                          ..._buildLeagueSlivers(),
+                          ..._buildMainFeedSlivers(),
                           const SliverToBoxAdapter(
-                              child: SizedBox(height: 120)),
+                            child: SizedBox(height: 120),
+                          ),
                         ],
                       ),
-                      // Page 1: Senin İçin ✨ Feed
                       _buildPersonalizedFeed(),
                     ],
                   ),
@@ -504,20 +470,21 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     );
   }
 
-  // --- UI Components below (Top / Bottom app bars) ---
-
   Widget _buildPersonalizedFeed() {
     final personalizedList = ref.watch(personalizedMatchesProvider);
 
     if (personalizedList.isEmpty) {
-      return const CustomScrollView(slivers: [
-        SliverPadding(
-          padding: EdgeInsets.only(top: 40),
-          sliver: EmptyState(
+      return const CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.only(top: 40),
+            sliver: EmptyState(
               message:
-                  "Sana özel öneriler oluşturuluyor... Bol bol maç incele!"),
-        )
-      ]);
+                  'Sana ozel oneriler olusturuluyor... Bol bol mac incele!',
+            ),
+          ),
+        ],
+      );
     }
 
     return CustomScrollView(
@@ -530,21 +497,29 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.auto_awesome,
-                        color: context.colors.primary, size: 20),
+                    Icon(
+                      Icons.auto_awesome,
+                      color: context.colors.primary,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
-                    Text("Senin İçin",
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: context.colors.textHigh,
-                            )),
+                    Text(
+                      'Senin Icin',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.textHigh,
+                          ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                    "İlgilendiğin maçlara göre yapay zeka tarafından senin için seçildi.",
-                    style: TextStyle(
-                        fontSize: 12, color: context.colors.textMedium)),
+                  'Ilgilendigin maclara gore yapay zeka tarafindan secildi.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.textMedium,
+                  ),
+                ),
               ],
             ),
           ),
@@ -558,49 +533,66 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12.0),
                   child: Container(
-                      decoration: BoxDecoration(
-                        color: context.colors.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: context.colors.primary.withValues(
-                                alpha: 0.3)), // Special border for AI recs
+                    decoration: BoxDecoration(
+                      color: context.colors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: context.colors.primary.withValues(alpha: 0.3),
                       ),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 12, top: 12, right: 12),
-                                child: Row(children: [
-                                  Image.network(
-                                      match.leagueLogoUrl ??
-                                          'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
-                                      width: 14,
-                                      height: 14,
-                                      errorBuilder: (ctx, err, _) =>
-                                          const Icon(Icons.shield, size: 14)),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                        match.leagueName ?? 'Unknown League',
-                                        style: TextStyle(
-                                            fontSize: 10,
-                                            color: context.colors.textLow,
-                                            fontWeight: FontWeight.bold),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 12,
+                            top: 12,
+                            right: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Image.network(
+                                match.leagueLogoUrl ??
+                                    'https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png',
+                                width: 14,
+                                height: 14,
+                                errorBuilder: (ctx, err, _) =>
+                                    const Icon(Icons.shield, size: 14),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  match.leagueName ?? 'Unknown League',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: context.colors.textLow,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  Icon(Icons.auto_awesome,
-                                      size: 12, color: context.colors.primary),
-                                  const SizedBox(width: 4),
-                                  Text("Önerilen",
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          color: context.colors.primary,
-                                          fontWeight: FontWeight.bold)),
-                                ])),
-                            MatchCard(match: match, hasBorder: false),
-                          ])),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Icon(
+                                Icons.auto_awesome,
+                                size: 12,
+                                color: context.colors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Onerilen',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: context.colors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        MatchCard(match: match, hasBorder: false),
+                      ],
+                    ),
+                  ),
                 );
               },
               childCount: personalizedList.length,
@@ -618,7 +610,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       floating: false,
       toolbarHeight: 64,
       collapsedHeight: 64,
-      expandedHeight: 124, // 64 + 60 (bottom)
+      expandedHeight: 124,
       backgroundColor: context.colors.background.withValues(alpha: 0.8),
       elevation: 0,
       centerTitle: false,
@@ -647,8 +639,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                 : CircleAvatar(
                     backgroundColor: context.colors.surfaceContainer,
                     radius: 18,
-                    child: Icon(Icons.person,
-                        color: context.colors.textMedium, size: 20),
+                    child: Icon(
+                      Icons.person,
+                      color: context.colors.textMedium,
+                      size: 20,
+                    ),
                   ),
           ),
           const SizedBox(width: 8),
@@ -673,19 +668,16 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             final userId = Supabase.instance.client.auth.currentUser?.id;
             if (userId != null) {
               Share.share(
-                  "Velocity Score'a katıl ve anında K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId");
+                "Velocity Score'a katil ve aninda K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId",
+              );
               ref.read(badgeProvider.notifier).triggerEvent('invite_friend');
             }
           },
         ),
         IconButton(
-            icon: Icon(Icons.search, color: context.colors.textMedium),
-            onPressed: () {
-              showSearch(
-                context: context,
-                delegate: MatchSearchDelegate(ref),
-              );
-            }),
+          icon: Icon(Icons.search, color: context.colors.textMedium),
+          onPressed: _openMatchSearch,
+        ),
         const InboxMessageButton(),
         const NotificationBell(),
         const SizedBox(width: 8),
@@ -722,23 +714,27 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       child: ChoiceChip(
         label: Row(
           children: [
-            Icon(icon,
-                size: 18,
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected
+                  ? context.colors.onPrimaryContainer
+                  : context.colors.textMedium,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 color: isSelected
                     ? context.colors.onPrimaryContainer
-                    : context.colors.textMedium),
-            const SizedBox(width: 8),
-            Text(label,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? context.colors.onPrimaryContainer
-                      : context.colors.textMedium,
-                )),
+                    : context.colors.textMedium,
+              ),
+            ),
           ],
         ),
         selected: isSelected,
-        onSelected: (val) {
+        onSelected: (value) {
           setState(() {
             _selectedSportIndex = index;
           });
@@ -768,8 +764,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const FilterRow(),
-                  // Add a Page indicator dots
+                  FilterRow(onSearch: _openMatchSearch),
                   _buildPageIndicator(context),
                 ],
               ),
@@ -785,165 +780,94 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       height: 80,
       decoration: BoxDecoration(
-          color: Colors.white, // Color is overridden by Shimmer masks
-          borderRadius: BorderRadius.circular(16)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
     );
   }
 
-  Widget _buildFeaturedMatchCard(model.Match match) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: context.colors.cardShadow.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+  List<Widget> _buildFlatSectionSlivers(
+    MatchSectionViewModel section, {
+    String? subtitle,
+  }) {
+    if (section.items.isEmpty) {
+      return const [];
+    }
+
+    return [
+      SliverToBoxAdapter(
+        child: _buildSectionHeader(
+          title: section.title,
+          subtitle: subtitle,
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+      _buildCardListSliver(section.items),
+    ];
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    String? subtitle,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            top: -50,
-            right: -50,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: context.colors.secondaryContainer.withValues(alpha: 0.1),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: context.colors.textHigh,
+                ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: context.colors.textMedium,
+                fontWeight: FontWeight.w500,
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: context.colors.secondaryContainer
-                              .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                    color: context.colors.secondaryContainer,
-                                    shape: BoxShape.circle)),
-                            const SizedBox(width: 6),
-                            Text("EL CLÁSICO • FEATURED",
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: context.colors.secondaryContainer,
-                                    letterSpacing: 1)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(
-                              child: _buildBentoTeam(
-                                  match.homeTeam, match.homeLogo)),
-                          Column(
-                            children: [
-                              Text("Starts at",
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: context.colors.textLow)),
-                              const SizedBox(height: 4),
-                              Text(
-                                  '${match.startTime.hour.toString().padLeft(2, '0')}:${match.startTime.minute.toString().padLeft(2, '0')}',
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w900,
-                                      color: context.colors.textHigh)),
-                            ],
-                          ),
-                          Expanded(
-                              child: _buildBentoTeam(
-                                  match.awayTeam, match.awayLogo)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                          color: context.colors.primaryContainer,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  context.colors.cardShadow.withValues(alpha: 0.12),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]),
-                      child: Icon(Icons.star,
-                          color: context.colors.onPrimaryContainer),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                          color: context.colors.surfaceContainer,
-                          shape: BoxShape.circle),
-                      child:
-                          Icon(Icons.share, color: context.colors.textMedium),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildBentoTeam(String name, String logourl) {
-    return Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          padding: const EdgeInsets.all(8),
+  Widget _buildCardListSliver(List<MatchListItemViewModel> items) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      sliver: SliverToBoxAdapter(
+        child: Container(
           decoration: BoxDecoration(
-            color: context.colors.surfaceContainerLow,
+            color: context.colors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.colors.surfaceContainerLow),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: Image.network(logourl,
-              errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
+          child: Column(
+            children: List.generate(items.length, (index) {
+              final item = items[index];
+              return MatchCard(
+                match: item.match,
+                hasBorder: index != items.length - 1,
+                reasonLabel: item.reasonLabel,
+                statusLabel: item.statusLabel,
+                secondaryLabel: item.secondaryLabel,
+              );
+            }),
+          ),
         ),
-        const SizedBox(height: 12),
-        Text(name,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1),
-      ],
+      ),
     );
   }
 
@@ -952,7 +876,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       animation: _pageController,
       builder: (context, child) {
         double page = 0.0;
-        if (_pageController.position.haveDimensions) {
+        if (_pageController.hasClients &&
+            _pageController.position.haveDimensions) {
           page = _pageController.page ?? 0.0;
         }
         return Padding(
@@ -960,7 +885,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(2, (index) {
-              final isSelected = (page.round() == index);
+              final isSelected = page.round() == index;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 margin: const EdgeInsets.symmetric(horizontal: 4.0),

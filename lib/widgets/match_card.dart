@@ -1,152 +1,304 @@
 import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/favorites_provider.dart';
-import '../theme/app_theme.dart';
+
 import '../models/match.dart' as model;
+import '../providers/favorites_provider.dart';
 import '../screens/match_detail_screen.dart';
 import '../services/push_notification_service.dart';
+import '../theme/app_theme.dart';
 import 'notification_permission_dialog.dart';
 
 class MatchCard extends ConsumerWidget {
   final model.Match match;
   final bool hasBorder;
+  final String? reasonLabel;
+  final String? statusLabel;
+  final String? secondaryLabel;
 
-  const MatchCard({super.key, required this.match, required this.hasBorder});
+  const MatchCard({
+    super.key,
+    required this.match,
+    required this.hasBorder,
+    this.reasonLabel,
+    this.statusLabel,
+    this.secondaryLabel,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    bool isLive = match.status == model.MatchStatus.live;
+    final isLive = match.status == model.MatchStatus.live;
     final isFavorite = ref.watch(favoritesProvider).contains(match.id);
-    String statusTime = isLive 
-        ? (match.liveMinute ?? 'LIVE') 
-        : (match.status == model.MatchStatus.finished ? 'Full Time' : _formatTime(match.startTime));
+    final effectiveStatusLabel = statusLabel ?? _defaultStatusLabel(match);
 
     return InkWell(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => MatchDetailScreen(match: match)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => MatchDetailScreen(match: match)),
+        );
       },
       child: Container(
         decoration: BoxDecoration(
-          border: hasBorder ? Border(bottom: BorderSide(color: context.colors.surfaceContainerLow)) : null,
+          border: hasBorder
+              ? Border(
+                  bottom: BorderSide(color: context.colors.surfaceContainerLow),
+                )
+              : null,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-        child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Time/Status
-          SizedBox(
-            width: 48,
-            child: isLive 
-              ? PulsingLiveText(
-                  child: Column(
-                    children: [
-                      Text("LIVE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: context.colors.error, letterSpacing: 1.5)),
-                      Text(statusTime, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: context.colors.error)),
-                    ],
-                  ),
-                )
-              : Column(
-                  children: [
-                    Text(statusTime.replaceAll(" ", "\n"), textAlign: TextAlign.center, style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: context.colors.textLow, letterSpacing: 0.5, height: 1.1)),
-                  ],
-                ),
-          ),
-          
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Hero(
-                        tag: 'match-${match.id}-home-logo',
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Image.network(match.homeLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
-                        )
-                      ),
-                      const SizedBox(height: 4),
-                      Text(match.homeTeam, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: match.status == model.MatchStatus.upcoming
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: context.colors.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text("VS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: context.colors.textLow, letterSpacing: 1.0)),
-                        )
-                      : FittedBox(
-                          child: Row(
+                SizedBox(
+                  width: 52,
+                  child: isLive
+                      ? PulsingLiveText(
+                          child: Column(
                             children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-                                child: Text(match.homeScore ?? "-", key: ValueKey(match.homeScore), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isLive ? context.colors.textHigh : context.colors.textLow)),
+                              Text(
+                                'LIVE',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: context.colors.error,
+                                  letterSpacing: 1.5,
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              Text("-", style: TextStyle(fontSize: 16, color: context.colors.surfaceContainer)),
-                              const SizedBox(width: 8),
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-                                child: Text(match.awayScore ?? "-", key: ValueKey(match.awayScore), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: context.colors.textHigh)),
+                              Text(
+                                effectiveStatusLabel,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: context.colors.error,
+                                ),
                               ),
                             ],
                           ),
+                        )
+                      : Column(
+                          children: [
+                            Text(
+                              effectiveStatusLabel.replaceAll(' ', '\n'),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.textLow,
+                                letterSpacing: 0.5,
+                                height: 1.1,
+                              ),
+                            ),
+                          ],
                         ),
                 ),
                 Expanded(
-                  child: Column(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Hero(
-                        tag: 'match-${match.id}-away-logo',
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Image.network(match.awayLogo, width: 28, height: 28, errorBuilder: (ctx, err, _) => const Icon(Icons.shield)),
-                        )
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Hero(
+                              tag: 'match-${match.id}-home-logo',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Image.network(
+                                  match.homeLogo,
+                                  width: 28,
+                                  height: 28,
+                                  errorBuilder: (ctx, err, _) =>
+                                      const Icon(Icons.shield),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              match.homeTeam,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(match.awayTeam, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: match.status == model.MatchStatus.upcoming
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.colors.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'VS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    color: context.colors.textLow,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              )
+                            : FittedBox(
+                                child: Row(
+                                  children: [
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      transitionBuilder: (child, animation) {
+                                        return ScaleTransition(
+                                          scale: animation,
+                                          child: child,
+                                        );
+                                      },
+                                      child: Text(
+                                        match.homeScore ?? '-',
+                                        key: ValueKey(match.homeScore),
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: isLive
+                                              ? context.colors.textHigh
+                                              : context.colors.textLow,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '-',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: context.colors.surfaceContainer,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      transitionBuilder: (child, animation) {
+                                        return ScaleTransition(
+                                          scale: animation,
+                                          child: child,
+                                        );
+                                      },
+                                      child: Text(
+                                        match.awayScore ?? '-',
+                                        key: ValueKey(match.awayScore),
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: context.colors.textHigh,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Hero(
+                              tag: 'match-${match.id}-away-logo',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Image.network(
+                                  match.awayLogo,
+                                  width: 28,
+                                  height: 28,
+                                  errorBuilder: (ctx, err, _) =>
+                                      const Icon(Icons.shield),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              match.awayTeam,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
+                IconButton(
+                  onPressed: () async {
+                    ref
+                        .read(favoritesProvider.notifier)
+                        .toggleFavorite(match.id);
+                    if (!isFavorite) {
+                      await Future.delayed(const Duration(milliseconds: 200));
+                      if (!context.mounted) return;
+                      final notDetermined = await ref
+                          .read(pushNotificationServiceProvider)
+                          .isPermissionNotDetermined();
+                      if (notDetermined && context.mounted) {
+                        await NotificationPermissionDialog.show(context);
+                      }
+                    }
+                  },
+                  padding: const EdgeInsets.all(12.0),
+                  icon: Icon(
+                    isFavorite ? Icons.star : Icons.star_border,
+                    color: isFavorite
+                        ? context.colors.primary
+                        : context.colors.textLow,
+                    size: 24,
+                  ),
+                )
               ],
             ),
-          ),
-          
-          IconButton(
-            onPressed: () async {
-              ref.read(favoritesProvider.notifier).toggleFavorite(match.id);
-              if (!isFavorite) {
-                // If they just favorited, check if we should soft prompt for notifications
-                // Add a small delay so UI reacts immediately before dialog pops
-                await Future.delayed(const Duration(milliseconds: 200));
-                if (!context.mounted) return;
-                bool notDetermined = await ref.read(pushNotificationServiceProvider).isPermissionNotDetermined();
-                if (notDetermined && context.mounted) {
-                  await NotificationPermissionDialog.show(context);
-                }
-              }
-            },
-            padding: const EdgeInsets.all(12.0),
-            icon: Icon(
-              isFavorite ? Icons.star : Icons.star_border,
-              color: isFavorite ? context.colors.primary : context.colors.textLow,
-              size: 24,
-            ),
-          )
-        ],
+            if (reasonLabel != null || secondaryLabel != null) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (reasonLabel != null) _ReasonChip(label: reasonLabel!),
+                  if (secondaryLabel != null)
+                    Text(
+                      secondaryLabel!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.textMedium,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
-    ));
+    );
+  }
+
+  String _defaultStatusLabel(model.Match match) {
+    final isLive = match.status == model.MatchStatus.live;
+    if (isLive) return match.liveMinute ?? 'LIVE';
+    if (match.status == model.MatchStatus.finished) return 'Full Time';
+    return _formatTime(match.startTime);
   }
 
   String _formatTime(DateTime time) {
@@ -155,21 +307,67 @@ class MatchCard extends ConsumerWidget {
   }
 }
 
+class _ReasonChip extends StatelessWidget {
+  final String label;
+
+  const _ReasonChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCritical = label == 'Canlı kritik';
+    final isSoon = label == 'Yakında başlıyor';
+
+    final backgroundColor = isCritical
+        ? context.colors.error.withValues(alpha: 0.12)
+        : isSoon
+            ? context.colors.secondaryContainer.withValues(alpha: 0.22)
+            : context.colors.primaryContainer;
+    final foregroundColor = isCritical
+        ? context.colors.error
+        : isSoon
+            ? context.colors.secondaryContainer
+            : context.colors.onPrimaryContainer;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: foregroundColor,
+        ),
+      ),
+    );
+  }
+}
+
 class PulsingLiveText extends StatefulWidget {
   final Widget child;
+
   const PulsingLiveText({super.key, required this.child});
+
   @override
   State<PulsingLiveText> createState() => _PulsingLiveTextState();
 }
 
-class _PulsingLiveTextState extends State<PulsingLiveText> with SingleTickerProviderStateMixin {
+class _PulsingLiveTextState extends State<PulsingLiveText>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    
-    bool isTest = false;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    var isTest = false;
     try {
       if (!kIsWeb) isTest = Platform.environment.containsKey('FLUTTER_TEST');
     } catch (_) {}
@@ -180,10 +378,18 @@ class _PulsingLiveTextState extends State<PulsingLiveText> with SingleTickerProv
       _controller.value = 1.0;
     }
   }
+
   @override
-  void dispose() { _controller.dispose(); super.dispose(); }
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(opacity: Tween(begin: 0.3, end: 1.0).animate(_controller), child: widget.child);
+    return FadeTransition(
+      opacity: Tween(begin: 0.3, end: 1.0).animate(_controller),
+      child: widget.child,
+    );
   }
 }

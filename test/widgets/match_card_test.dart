@@ -11,7 +11,7 @@ import '../helpers/test_helpers.dart';
 class MockFavoritesNotifier extends FavoritesNotifier {
   @override
   Set<String> build() => {};
-  
+
   @override
   Future<void> toggleFavorite(String matchId) async {}
 }
@@ -57,7 +57,8 @@ void main() {
       });
     });
 
-    testWidgets('renders finished match correctly', (WidgetTester tester) async {
+    testWidgets('renders finished match correctly',
+        (WidgetTester tester) async {
       await mockNetworkImagesFor(() async {
         final match = createTestMatch(status: model.MatchStatus.finished);
 
@@ -70,7 +71,8 @@ void main() {
       });
     });
 
-    testWidgets('renders upcoming match correctly with time and VS tag', (WidgetTester tester) async {
+    testWidgets('renders upcoming match correctly with time and VS tag',
+        (WidgetTester tester) async {
       await mockNetworkImagesFor(() async {
         final match = createTestMatch(
           status: model.MatchStatus.upcoming,
@@ -84,6 +86,32 @@ void main() {
         expect(find.text('VS'), findsOneWidget);
         expect(find.byIcon(Icons.star_border), findsOneWidget);
         expect(find.text('LIVE'), findsNothing);
+      });
+    });
+
+    testWidgets('renders reason and secondary labels when provided',
+        (WidgetTester tester) async {
+      await mockNetworkImagesFor(() async {
+        final match = createTestMatch(
+          status: model.MatchStatus.live,
+          homeScore: '2',
+          awayScore: '1',
+          liveMinute: "67'",
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(
+            MatchCard(
+              match: match,
+              hasBorder: false,
+              reasonLabel: 'Favori',
+              secondaryLabel: '1 fark',
+            ),
+          ),
+        );
+
+        expect(find.text('Favori'), findsOneWidget);
+        expect(find.text('1 fark'), findsOneWidget);
       });
     });
   });
