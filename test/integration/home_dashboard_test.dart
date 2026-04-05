@@ -184,7 +184,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Arama Sonuclari'), findsOneWidget);
-        expect(find.text('Real Madrid'), findsOneWidget);
+        expect(find.text('Real Madrid'), findsWidgets);
+        expect(find.text('Takim: '), findsOneWidget);
         expect(find.text('Arsenal'), findsNothing);
 
         await tester.tap(find.byTooltip('Aramayi kapat'));

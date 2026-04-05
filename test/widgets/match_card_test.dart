@@ -135,8 +135,12 @@ void main() {
           ),
         );
 
-        expect(find.text('Arsenal'), findsOneWidget);
+        expect(find.text('Arsenal'), findsWidgets);
         expect(find.text('Premier Arsenal League'), findsOneWidget);
+        expect(find.text('Takim: '), findsOneWidget);
+        expect(find.text('Lig: '), findsOneWidget);
+        expect(find.byIcon(Icons.shield_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.emoji_events_rounded), findsOneWidget);
       });
     });
   });
