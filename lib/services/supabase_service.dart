@@ -223,6 +223,13 @@ class SupabaseService {
   }
 
   Future<bool> rewardUserCoins(int amount) async {
+    if (!kDebugMode) {
+      debugPrint(
+        'rewardUserCoins is disabled outside debug builds. Use claim-kcoin-reward instead.',
+      );
+      return false;
+    }
+
     try {
       final response = await client.rpc('reward_k_coins', params: {
         'p_amount': amount,

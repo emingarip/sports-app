@@ -5,6 +5,8 @@ import 'package:sports_app/services/supabase_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../services/revenuecat_service.dart';
+import '../models/reward_claim_result.dart';
+import 'package:uuid/uuid.dart';
 
 part 'wallet_provider.g.dart';
 
@@ -72,6 +74,10 @@ class WalletBalance extends _$WalletBalance {
     }
   }
 
+  void setBalanceFromServer(int balance) {
+    state = balance;
+  }
+
   Future<void> purchasePackage(KCoinPackage package) async {
     try {
       if (kIsWeb) {
@@ -110,36 +116,47 @@ class WalletBalance extends _$WalletBalance {
     }
   }
 
-  Future<void> claimTestReward() async {
+  Future<RewardClaimResult> claimTestReward() async {
+    if (!kDebugMode) {
+      throw Exception('Debug reward claims are disabled outside debug builds.');
+    }
+
     try {
       final repo = ref.read(kCoinRepositoryProvider);
-      await repo.processTransaction(
-        amount: 50,
-        transactionType: 'daily_reward',
-        referenceId: 'test_reward',
+      final result = await repo.claimReward(
+        eventType: 'daily_reward',
+        referenceId:
+            'debug_daily_reward_${DateTime.now().toUtc().millisecondsSinceEpoch}',
+        metadata: const {
+          'source': 'debug_store_button',
+          'amount': 50,
+        },
       );
       await refreshBalance();
+      return result;
     } catch (e) {
       if (kDebugMode) print('Reward claim failed: $e');
       rethrow;
     }
   }
 
-  /// Claims ad reward and returns the full reward result from Gamification API.
-  /// Returns null if the claim failed.
-  Future<Map<String, dynamic>?> claimAdReward(int amount) async {
+  /// Claims ad reward and returns the settled wallet result.
+  Future<RewardClaimResult> claimAdReward(int amount) async {
     try {
       final repo = ref.read(kCoinRepositoryProvider);
-      final result = await repo.processTransaction(
-        amount: amount,
-        transactionType: 'ad_reward',
-        referenceId: 'ad_reward',
+      final result = await repo.claimReward(
+        eventType: 'rewarded_ad',
+        referenceId: 'rewarded_ad_${const Uuid().v4()}',
+        metadata: {
+          'source': 'admob_reward',
+          'amount': amount,
+        },
       );
       await refreshBalance();
       return result;
     } catch (e) {
       if (kDebugMode) print('Ad Reward claim failed: $e');
-      return null;
+      rethrow;
     }
   }
 }

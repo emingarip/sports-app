@@ -303,38 +303,45 @@ class StoreFrontScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () async {
-              try {
-                await ref
-                    .read(walletBalanceProvider.notifier)
-                    .claimTestReward();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Claimed 50 K-Coins!')),
-                  );
+          if (kDebugMode)
+            FilledButton.icon(
+              onPressed: () async {
+                try {
+                  final result = await ref
+                      .read(walletBalanceProvider.notifier)
+                      .claimTestReward();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Claimed ${result.pointsAwarded} K-Coins in debug mode.',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (error) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to claim debug reward: $error'),
+                      ),
+                    );
+                  }
                 }
-              } catch (error) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to claim reward: $error')),
-                  );
-                }
-              }
-            },
-            icon: Icon(
-              Icons.card_giftcard_rounded,
-              color: context.colors.onPrimaryContainer,
-            ),
-            label: Text(
-              'Claim Test Reward',
-              style: TextStyle(
+              },
+              icon: Icon(
+                Icons.card_giftcard_rounded,
                 color: context.colors.onPrimaryContainer,
-                fontWeight: FontWeight.w700,
+              ),
+              label: Text(
+                'Claim Debug Reward',
+                style: TextStyle(
+                  color: context.colors.onPrimaryContainer,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+          if (kDebugMode) const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -389,48 +396,61 @@ class StoreFrontScreen extends ConsumerWidget {
                         return;
                       }
 
-                      if (result != null) {
-                        final totalPoints =
-                            (result['points_awarded'] as num?)?.toInt() ?? 50;
-                        final matchedRules =
-                            (result['matched_rules'] as List<dynamic>? ?? [])
-                                .map((rule) => rule.toString())
-                                .toList();
+                      final totalPoints = result.pointsAwarded;
+                      final matchedRules = result.matchedRules;
 
-                        var message =
-                            'Tebrikler. Reklamdan +$totalPoints K-Coin kazandiniz.';
-                        if (matchedRules.length > 1) {
-                          final bonusRules = matchedRules
-                              .where((rule) => rule != 'Ad Watched Reward')
-                              .join(', ');
-                          message += '\nBonus: $bonusRules';
-                        }
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(message),
-                            backgroundColor: matchedRules.length > 1
-                                ? context.colors.liveAccent
-                                : context.colors.success,
-                            behavior: SnackBarBehavior.floating,
-                            duration: Duration(
-                              seconds: matchedRules.length > 1 ? 5 : 3,
-                            ),
-                          ),
-                        );
-                      } else {
+                      if (totalPoints <= 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: const Text(
-                              'K-Coin yuklenemedi. Gunluk limite veya bekleme suresine takilmis olabilirsiniz.',
+                              'Reklam tamamlandi ancak bu etkinlik icin ek K-Coin odulu tanimli degil.',
                             ),
-                            backgroundColor: context.colors.error,
+                            backgroundColor: context.colors.textMedium,
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
+                        return;
                       }
+
+                      var message =
+                          'Tebrikler. Reklamdan +$totalPoints K-Coin kazandiniz.';
+                      if (result.alreadyApplied) {
+                        message =
+                            'Bu reklam odulu daha once cüzdana işlendi. Bakiye tekrar guncellenmedi.';
+                      }
+                      if (matchedRules.length > 1) {
+                        final bonusRules = matchedRules
+                            .where((rule) => rule != 'Ad Watched Reward')
+                            .join(', ');
+                        message += '\nBonus: $bonusRules';
+                      }
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(message),
+                          backgroundColor: matchedRules.length > 1
+                              ? context.colors.liveAccent
+                              : context.colors.success,
+                          behavior: SnackBarBehavior.floating,
+                          duration: Duration(
+                            seconds: matchedRules.length > 1 ? 5 : 3,
+                          ),
+                        ),
+                      );
                     } catch (error) {
-                      debugPrint('Error handling ad reward UI: $error');
+                      if (!context.mounted) {
+                        return;
+                      }
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            error.toString().replaceAll('Exception: ', ''),
+                          ),
+                          backgroundColor: context.colors.error,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
                     }
                   },
                 );
@@ -441,7 +461,7 @@ class StoreFrontScreen extends ConsumerWidget {
                 size: 28,
               ),
               label: Text(
-                'Watch Ad (+50 K-Coins)',
+                'Watch Ad for K-Coin Reward',
                 style: TextStyle(
                   color: context.colors.textHigh,
                   fontWeight: FontWeight.w700,
@@ -889,6 +909,13 @@ class StoreFrontScreen extends ConsumerWidget {
       final result = await ref
           .read(storeServiceProvider)
           .buyStoreItem(product.productCode);
+      if (result.newBalance != null) {
+        ref
+            .read(walletBalanceProvider.notifier)
+            .setBalanceFromServer(result.newBalance!);
+      } else {
+        await ref.read(walletBalanceProvider.notifier).refreshBalance();
+      }
       await ref.read(entitlementsProvider.notifier).refresh();
       ref.invalidate(ownedThemeCodesProvider);
 

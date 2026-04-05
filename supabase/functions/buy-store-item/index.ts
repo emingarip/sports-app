@@ -52,9 +52,14 @@ serve(async (req) => {
     // Usually invoked as _supabase.functions.invoke('...', body: { p_product_code: ... })
     // Tolerate both `p_product_code` or `product_code`
     const productCode = body.p_product_code || body.product_code;
+    const requestId = body.p_request_id || body.request_id;
     
     if (!productCode) {
         return new Response(JSON.stringify({ error: "Missing product_code" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (!requestId || `${requestId}`.trim() === '') {
+        return new Response(JSON.stringify({ error: "Missing request_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { data: purchaseResult, error: purchaseError } = await supabaseAdmin.rpc(
@@ -62,6 +67,7 @@ serve(async (req) => {
       {
         p_user_id: userId,
         p_product_code: productCode,
+        p_request_id: requestId,
       },
     );
 

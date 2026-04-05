@@ -10,7 +10,8 @@ class PurchaseHistoryScreen extends ConsumerStatefulWidget {
   const PurchaseHistoryScreen({super.key});
 
   @override
-  ConsumerState<PurchaseHistoryScreen> createState() => _PurchaseHistoryScreenState();
+  ConsumerState<PurchaseHistoryScreen> createState() =>
+      _PurchaseHistoryScreenState();
 }
 
 class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
@@ -27,7 +28,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
     try {
       final repo = ref.read(kCoinRepositoryProvider);
       final data = await repo.getPurchasingHistory();
-      
+
       // Attempt to load store products to swap out raw reference IDs with friendly titles
       List<StoreProduct> storeProducts = [];
       try {
@@ -41,7 +42,8 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
             final refId = item['reference_id'];
             if (refId != null) {
               try {
-                final product = storeProducts.firstWhere((p) => p.productCode == refId);
+                final product =
+                    storeProducts.firstWhere((p) => p.productCode == refId);
                 item['title'] = 'Mağaza: ${product.title}';
               } catch (_) {}
             }
@@ -71,7 +73,8 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
       appBar: AppBar(
         title: Text(
           'Purchase History',
-          style: TextStyle(color: context.colors.textHigh, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: context.colors.textHigh, fontWeight: FontWeight.bold),
         ),
         backgroundColor: context.colors.background,
         elevation: 0,
@@ -84,39 +87,57 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
               : ListView.separated(
                   padding: const EdgeInsets.all(16.0),
                   itemCount: _history.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = _history[index];
                     final int amount = item['amount'] ?? 0;
                     final bool isPositive = item['is_positive'] ?? true;
                     final String type = item['type'] ?? 'unknown';
                     final String title = item['title'] ?? 'İşlem';
-                    
+
                     final dateStr = item['created_at'];
-                    final date = dateStr != null ? DateTime.tryParse(dateStr)?.toLocal() : null;
-                    final formattedDate = date != null ? DateFormat('MMM d, yyyy • HH:mm').format(date) : '';
+                    final date = dateStr != null
+                        ? DateTime.tryParse(dateStr)?.toLocal()
+                        : null;
+                    final formattedDate = date != null
+                        ? DateFormat('MMM d, yyyy • HH:mm').format(date)
+                        : '';
 
                     IconData iconData = Icons.receipt_long;
                     Color iconColor = context.colors.primaryContainer;
-                    
+
                     if (type == 'purchase' || type == 'store_purchase') {
                       iconData = Icons.shopping_bag;
                       iconColor = Colors.orange;
                     } else if (type == 'topup') {
                       iconData = Icons.monetization_on;
                       iconColor = Colors.green;
-                    } else if (type == 'reward' || type == 'daily_reward') {
+                    } else if (type == 'reward' ||
+                        type == 'daily_reward' ||
+                        type == 'rewarded_ad' ||
+                        type == 'task_reward') {
                       iconData = Icons.card_giftcard;
                       iconColor = Colors.purpleAccent;
+                    } else if (type == 'prediction_stake' ||
+                        type == 'prediction_payout' ||
+                        type == 'prediction_refund') {
+                      iconData = Icons.sports_soccer_rounded;
+                      iconColor = context.colors.primaryContainer;
+                    } else if (type == 'admin_adjustment') {
+                      iconData = Icons.admin_panel_settings_rounded;
+                      iconColor = Colors.blueGrey;
                     }
 
                     return Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                        border: Border.all(
+                            color: Colors.grey.withValues(alpha: 0.2)),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 20.0),
                       child: Row(
                         children: [
                           Container(
@@ -135,7 +156,10 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                               children: [
                                 Text(
                                   title,
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
                                         color: Colors.black87,
                                         fontWeight: FontWeight.w800,
                                         fontSize: 16,
@@ -144,7 +168,10 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                                 const SizedBox(height: 6),
                                 Text(
                                   formattedDate,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
                                         color: Colors.black54,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
@@ -159,8 +186,13 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                             children: [
                               Text(
                                 '${isPositive ? '+' : ''}$amount',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      color: isPositive ? const Color(0xFF00685B) : const Color(0xFFD32F2F),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      color: isPositive
+                                          ? const Color(0xFF00685B)
+                                          : const Color(0xFFD32F2F),
                                       fontWeight: FontWeight.w900,
                                       fontSize: 18,
                                     ),
@@ -168,7 +200,8 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
                               const SizedBox(height: 6),
                               const Row(
                                 children: [
-                                  Icon(Icons.check_circle, size: 14, color: Color(0xFF00685B)),
+                                  Icon(Icons.check_circle,
+                                      size: 14, color: Color(0xFF00685B)),
                                   SizedBox(width: 4),
                                   Text(
                                     'BAŞARILI',
@@ -196,7 +229,8 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long, size: 64, color: context.colors.surfaceContainerHigh),
+          Icon(Icons.receipt_long,
+              size: 64, color: context.colors.surfaceContainerHigh),
           const SizedBox(height: 16),
           Text(
             "No purchase history yet.",
@@ -208,7 +242,7 @@ class _PurchaseHistoryScreenState extends ConsumerState<PurchaseHistoryScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            "When you buy K-Coins, your receipts will appear here.",
+            "All wallet activity will appear here once you start earning or spending K-Coins.",
             style: TextStyle(
               fontSize: 14,
               color: context.colors.textMedium.withValues(alpha: 0.8),

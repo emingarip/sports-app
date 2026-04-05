@@ -52,3 +52,4 @@ app.*.map.json
 simulation_engine/node_modules/
 sports_games_web/out/
 vercel_app.html
+supabase/.temp/

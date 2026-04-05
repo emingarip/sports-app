@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SignJWT } from "https://esm.sh/jose@5.9.6";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,35 @@ function isAllowedGamificationUrl(url: string): boolean {
   return url.startsWith('https://') ||
     url.startsWith('http://localhost') ||
     url.startsWith('http://127.0.0.1');
+}
+
+async function buildGamificationAuthHeader(secretOrToken: string): Promise<string> {
+  const trimmed = secretOrToken.trim();
+  if (!trimmed) {
+    throw new Error('GAMIFICATION_API_SECRET is not configured.');
+  }
+
+  if (trimmed.split('.').length === 3) {
+    return `Bearer ${trimmed}`;
+  }
+
+  const secretKey = new TextEncoder().encode(trimmed);
+  const token = await new SignJWT({
+    email: 'supabase-service',
+    permissions: ['read', 'write', 'delete', 'admin'],
+    role: 'admin',
+    sub: 'supabase_service',
+    type: 'access',
+    user_id: 'supabase_service',
+    username: 'supabase-service',
+  })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setIssuedAt()
+    .setIssuer('muscle-gamification')
+    .setExpirationTime('30m')
+    .sign(secretKey);
+
+  return `Bearer ${token}`;
 }
 
 serve(async (req) => {
@@ -46,12 +76,7 @@ serve(async (req) => {
       });
     }
 
-    if (!gamificationApiSecret) {
-      return new Response(JSON.stringify({ error: 'GAMIFICATION_API_SECRET is not configured.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    }
+    const gamificationAuthHeader = await buildGamificationAuthHeader(gamificationApiSecret);
 
     const reqData = await req.json();
     const action = reqData.action;
@@ -59,7 +84,7 @@ serve(async (req) => {
 
     const backendHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${gamificationApiSecret}`,
+      'Authorization': gamificationAuthHeader,
     };
 
     let response;

@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/store_product.dart';
 import '../models/store_purchase_result.dart';
@@ -46,9 +47,13 @@ class StoreService {
     }
 
     try {
+      final requestId = const Uuid().v4();
       final response = await _supabase.functions.invoke(
         'buy-store-item',
-        body: {'p_product_code': productCode},
+        body: {
+          'p_product_code': productCode,
+          'p_request_id': requestId,
+        },
       );
 
       final data = Map<String, dynamic>.from(response.data as Map);

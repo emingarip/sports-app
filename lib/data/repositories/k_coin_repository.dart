@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/k_coin_package.dart';
+import '../../models/reward_claim_result.dart';
 
 class KCoinRepository {
   final SupabaseClient _client;
@@ -27,13 +28,19 @@ class KCoinRepository {
         .select()
         .eq('is_active', true)
         .order('coin_amount', ascending: true);
-        
-    return (response as List).map((e) => KCoinPackage.fromJson(e as Map<String, dynamic>)).toList();
+
+    return (response as List)
+        .map((e) => KCoinPackage.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Sends an event to the Gamification API and returns the reward result.
-  /// Response includes: points_awarded, matched_rules, badges_awarded.
-  Future<Map<String, dynamic>> sendEvent(String userId, String eventType, Map<String, dynamic> metadata) async {
+  /// Sends a non-wallet event to the Gamification API and returns the raw result.
+  /// Wallet-changing rewards must use [claimReward].
+  Future<Map<String, dynamic>> sendEvent(
+    String userId,
+    String eventType,
+    Map<String, dynamic> metadata,
+  ) async {
     try {
       final response = await _client.functions.invoke(
         'gamification-api-bridge',
@@ -52,26 +59,66 @@ class KCoinRepository {
           return data;
         }
       }
-      return {'points_awarded': 0, 'matched_rules': <String>[], 'badges_awarded': <String>[]};
+      return {
+        'points_awarded': 0,
+        'matched_rules': <String>[],
+        'badges_awarded': <String>[],
+      };
     } catch (_) {
-      return {'points_awarded': 0, 'matched_rules': <String>[], 'badges_awarded': <String>[]};
+      return {
+        'points_awarded': 0,
+        'matched_rules': <String>[],
+        'badges_awarded': <String>[],
+      };
     }
   }
 
-  /// Sends a transaction event and returns the reward result from the Gamification API.
-  Future<Map<String, dynamic>> processTransaction({
-    required int amount,
-    required String transactionType,
-    String? referenceId,
+  Future<RewardClaimResult> claimReward({
+    required String eventType,
+    required String referenceId,
+    Map<String, dynamic> metadata = const {},
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('User not logged in');
+    final normalizedReferenceId = referenceId.trim();
+    if (normalizedReferenceId.isEmpty) {
+      throw Exception('Reward reference_id is required.');
+    }
 
-    // Send Gamification Event for the transaction
-    return await sendEvent(userId, transactionType, {
-      'amount': amount,
-      'reference_id': referenceId,
-    });
+    try {
+      final response = await _client.functions.invoke(
+        'claim-kcoin-reward',
+        body: {
+          'event_type': eventType,
+          'reference_id': normalizedReferenceId,
+          'metadata': metadata,
+        },
+      );
+
+      final payload = response.data;
+      if (payload is Map<String, dynamic>) {
+        if (response.status >= 200 && response.status < 300) {
+          return RewardClaimResult.fromJson(payload);
+        }
+
+        final errorMessage = payload['error']?.toString().trim();
+        if (errorMessage != null && errorMessage.isNotEmpty) {
+          throw Exception(errorMessage);
+        }
+      }
+
+      throw Exception('Reward service returned an unexpected response.');
+    } on FunctionException catch (error) {
+      final details = error.details;
+      if (details is Map && details['error'] != null) {
+        throw Exception(details['error'].toString());
+      }
+
+      final reason = error.reasonPhrase;
+      if (reason != null && reason.isNotEmpty) {
+        throw Exception(reason);
+      }
+
+      throw Exception('Reward claim could not be completed.');
+    }
   }
 
   Future<List<Map<String, dynamic>>> getPurchasingHistory() async {
@@ -79,63 +126,102 @@ class KCoinRepository {
     if (userId == null) return [];
 
     try {
-      // 1. Fetch real-money top-ups
-      final topupsResponse = await _client
-          .from('k_coin_purchasing_history')
-          .select()
-          .eq('user_id', userId);
-
-      // 2. Fetch store transactions (e.g. buying a frame)
       final txResponse = await _client
           .from('k_coin_transactions')
-          .select()
-          .eq('user_id', userId);
+          .select(
+              'transaction_type, amount, reference_id, description, created_at')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
 
-      List<Map<String, dynamic>> unifiedList = [];
+      final unifiedList = (txResponse as List)
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .map((row) {
+        final transactionType =
+            row['transaction_type']?.toString() ?? 'unknown';
+        final amount = (row['amount'] as num?)?.toInt() ?? 0;
 
-      for (var row in (topupsResponse as List)) {
-        unifiedList.add({
-          'type': 'topup',
-          'amount': row['coins_granted'] ?? 0,
-          'title': 'K-Coin Paketi (${row['product_id'] ?? 'Bilinmiyor'})',
-          'is_positive': true,
-          'created_at': row['created_at'],
-        });
-      }
-
-      for (var row in (txResponse as List)) {
-        final String tType = row['transaction_type'] ?? 'unknown';
-        final int amount = row['amount'] ?? 0;
-        String title = '';
-        if (tType == 'purchase' || tType == 'store_purchase') {
-          title = 'Mağaza: ${row['reference_id'] ?? 'Bilinmiyor'}';
-        } else if (tType == 'reward' || tType == 'daily_reward') {
-          title = 'Günlük K-Coin Ödülü';
-        } else {
-          title = 'İşlem ($tType)';
-        }
-
-        unifiedList.add({
-          'type': tType,
+        return {
+          'type': transactionType,
           'amount': amount,
-          'title': title,
+          'title': _buildHistoryTitle(
+            transactionType: transactionType,
+            referenceId: row['reference_id']?.toString(),
+            description: row['description']?.toString(),
+          ),
           'reference_id': row['reference_id'],
           'is_positive': amount > 0,
           'created_at': row['created_at'],
-        });
+        };
+      }).toList(growable: true);
+
+      try {
+        final orphanTopups = await _client
+            .from('k_coin_purchasing_history')
+            .select('product_id, coins_granted, created_at')
+            .eq('user_id', userId)
+            .isFilter('ledger_transaction_id', null);
+
+        for (final row in (orphanTopups as List)) {
+          final entry = Map<String, dynamic>.from(row as Map);
+          unifiedList.add({
+            'type': 'topup',
+            'amount': (entry['coins_granted'] as num?)?.toInt() ?? 0,
+            'title':
+                'K-Coin Package (${entry['product_id']?.toString() ?? 'Unknown'})',
+            'is_positive': true,
+            'created_at': entry['created_at'],
+          });
+        }
+      } catch (_) {
+        // Environments without the new ledger_transaction_id column can still
+        // render ledger history without legacy audit rows.
       }
 
-      // 3. Sort by created_at descending
       unifiedList.sort((a, b) {
-        final dateA = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final dateB = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final dateA = DateTime.tryParse(a['created_at']?.toString() ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final dateB = DateTime.tryParse(b['created_at']?.toString() ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         return dateB.compareTo(dateA);
       });
 
       return unifiedList;
-    } catch (e) {
+    } catch (_) {
       return [];
     }
   }
-}
 
+  String _buildHistoryTitle({
+    required String transactionType,
+    required String? referenceId,
+    required String? description,
+  }) {
+    if (description != null && description.trim().isNotEmpty) {
+      return description.trim();
+    }
+
+    switch (transactionType) {
+      case 'store_purchase':
+      case 'purchase':
+        return 'Store Purchase: ${referenceId ?? 'Unknown'}';
+      case 'topup':
+        return 'K-Coin Package (${referenceId ?? 'Unknown'})';
+      case 'rewarded_ad':
+        return 'Rewarded Ad Bonus';
+      case 'daily_reward':
+        return 'Daily Reward';
+      case 'task_reward':
+        return 'Task Reward';
+      case 'prediction_stake':
+        return 'Prediction Stake';
+      case 'prediction_payout':
+        return 'Prediction Payout';
+      case 'prediction_refund':
+        return 'Prediction Refund';
+      case 'admin_adjustment':
+        return 'Admin Balance Adjustment';
+      default:
+        return 'Transaction ($transactionType)';
+    }
+  }
+}

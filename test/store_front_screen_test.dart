@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sports_app/screens/store_front_screen.dart';
 import 'package:sports_app/models/k_coin_package.dart';
+import 'package:sports_app/models/reward_claim_result.dart';
 import 'package:sports_app/providers/wallet_provider.dart';
 import 'package:sports_app/theme/app_theme.dart';
 
@@ -64,7 +65,7 @@ void main() {
     expect(find.text('500 Coins'), findsOneWidget);
 
     // Verify buttons are rendered
-    expect(find.text('Claim Test Reward'), findsOneWidget);
+    expect(find.text('Claim Debug Reward'), findsOneWidget);
     expect(find.byType(OutlinedButton), findsWidgets);
   });
 }
@@ -87,8 +88,14 @@ class MockWalletBalance extends WalletBalance {
   }
 
   @override
-  Future<void> claimTestReward() async {
+  Future<RewardClaimResult> claimTestReward() async {
     // Mock the claim by simply adding 50
     state += 50;
+    return const RewardClaimResult(
+      success: true,
+      pointsAwarded: 50,
+      matchedRules: [],
+      badgesAwarded: [],
+    );
   }
 }

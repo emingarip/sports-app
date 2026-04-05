@@ -36,3 +36,8 @@ entrypoint = "./functions/generate-bot-swarm/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/buy-store-item/index.ts"
+
+[functions.claim-kcoin-reward]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/claim-kcoin-reward/index.ts"

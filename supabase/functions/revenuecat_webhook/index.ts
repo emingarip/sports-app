@@ -68,9 +68,21 @@ serve(async (req) => {
 
     // 4. SECURITY: Atomic balance update via server-side RPC
     // Uses SELECT ... FOR UPDATE to prevent race conditions
-    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('grant_k_coins_server', {
+    const transactionId = event.transaction_id || `txn_${Date.now()}`
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('credit_k_coins_server', {
       p_user_id: userId,
       p_amount: coinAmount,
+      p_transaction_type: 'topup',
+      p_reference_id: productId,
+      p_description: `RevenueCat purchase: ${productId}`,
+      p_source_type: 'revenuecat',
+      p_source_id: transactionId,
+      p_idempotency_key: transactionId,
+      p_metadata: {
+        product_id: productId,
+        environment: event.environment,
+        event_type: event.type,
+      },
     })
 
     if (rpcError) {
@@ -78,19 +90,20 @@ serve(async (req) => {
     }
 
     // 5. Log the transaction (idempotent via unique constraint on rc_transaction_id)
-    const transactionId = event.transaction_id || `txn_${Date.now()}`;
     const { error: logError } = await supabaseAdmin
       .from('k_coin_purchasing_history')
-      .insert({
+      .upsert({
         user_id: userId,
         product_id: productId,
         coins_granted: coinAmount,
         rc_transaction_id: transactionId,
-        environment: event.environment // 'PRODUCTION' or 'SANDBOX'
+        environment: event.environment, // 'PRODUCTION' or 'SANDBOX'
+        ledger_transaction_id: rpcResult?.transaction_id ?? null,
+      }, {
+        onConflict: 'rc_transaction_id',
       })
 
-    if (logError && logError.code !== '23505') { 
-      // Ignore unique constraint violations (duplicate webhook delivery)
+    if (logError) { 
       console.error('Failed to log history', logError)
     }
 
