@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,6 +20,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   late final TextEditingController _searchController;
   late final FocusNode _searchFocusNode;
   late final ScrollController _controlsScrollController;
+  Timer? _searchDebounce;
   bool _lastInlineSearchOpen = false;
 
   @override
@@ -32,6 +35,8 @@ class _FilterRowState extends ConsumerState<FilterRow> {
         if (!_searchFocusNode.hasFocus &&
             ref.read(matchStateProvider).inlineSearchQuery.trim().isEmpty &&
             ref.read(matchStateProvider).isInlineSearchOpen) {
+          _searchDebounce?.cancel();
+          _searchController.clear();
           ref.read(matchStateProvider.notifier).closeInlineSearch();
         }
       });
@@ -42,6 +47,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _controlsScrollController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -263,11 +269,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                           controller: _searchController,
                           focusNode: _searchFocusNode,
                           textInputAction: TextInputAction.search,
-                          onChanged: (value) {
-                            ref
-                                .read(matchStateProvider.notifier)
-                                .setInlineSearchQuery(value);
-                          },
+                          onChanged: _handleInlineSearchChanged,
                           decoration: InputDecoration(
                             hintText: 'Mac ara',
                             hintStyle: TextStyle(
@@ -290,9 +292,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                         tooltip: 'Aramayi kapat',
                         visualDensity: VisualDensity.compact,
                         onPressed: () {
-                          ref
-                              .read(matchStateProvider.notifier)
-                              .closeInlineSearch();
+                          _closeInlineSearch();
                         },
                         icon: Icon(
                           Icons.close_rounded,
@@ -312,7 +312,8 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   }
 
   void _syncSearchInput(MatchState matchState) {
-    if (_searchController.text != matchState.inlineSearchQuery) {
+    if (!_searchFocusNode.hasFocus &&
+        _searchController.text != matchState.inlineSearchQuery) {
       _searchController.value = TextEditingValue(
         text: matchState.inlineSearchQuery,
         selection: TextSelection.collapsed(
@@ -330,6 +331,23 @@ class _FilterRowState extends ConsumerState<FilterRow> {
         _searchFocusNode.requestFocus();
       }
     });
+  }
+
+  void _handleInlineSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) {
+        return;
+      }
+      ref.read(matchStateProvider.notifier).setInlineSearchQuery(value);
+    });
+  }
+
+  void _closeInlineSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+    ref.read(matchStateProvider.notifier).closeInlineSearch();
   }
 
   void _syncControlsPosition(bool isInlineSearchOpen) {

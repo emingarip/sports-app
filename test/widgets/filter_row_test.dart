@@ -75,7 +75,7 @@ void main() {
       expect(find.text('2 mac'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'Real');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
 
       expect(container.read(matchStateProvider).inlineSearchQuery, 'Real');
       expect(find.text('Mac ara'), findsOneWidget);

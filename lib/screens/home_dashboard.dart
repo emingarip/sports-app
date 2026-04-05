@@ -857,32 +857,38 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   Widget _buildCardListSliver(List<MatchListItemViewModel> items) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      sliver: SliverToBoxAdapter(
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.colors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.colors.surfaceContainerLow),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = items[index];
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == items.length - 1 ? 0 : 12,
               ),
-            ],
-          ),
-          child: Column(
-            children: List.generate(items.length, (index) {
-              final item = items[index];
-              return MatchCard(
-                match: item.match,
-                hasBorder: index != items.length - 1,
-                reasonLabel: item.reasonLabel,
-                statusLabel: item.statusLabel,
-                secondaryLabel: item.secondaryLabel,
-              );
-            }),
-          ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: context.colors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.colors.surfaceContainerLow),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: MatchCard(
+                  match: item.match,
+                  hasBorder: false,
+                  reasonLabel: item.reasonLabel,
+                  statusLabel: item.statusLabel,
+                  secondaryLabel: item.secondaryLabel,
+                ),
+              ),
+            );
+          },
+          childCount: items.length,
         ),
       ),
     );
