@@ -589,8 +589,8 @@ class _FilterRowLayout {
     required double availableWidth,
     required int resultCount,
   }) {
-    final isCompact = availableWidth < 360;
-    final isUltraCompact = availableWidth < 340;
+    final isCompact = availableWidth < 390;
+    final isUltraCompact = availableWidth < 350;
 
     if (isUltraCompact) {
       return _FilterRowLayout(
