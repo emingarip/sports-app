@@ -55,6 +55,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationProvider);
+    final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -73,18 +74,42 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           Align(
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: _shellMaxWidth),
-              child: const Padding(
-                padding: EdgeInsets.only(bottom: 80),
-                child: FloatingAudioRoom(),
+              constraints: const BoxConstraints(maxWidth: _shellMaxWidth),
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                offset: isKeyboardOpen ? const Offset(0, 1.15) : Offset.zero,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 180),
+                  opacity: isKeyboardOpen ? 0.0 : 1.0,
+                  child: IgnorePointer(
+                    ignoring: isKeyboardOpen,
+                    child: const Padding(
+                      padding: EdgeInsets.only(bottom: 80),
+                      child: FloatingAudioRoom(),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: _shellMaxWidth),
-              child: const CustomBottomNav(),
+              constraints: const BoxConstraints(maxWidth: _shellMaxWidth),
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                offset: isKeyboardOpen ? const Offset(0, 1.25) : Offset.zero,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 180),
+                  opacity: isKeyboardOpen ? 0.0 : 1.0,
+                  child: IgnorePointer(
+                    ignoring: isKeyboardOpen,
+                    child: const CustomBottomNav(),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
