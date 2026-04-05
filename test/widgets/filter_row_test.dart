@@ -179,14 +179,22 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('2'), findsOneWidget);
+      final countRectBeforeOpen = tester.getRect(find.text('2'));
+      final searchToggleRect =
+          tester.getRect(find.byKey(const ValueKey('inline-search-toggle')));
+
+      expect(searchToggleRect.overlaps(countRectBeforeOpen), isFalse);
       expect(tester.getSize(find.byType(FilterRow)).height, lessThanOrEqualTo(60));
 
       await tester.tap(find.byKey(const ValueKey('inline-search-toggle')));
       await tester.pumpAndSettle();
 
+      final countRectAfterOpen = tester.getRect(find.text('2'));
+      final searchFieldRect =
+          tester.getRect(find.byKey(const ValueKey('inline-search-field')));
+
       expect(find.byKey(const ValueKey('inline-search-field')), findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
+      expect(searchFieldRect.overlaps(countRectAfterOpen), isFalse);
       expect(tester.getSize(find.byType(FilterRow)).height, lessThanOrEqualTo(60));
 
       container.dispose();

@@ -20,9 +20,6 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   late final ScrollController _controlsScrollController;
   Timer? _searchDebounce;
   bool _lastInlineSearchOpen = false;
-  double _closedControlsOffset = 0;
-  double _lastAppliedClosedControlsOffset = -1;
-  bool _hasAppliedInitialClosedOffset = false;
 
   @override
   void initState() {
@@ -71,7 +68,6 @@ class _FilterRowState extends ConsumerState<FilterRow> {
             availableWidth: constraints.maxWidth,
             resultCount: resultCount,
           );
-          _closedControlsOffset = layout.closedControlsOffset;
 
           return Row(
             children: [
@@ -84,6 +80,10 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                   layout: layout,
                 ),
               ),
+              if (layout.detachedResultCount) ...[
+                SizedBox(width: layout.controlGap),
+                _buildResultCountChip(context, layout),
+              ],
               SizedBox(width: layout.searchGap),
               _buildSearchContainer(
                 context,
@@ -138,32 +138,14 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   }
 
   void _syncControlsPosition(bool isInlineSearchOpen) {
-    final shouldJumpToClosedOffset =
-        !_hasAppliedInitialClosedOffset && !isInlineSearchOpen;
-
-    if (_lastInlineSearchOpen == isInlineSearchOpen &&
-        (_lastAppliedClosedControlsOffset - _closedControlsOffset).abs() <
-            0.5 &&
-        !shouldJumpToClosedOffset) {
+    if (_lastInlineSearchOpen == isInlineSearchOpen) {
       return;
     }
 
     _lastInlineSearchOpen = isInlineSearchOpen;
-    _lastAppliedClosedControlsOffset = _closedControlsOffset;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_controlsScrollController.hasClients) {
-        return;
-      }
-
-      if (shouldJumpToClosedOffset) {
-        _controlsScrollController.jumpTo(
-          math.min(
-            _closedControlsOffset,
-            _controlsScrollController.position.maxScrollExtent,
-          ),
-        );
-        _hasAppliedInitialClosedOffset = true;
         return;
       }
 
@@ -183,10 +165,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   void _animateControlsToTarget(bool isInlineSearchOpen) {
     final target = isInlineSearchOpen
         ? _controlsScrollController.position.maxScrollExtent
-        : math.min(
-            _closedControlsOffset,
-            _controlsScrollController.position.maxScrollExtent,
-          );
+        : _controlsScrollController.position.minScrollExtent;
 
     _controlsScrollController.animateTo(
       target,
@@ -292,40 +271,49 @@ class _FilterRowState extends ConsumerState<FilterRow> {
               ),
             ),
           ),
-          SizedBox(width: layout.controlGap),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: layout.chipHorizontalPadding,
-              vertical: layout.chipVerticalPadding,
-            ),
-            decoration: BoxDecoration(
-              color: context.colors.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: context.colors.surfaceContainerLow,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.format_list_bulleted_rounded,
-                  size: layout.chipIconSize,
-                  color: context.colors.textMedium,
-                ),
-                SizedBox(width: layout.chipContentGap),
-                Text(
-                  layout.resultCountLabel,
-                  style: TextStyle(
-                    color: context.colors.textMedium,
-                    fontWeight: FontWeight.w600,
-                    fontSize: layout.chipTextSize,
-                  ),
-                ),
-              ],
+          if (!layout.detachedResultCount) ...[
+            SizedBox(width: layout.controlGap),
+            _buildResultCountChip(context, layout),
+          ],
+          SizedBox(width: layout.trailingControlsInset),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultCountChip(
+    BuildContext context,
+    _FilterRowLayout layout,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: layout.chipHorizontalPadding,
+        vertical: layout.chipVerticalPadding,
+      ),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: context.colors.surfaceContainerLow,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.format_list_bulleted_rounded,
+            size: layout.chipIconSize,
+            color: context.colors.textMedium,
+          ),
+          SizedBox(width: layout.chipContentGap),
+          Text(
+            layout.resultCountLabel,
+            style: TextStyle(
+              color: context.colors.textMedium,
+              fontWeight: FontWeight.w600,
+              fontSize: layout.chipTextSize,
             ),
           ),
-          SizedBox(width: layout.trailingControlsInset),
         ],
       ),
     );
@@ -524,7 +512,7 @@ class _FilterRowLayout {
   final double searchTextSize;
   final double searchHintTextSize;
   final double trailingControlsInset;
-  final double closedControlsOffset;
+  final bool detachedResultCount;
   final String favoritesLabel;
   final String resultCountLabel;
 
@@ -551,7 +539,7 @@ class _FilterRowLayout {
     required this.searchTextSize,
     required this.searchHintTextSize,
     required this.trailingControlsInset,
-    required this.closedControlsOffset,
+    required this.detachedResultCount,
     required this.favoritesLabel,
     required this.resultCountLabel,
   });
@@ -587,7 +575,7 @@ class _FilterRowLayout {
         searchTextSize: 12.5,
         searchHintTextSize: 11.5,
         trailingControlsInset: 0,
-        closedControlsOffset: 68,
+        detachedResultCount: true,
         favoritesLabel: 'Fav',
         resultCountLabel: '$resultCount',
       );
@@ -617,7 +605,7 @@ class _FilterRowLayout {
         searchTextSize: 13,
         searchHintTextSize: 12,
         trailingControlsInset: 0,
-        closedControlsOffset: 56,
+        detachedResultCount: true,
         favoritesLabel: 'Favoriler',
         resultCountLabel: '$resultCount',
       );
@@ -646,7 +634,7 @@ class _FilterRowLayout {
       searchTextSize: 14,
       searchHintTextSize: 13,
       trailingControlsInset: 4,
-      closedControlsOffset: 0,
+      detachedResultCount: false,
       favoritesLabel: 'Favoriler',
       resultCountLabel: '$resultCount mac',
     );
