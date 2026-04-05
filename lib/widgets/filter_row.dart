@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,16 +15,14 @@ class FilterRow extends ConsumerStatefulWidget {
 }
 
 class _FilterRowState extends ConsumerState<FilterRow> {
-  static const _compactLayoutBreakpoint = 420.0;
-  static const _closedSearchWidth = 44.0;
-  static const _openSearchWidth = 232.0;
-
   late final TextEditingController _searchController;
   late final FocusNode _searchFocusNode;
   late final ScrollController _controlsScrollController;
   Timer? _searchDebounce;
   bool _lastInlineSearchOpen = false;
-  bool _lastCompactLayout = false;
+  double _closedControlsOffset = 0;
+  double _lastAppliedClosedControlsOffset = -1;
+  bool _hasAppliedInitialClosedOffset = false;
 
   @override
   void initState() {
@@ -62,66 +61,40 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     final resultCount = ref.watch(matchListItemsProvider).length;
 
     _syncSearchInput(matchState);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompactLayout =
-            constraints.maxWidth < _compactLayoutBreakpoint;
-        _syncControlsLayout(
-          isCompactLayout: isCompactLayout,
-          isInlineSearchOpen: isInlineSearchOpen,
-        );
+    _syncControlsPosition(isInlineSearchOpen);
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: isCompactLayout
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildControlsScroller(
-                      context,
-                      ref,
-                      statusFilter: statusFilter,
-                      isStarred: isStarred,
-                      resultCount: resultCount,
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _buildSearchContainer(
-                        context,
-                        ref,
-                        isInlineSearchOpen: isInlineSearchOpen,
-                        width: isInlineSearchOpen
-                            ? constraints.maxWidth - 32
-                            : _closedSearchWidth,
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(
-                      child: _buildControlsScroller(
-                        context,
-                        ref,
-                        statusFilter: statusFilter,
-                        isStarred: isStarred,
-                        resultCount: resultCount,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildSearchContainer(
-                      context,
-                      ref,
-                      isInlineSearchOpen: isInlineSearchOpen,
-                      width: isInlineSearchOpen
-                          ? _openSearchWidth
-                          : _closedSearchWidth,
-                    ),
-                  ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final layout = _FilterRowLayout.resolve(
+            availableWidth: constraints.maxWidth,
+            resultCount: resultCount,
+          );
+          _closedControlsOffset = layout.closedControlsOffset;
+
+          return Row(
+            children: [
+              Expanded(
+                child: _buildControlsScroller(
+                  context,
+                  ref,
+                  statusFilter: statusFilter,
+                  isStarred: isStarred,
+                  layout: layout,
                 ),
-        );
-      },
+              ),
+              SizedBox(width: layout.searchGap),
+              _buildSearchContainer(
+                context,
+                ref,
+                isInlineSearchOpen: isInlineSearchOpen,
+                layout: layout,
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -164,39 +137,33 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     ref.read(matchStateProvider.notifier).closeInlineSearch();
   }
 
-  void _syncControlsLayout({
-    required bool isCompactLayout,
-    required bool isInlineSearchOpen,
-  }) {
-    if (isCompactLayout) {
-      if (!_lastCompactLayout) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || !_controlsScrollController.hasClients) {
-            return;
-          }
-          _controlsScrollController.jumpTo(
-            _controlsScrollController.position.minScrollExtent,
-          );
-        });
-      }
-      _lastCompactLayout = true;
-      _lastInlineSearchOpen = isInlineSearchOpen;
-      return;
-    }
-
-    _lastCompactLayout = false;
-    _syncControlsPosition(isInlineSearchOpen);
-  }
-
   void _syncControlsPosition(bool isInlineSearchOpen) {
-    if (_lastInlineSearchOpen == isInlineSearchOpen) {
+    final shouldJumpToClosedOffset =
+        !_hasAppliedInitialClosedOffset && !isInlineSearchOpen;
+
+    if (_lastInlineSearchOpen == isInlineSearchOpen &&
+        (_lastAppliedClosedControlsOffset - _closedControlsOffset).abs() <
+            0.5 &&
+        !shouldJumpToClosedOffset) {
       return;
     }
 
     _lastInlineSearchOpen = isInlineSearchOpen;
+    _lastAppliedClosedControlsOffset = _closedControlsOffset;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_controlsScrollController.hasClients) {
+        return;
+      }
+
+      if (shouldJumpToClosedOffset) {
+        _controlsScrollController.jumpTo(
+          math.min(
+            _closedControlsOffset,
+            _controlsScrollController.position.maxScrollExtent,
+          ),
+        );
+        _hasAppliedInitialClosedOffset = true;
         return;
       }
 
@@ -216,7 +183,10 @@ class _FilterRowState extends ConsumerState<FilterRow> {
   void _animateControlsToTarget(bool isInlineSearchOpen) {
     final target = isInlineSearchOpen
         ? _controlsScrollController.position.maxScrollExtent
-        : _controlsScrollController.position.minScrollExtent;
+        : math.min(
+            _closedControlsOffset,
+            _controlsScrollController.position.maxScrollExtent,
+          );
 
     _controlsScrollController.animateTo(
       target,
@@ -230,7 +200,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     WidgetRef ref, {
     required StatusFilter statusFilter,
     required bool isStarred,
-    required int resultCount,
+    required _FilterRowLayout layout,
   }) {
     return SingleChildScrollView(
       controller: _controlsScrollController,
@@ -239,7 +209,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(4),
+            padding: EdgeInsets.all(layout.statusGroupPadding),
             decoration: BoxDecoration(
               color: context.colors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(24),
@@ -256,8 +226,9 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                   iconColor: Colors.redAccent,
                   isActive: statusFilter == StatusFilter.live,
                   targetFilter: StatusFilter.live,
+                  layout: layout,
                 ),
-                const SizedBox(width: 4),
+                SizedBox(width: layout.statusItemGap),
                 _buildStatusToggle(
                   context,
                   ref,
@@ -266,11 +237,12 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                   iconColor: context.colors.textMedium,
                   isActive: statusFilter == StatusFilter.finished,
                   targetFilter: StatusFilter.finished,
+                  layout: layout,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: layout.controlGap),
           GestureDetector(
             onTap: () {
               ref.read(matchStateProvider.notifier).toggleStarred();
@@ -278,9 +250,9 @@ class _FilterRowState extends ConsumerState<FilterRow> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
+              padding: EdgeInsets.symmetric(
+                horizontal: layout.chipHorizontalPadding,
+                vertical: layout.chipVerticalPadding,
               ),
               decoration: BoxDecoration(
                 color: isStarred
@@ -299,32 +271,32 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                 children: [
                   Icon(
                     isStarred ? Icons.star : Icons.star_border,
-                    size: 16,
+                    size: layout.chipIconSize,
                     color: isStarred
                         ? context.colors.onPrimaryContainer
                         : context.colors.textMedium,
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: layout.chipContentGap),
                   Text(
-                    'Favoriler',
+                    layout.favoritesLabel,
                     style: TextStyle(
                       color: isStarred
                           ? context.colors.onPrimaryContainer
                           : context.colors.textMedium,
                       fontWeight:
                           isStarred ? FontWeight.w600 : FontWeight.w500,
-                      fontSize: 12,
+                      fontSize: layout.chipTextSize,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: layout.controlGap),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
+            padding: EdgeInsets.symmetric(
+              horizontal: layout.chipHorizontalPadding,
+              vertical: layout.chipVerticalPadding,
             ),
             decoration: BoxDecoration(
               color: context.colors.surfaceContainerLowest,
@@ -338,21 +310,22 @@ class _FilterRowState extends ConsumerState<FilterRow> {
               children: [
                 Icon(
                   Icons.format_list_bulleted_rounded,
-                  size: 16,
+                  size: layout.chipIconSize,
                   color: context.colors.textMedium,
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: layout.chipContentGap),
                 Text(
-                  '$resultCount mac',
+                  layout.resultCountLabel,
                   style: TextStyle(
                     color: context.colors.textMedium,
                     fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                    fontSize: layout.chipTextSize,
                   ),
                 ),
               ],
             ),
           ),
+          SizedBox(width: layout.trailingControlsInset),
         ],
       ),
     );
@@ -362,13 +335,13 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     BuildContext context,
     WidgetRef ref, {
     required bool isInlineSearchOpen,
-    required double width,
+    required _FilterRowLayout layout,
   }) {
     return AnimatedContainer(
       key: const ValueKey('inline-search-container'),
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
-      width: width,
+      width: isInlineSearchOpen ? layout.openSearchWidth : layout.closedSearchWidth,
       height: 42,
       decoration: BoxDecoration(
         color: context.colors.surfaceContainerLowest,
@@ -421,15 +394,15 @@ class _FilterRowState extends ConsumerState<FilterRow> {
 
           return Padding(
             key: const ValueKey('inline-search-open'),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: layout.searchHorizontalPadding),
             child: Row(
               children: [
                 Icon(
                   Icons.search_rounded,
-                  size: 18,
+                  size: layout.searchIconSize,
                   color: context.colors.primary,
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: layout.searchContentGap),
                 Expanded(
                   child: TextField(
                     key: const ValueKey('inline-search-field'),
@@ -441,7 +414,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                       hintText: 'Mac ara',
                       hintStyle: TextStyle(
                         color: context.colors.textLow,
-                        fontSize: 13,
+                        fontSize: layout.searchHintTextSize,
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -449,7 +422,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                     ),
                     style: TextStyle(
                       color: context.colors.textHigh,
-                      fontSize: 14,
+                      fontSize: layout.searchTextSize,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -463,7 +436,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                   },
                   icon: Icon(
                     Icons.close_rounded,
-                    size: 18,
+                    size: layout.searchIconSize,
                     color: context.colors.textMedium,
                   ),
                 ),
@@ -483,6 +456,7 @@ class _FilterRowState extends ConsumerState<FilterRow> {
     required Color iconColor,
     required bool isActive,
     required StatusFilter targetFilter,
+    required _FilterRowLayout layout,
   }) {
     return GestureDetector(
       onTap: () {
@@ -492,7 +466,10 @@ class _FilterRowState extends ConsumerState<FilterRow> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: layout.toggleHorizontalPadding,
+          vertical: layout.toggleVerticalPadding,
+        ),
         decoration: BoxDecoration(
           color:
               isActive ? context.colors.primaryContainer : Colors.transparent,
@@ -503,10 +480,10 @@ class _FilterRowState extends ConsumerState<FilterRow> {
           children: [
             Icon(
               icon,
-              size: 14,
+              size: layout.toggleIconSize,
               color: isActive ? iconColor : iconColor.withValues(alpha: 0.6),
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: layout.toggleContentGap),
             Text(
               label,
               style: TextStyle(
@@ -514,12 +491,164 @@ class _FilterRowState extends ConsumerState<FilterRow> {
                     ? context.colors.onPrimaryContainer
                     : context.colors.textMedium,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                fontSize: 12,
+                fontSize: layout.toggleTextSize,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FilterRowLayout {
+  final double controlGap;
+  final double searchGap;
+  final double closedSearchWidth;
+  final double openSearchWidth;
+  final double statusGroupPadding;
+  final double statusItemGap;
+  final double toggleHorizontalPadding;
+  final double toggleVerticalPadding;
+  final double toggleContentGap;
+  final double toggleIconSize;
+  final double toggleTextSize;
+  final double chipHorizontalPadding;
+  final double chipVerticalPadding;
+  final double chipContentGap;
+  final double chipIconSize;
+  final double chipTextSize;
+  final double searchHorizontalPadding;
+  final double searchContentGap;
+  final double searchIconSize;
+  final double searchTextSize;
+  final double searchHintTextSize;
+  final double trailingControlsInset;
+  final double closedControlsOffset;
+  final String favoritesLabel;
+  final String resultCountLabel;
+
+  const _FilterRowLayout({
+    required this.controlGap,
+    required this.searchGap,
+    required this.closedSearchWidth,
+    required this.openSearchWidth,
+    required this.statusGroupPadding,
+    required this.statusItemGap,
+    required this.toggleHorizontalPadding,
+    required this.toggleVerticalPadding,
+    required this.toggleContentGap,
+    required this.toggleIconSize,
+    required this.toggleTextSize,
+    required this.chipHorizontalPadding,
+    required this.chipVerticalPadding,
+    required this.chipContentGap,
+    required this.chipIconSize,
+    required this.chipTextSize,
+    required this.searchHorizontalPadding,
+    required this.searchContentGap,
+    required this.searchIconSize,
+    required this.searchTextSize,
+    required this.searchHintTextSize,
+    required this.trailingControlsInset,
+    required this.closedControlsOffset,
+    required this.favoritesLabel,
+    required this.resultCountLabel,
+  });
+
+  factory _FilterRowLayout.resolve({
+    required double availableWidth,
+    required int resultCount,
+  }) {
+    final isCompact = availableWidth < 360;
+    final isUltraCompact = availableWidth < 340;
+
+    if (isUltraCompact) {
+      return _FilterRowLayout(
+        controlGap: 5,
+        searchGap: 4,
+        closedSearchWidth: 36,
+        openSearchWidth: math.min(164, availableWidth * 0.48),
+        statusGroupPadding: 3,
+        statusItemGap: 3,
+        toggleHorizontalPadding: 9,
+        toggleVerticalPadding: 8,
+        toggleContentGap: 4,
+        toggleIconSize: 12,
+        toggleTextSize: 10.5,
+        chipHorizontalPadding: 8,
+        chipVerticalPadding: 8,
+        chipContentGap: 4,
+        chipIconSize: 13,
+        chipTextSize: 10.5,
+        searchHorizontalPadding: 9,
+        searchContentGap: 7,
+        searchIconSize: 16,
+        searchTextSize: 12.5,
+        searchHintTextSize: 11.5,
+        trailingControlsInset: 0,
+        closedControlsOffset: 68,
+        favoritesLabel: 'Fav',
+        resultCountLabel: '$resultCount',
+      );
+    }
+
+    if (isCompact) {
+      return _FilterRowLayout(
+        controlGap: 5,
+        searchGap: 4,
+        closedSearchWidth: 38,
+        openSearchWidth: math.min(180, availableWidth * 0.50),
+        statusGroupPadding: 3,
+        statusItemGap: 3,
+        toggleHorizontalPadding: 10,
+        toggleVerticalPadding: 8,
+        toggleContentGap: 4,
+        toggleIconSize: 12,
+        toggleTextSize: 11,
+        chipHorizontalPadding: 9,
+        chipVerticalPadding: 8,
+        chipContentGap: 4,
+        chipIconSize: 14,
+        chipTextSize: 11,
+        searchHorizontalPadding: 10,
+        searchContentGap: 8,
+        searchIconSize: 17,
+        searchTextSize: 13,
+        searchHintTextSize: 12,
+        trailingControlsInset: 0,
+        closedControlsOffset: 56,
+        favoritesLabel: 'Favoriler',
+        resultCountLabel: '$resultCount',
+      );
+    }
+
+    return _FilterRowLayout(
+      controlGap: 8,
+      searchGap: 8,
+      closedSearchWidth: 44,
+      openSearchWidth: 232,
+      statusGroupPadding: 4,
+      statusItemGap: 4,
+      toggleHorizontalPadding: 14,
+      toggleVerticalPadding: 8,
+      toggleContentGap: 6,
+      toggleIconSize: 14,
+      toggleTextSize: 12,
+      chipHorizontalPadding: 12,
+      chipVerticalPadding: 8,
+      chipContentGap: 6,
+      chipIconSize: 16,
+      chipTextSize: 12,
+      searchHorizontalPadding: 12,
+      searchContentGap: 10,
+      searchIconSize: 18,
+      searchTextSize: 14,
+      searchHintTextSize: 13,
+      trailingControlsInset: 4,
+      closedControlsOffset: 0,
+      favoritesLabel: 'Favoriler',
+      resultCountLabel: '$resultCount mac',
     );
   }
 }

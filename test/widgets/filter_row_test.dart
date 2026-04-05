@@ -141,7 +141,7 @@ void main() {
       container.dispose();
     });
 
-    testWidgets('uses stacked mobile layout without overlapping count and search',
+    testWidgets('keeps mobile controls on one row in compact mode',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1.0;
@@ -177,21 +177,17 @@ void main() {
       );
 
       await tester.pump();
+      await tester.pump();
 
-      final countRectBeforeOpen = tester.getRect(find.text('2 mac'));
-      final searchToggleRect =
-          tester.getRect(find.byKey(const ValueKey('inline-search-toggle')));
-
-      expect(searchToggleRect.top, greaterThanOrEqualTo(countRectBeforeOpen.bottom));
+      expect(find.text('2'), findsOneWidget);
+      expect(tester.getSize(find.byType(FilterRow)).height, lessThanOrEqualTo(60));
 
       await tester.tap(find.byKey(const ValueKey('inline-search-toggle')));
       await tester.pumpAndSettle();
 
-      final countRectAfterOpen = tester.getRect(find.text('2 mac'));
-      final searchFieldRect =
-          tester.getRect(find.byKey(const ValueKey('inline-search-field')));
-
-      expect(searchFieldRect.top, greaterThanOrEqualTo(countRectAfterOpen.bottom));
+      expect(find.byKey(const ValueKey('inline-search-field')), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(tester.getSize(find.byType(FilterRow)).height, lessThanOrEqualTo(60));
 
       container.dispose();
     });
