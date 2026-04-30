@@ -55,7 +55,7 @@ void main() {
 
       expect(requestedUri?.path, '/api/v1/mobile/matches');
       expect(requestedUri?.queryParameters['tz'], 'Europe/Istanbul');
-      expect(requestedUri?.queryParameters['limit'], '500');
+      expect(requestedUri?.queryParameters['limit'], '1000');
       expect(matches, hasLength(1));
 
       final match = matches.single;

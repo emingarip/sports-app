@@ -87,7 +87,7 @@ class AiSportAgentMatchProvider implements MatchRepository {
       queryParameters: {
         'date': _formatDate(date),
         'tz': 'Europe/Istanbul',
-        'limit': '500',
+        'limit': '1000',
       },
     );
     final response = await _client.get(uri);
