@@ -31,7 +31,7 @@ jobs:
         run: flutter test
 
       - name: Build Web
-        run: flutter build web --wasm --base-href "/" --release --dart-define-from-file=.env
+        run: flutter build web --wasm --base-href "/" --release --dart-define-from-file=.env --dart-define=AI_SPORT_AGENT_BASE_URL=https://sports-agent.boskale.com
 
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7

@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/providers/supabase_match_provider.dart';
+import '../data/providers/ai_sport_agent_match_provider.dart';
 import '../data/repositories/match_repository.dart';
 import '../models/league.dart';
 import '../models/match.dart' as model;
@@ -12,7 +12,7 @@ import '../models/match_list_view_model.dart';
 import 'favorites_provider.dart';
 
 final matchRepositoryProvider = Provider<MatchRepository>((ref) {
-  return SupabaseMatchProvider();
+  return AiSportAgentMatchProvider();
 });
 
 enum StatusFilter { all, live, finished }
@@ -98,9 +98,15 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   void _initStream(DateTime date) {
     final repo = ref.read(matchRepositoryProvider);
     _subscription?.cancel();
-    _subscription = repo.getMatchesStream(date).listen((data) {
-      state = state.copyWith(matches: data);
-    });
+    _subscription = repo.getMatchesStream(date).listen(
+      (data) {
+        state = state.copyWith(matches: data);
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('Match stream error: $error');
+        state = state.copyWith(matches: []);
+      },
+    );
 
     repo.fetchMatchesForDate(DateTime.now());
     _startPolling();
@@ -108,7 +114,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
 
   void _startPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       final now = DateTime.now();
       if (state.selectedDate.year == now.year &&
           state.selectedDate.month == now.month &&
@@ -119,17 +125,17 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState appState) {
-    if (appState == AppLifecycleState.resumed) {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
       final now = DateTime.now();
-      if (state.selectedDate.year == now.year &&
-          state.selectedDate.month == now.month &&
-          state.selectedDate.day == now.day) {
+      if (this.state.selectedDate.year == now.year &&
+          this.state.selectedDate.month == now.month &&
+          this.state.selectedDate.day == now.day) {
         ref.read(matchRepositoryProvider).fetchMatchesForDate(now);
       }
       _startPolling();
-    } else if (appState == AppLifecycleState.paused ||
-        appState == AppLifecycleState.hidden) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
       debugPrint(
           'App in background: pausing match polling timer to save battery.');
       _pollingTimer?.cancel();
