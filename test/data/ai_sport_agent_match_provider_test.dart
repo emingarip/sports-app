@@ -14,37 +14,43 @@ void main() {
           requestedUri = request.url;
           return http.Response(
             '''
-[
-  {
-    "id": "match-1",
-    "kickoff_at": "2026-04-30T17:00:00Z",
-    "status": "scheduled",
-    "league": {
-      "id": "league-1",
-      "name": "Super Lig",
-      "slug": "super-lig",
-      "country_name": "Turkey",
-      "country_code": "TR",
-      "logo_url": null
-    },
-    "home_team": {
-      "id": "team-1",
-      "name": "Galatasaray",
-      "slug": "galatasaray",
-      "short_name": "GS",
-      "logo_url": null
-    },
-    "away_team": {
-      "id": "team-2",
-      "name": "Fenerbahce",
-      "slug": "fenerbahce",
-      "short_name": "FB",
-      "logo_url": "https://example.com/fb.png"
-    },
-    "lineup_status": null,
-    "source_confidence": 0.98
-  }
-]
+{
+  "matches": [
+    {
+      "id": "match-1",
+      "kickoff_at": "2026-04-30T17:00:00Z",
+      "status": "scheduled",
+      "league": {
+        "id": "league-1",
+        "name": "Super Lig",
+        "slug": "super-lig",
+        "country_name": "Turkey",
+        "country_code": "TR",
+        "logo_url": null
+      },
+      "home_team": {
+        "id": "team-1",
+        "name": "Galatasaray",
+        "slug": "galatasaray",
+        "short_name": "GS",
+        "logo_url": null
+      },
+      "away_team": {
+        "id": "team-2",
+        "name": "Fenerbahce",
+        "slug": "fenerbahce",
+        "short_name": "FB",
+        "logo_url": "https://example.com/fb.png"
+      },
+      "lineup_status": null,
+      "source_confidence": 0.98
+    }
+  ],
+  "sync_status": "fresh",
+  "sync_job_id": null,
+  "sync_job_run_id": null,
+  "stale": false
+}
 ''',
             200,
           );
@@ -53,7 +59,7 @@ void main() {
 
       final matches = await provider.getMatches();
 
-      expect(requestedUri?.path, '/api/v1/mobile/matches');
+      expect(requestedUri?.path, '/api/v1/mobile/matches/live');
       expect(requestedUri?.queryParameters['tz'], 'Europe/Istanbul');
       expect(requestedUri?.queryParameters['limit'], '1000');
       expect(matches, hasLength(1));

@@ -83,7 +83,7 @@ class AiSportAgentMatchProvider implements MatchRepository {
   }
 
   Future<List<model.Match>> _fetchMatches(DateTime date) async {
-    final uri = Uri.parse('$_baseUrl/mobile/matches').replace(
+    final uri = Uri.parse('$_baseUrl/mobile/matches/live').replace(
       queryParameters: {
         'date': _formatDate(date),
         'tz': 'Europe/Istanbul',
@@ -98,11 +98,16 @@ class AiSportAgentMatchProvider implements MatchRepository {
     }
 
     final decoded = jsonDecode(response.body);
-    if (decoded is! List) {
+    final rawMatches = switch (decoded) {
+      {'matches': final List matches} => matches,
+      final List matches => matches,
+      _ => null,
+    };
+    if (rawMatches == null) {
       throw const FormatException(
-          'AI Sport Agent matches payload is not a list.');
+          'AI Sport Agent matches payload does not contain a matches list.');
     }
-    return decoded.whereType<Map<String, dynamic>>().map(_mapMatch).toList();
+    return rawMatches.whereType<Map<String, dynamic>>().map(_mapMatch).toList();
   }
 
   model.Match _mapMatch(Map<String, dynamic> data) {
