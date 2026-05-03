@@ -108,7 +108,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
       },
     );
 
-    repo.fetchMatchesForDate(DateTime.now());
+    repo.fetchMatchesForDate(date);
     _startPolling();
   }
 
