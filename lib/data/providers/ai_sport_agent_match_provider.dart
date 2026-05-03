@@ -186,10 +186,10 @@ class AiSportAgentMatchProvider implements MatchRepository {
     final logoUri = Uri.parse('$_baseUrl$proxyPath');
     final normalizedLabel = label?.trim();
     if (normalizedLabel == null || normalizedLabel.isEmpty) {
-      return logoUri.toString();
+      return logoUri.replace(queryParameters: {'v': '2'}).toString();
     }
     return logoUri.replace(
-      queryParameters: {'label': normalizedLabel},
+      queryParameters: {'label': normalizedLabel, 'v': '2'},
     ).toString();
   }
 

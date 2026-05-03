@@ -155,11 +155,11 @@ void main() {
 
       expect(
         match.leagueLogoUrl,
-        'http://agent.test/api/v1/mobile/logos/unique-tournament/52?label=Super+Lig',
+        'http://agent.test/api/v1/mobile/logos/unique-tournament/52?label=Super+Lig&v=2',
       );
       expect(
         match.homeLogo,
-        'http://agent.test/api/v1/mobile/logos/team/3061?label=Galatasaray',
+        'http://agent.test/api/v1/mobile/logos/team/3061?label=Galatasaray&v=2',
       );
       expect(match.awayLogo, 'https://example.com/fb.png');
     });
