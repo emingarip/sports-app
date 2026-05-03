@@ -117,6 +117,53 @@ void main() {
       expect(matches[0].leagueId, 'unknown_league');
     });
 
+    test('rewrites SofaScore logo urls to the backend logo proxy', () async {
+      final provider = AiSportAgentMatchProvider(
+        baseUrl: 'http://agent.test/api/v1',
+        client: MockClient((request) async {
+          return http.Response(
+            '''
+{
+  "matches": [
+    {
+      "id": "match-1",
+      "kickoff_at": "2026-04-30T17:00:00Z",
+      "status": "scheduled",
+      "league": {
+        "id": "league-1",
+        "name": "Super Lig",
+        "logo_url": "https://img.sofascore.com/api/v1/unique-tournament/52/image"
+      },
+      "home_team": {
+        "name": "Galatasaray",
+        "logo_url": "https://img.sofascore.com/api/v1/team/3061/image"
+      },
+      "away_team": {
+        "name": "Fenerbahce",
+        "logo_url": "https://example.com/fb.png"
+      }
+    }
+  ]
+}
+''',
+            200,
+          );
+        }),
+      );
+
+      final match = (await provider.getMatches()).single;
+
+      expect(
+        match.leagueLogoUrl,
+        'http://agent.test/api/v1/mobile/logos/unique-tournament/52?label=Super+Lig',
+      );
+      expect(
+        match.homeLogo,
+        'http://agent.test/api/v1/mobile/logos/team/3061?label=Galatasaray',
+      );
+      expect(match.awayLogo, 'https://example.com/fb.png');
+    });
+
     test('stream emits an error when backend is unavailable', () async {
       final provider = AiSportAgentMatchProvider(
         baseUrl: 'http://agent.test/api/v1',
