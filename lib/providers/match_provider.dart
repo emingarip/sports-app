@@ -115,24 +115,16 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      final now = DateTime.now();
-      if (state.selectedDate.year == now.year &&
-          state.selectedDate.month == now.month &&
-          state.selectedDate.day == now.day) {
-        ref.read(matchRepositoryProvider).fetchMatchesForDate(now);
-      }
+      ref.read(matchRepositoryProvider).fetchMatchesForDate(state.selectedDate);
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      final now = DateTime.now();
-      if (this.state.selectedDate.year == now.year &&
-          this.state.selectedDate.month == now.month &&
-          this.state.selectedDate.day == now.day) {
-        ref.read(matchRepositoryProvider).fetchMatchesForDate(now);
-      }
+      ref
+          .read(matchRepositoryProvider)
+          .fetchMatchesForDate(this.state.selectedDate);
       _startPolling();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
