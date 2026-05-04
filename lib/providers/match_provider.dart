@@ -78,9 +78,11 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   MatchState build() {
     WidgetsBinding.instance.addObserver(this);
     _initStream(DateTime.now());
+    final repo = ref.read(matchRepositoryProvider);
 
     ref.onDispose(() {
       WidgetsBinding.instance.removeObserver(this);
+      repo.pauseRealtime();
       _subscription?.cancel();
       _pollingTimer?.cancel();
     });
@@ -98,6 +100,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   void _initStream(DateTime date) {
     final repo = ref.read(matchRepositoryProvider);
     _subscription?.cancel();
+    repo.resumeRealtime();
     _subscription = repo.getMatchesStream(date).listen(
       (data) {
         state = state.copyWith(matches: data);
@@ -121,15 +124,16 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final repo = ref.read(matchRepositoryProvider);
     if (state == AppLifecycleState.resumed) {
-      ref
-          .read(matchRepositoryProvider)
-          .fetchMatchesForDate(this.state.selectedDate);
+      repo.resumeRealtime();
+      repo.fetchMatchesForDate(this.state.selectedDate);
       _startPolling();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       debugPrint(
           'App in background: pausing match polling timer to save battery.');
+      repo.pauseRealtime();
       _pollingTimer?.cancel();
     }
   }

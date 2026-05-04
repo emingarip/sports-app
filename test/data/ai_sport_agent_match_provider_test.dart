@@ -10,6 +10,7 @@ void main() {
       Uri? requestedUri;
       final provider = AiSportAgentMatchProvider(
         baseUrl: 'http://agent.test/api/v1/',
+        enableRealtime: false,
         client: MockClient((request) async {
           requestedUri = request.url;
           return http.Response(
@@ -84,6 +85,7 @@ void main() {
     test('maps live and finished statuses with scores', () async {
       final provider = AiSportAgentMatchProvider(
         baseUrl: 'http://agent.test/api/v1',
+        enableRealtime: false,
         client: MockClient((request) async {
           return http.Response(
             '''
@@ -135,6 +137,7 @@ void main() {
     test('rewrites SofaScore logo urls to the backend logo proxy', () async {
       final provider = AiSportAgentMatchProvider(
         baseUrl: 'http://agent.test/api/v1',
+        enableRealtime: false,
         client: MockClient((request) async {
           return http.Response(
             '''
@@ -182,6 +185,7 @@ void main() {
     test('stream emits an error when backend is unavailable', () async {
       final provider = AiSportAgentMatchProvider(
         baseUrl: 'http://agent.test/api/v1',
+        enableRealtime: false,
         client: MockClient((request) async {
           return http.Response('service unavailable', 503);
         }),

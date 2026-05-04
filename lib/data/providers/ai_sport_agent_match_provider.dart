@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../models/match.dart' as model;
 import '../repositories/match_repository.dart';
@@ -14,16 +15,23 @@ class AiSportAgentMatchProvider implements MatchRepository {
   AiSportAgentMatchProvider({
     http.Client? client,
     String? baseUrl,
+    bool enableRealtime = true,
   })  : _client = client ?? http.Client(),
+        _enableRealtime = enableRealtime,
         _baseUrl = _normalizeBaseUrl(baseUrl ?? _defaultBaseUrl);
 
   final http.Client _client;
+  final bool _enableRealtime;
   final String _baseUrl;
   final StreamController<List<model.Match>> _controller =
       StreamController<List<model.Match>>.broadcast();
 
   DateTime? _activeDate;
   List<model.Match> _lastMatches = const [];
+  WebSocketChannel? _realtimeChannel;
+  StreamSubscription<dynamic>? _realtimeSubscription;
+  Timer? _reconnectTimer;
+  bool _realtimePaused = false;
 
   static const String _configuredBaseUrl = String.fromEnvironment(
     'AI_SPORT_AGENT_BASE_URL',
@@ -47,6 +55,7 @@ class AiSportAgentMatchProvider implements MatchRepository {
   @override
   Stream<List<model.Match>> getMatchesStream(DateTime date) {
     _activeDate = date;
+    _connectRealtime(date);
     Future<void>.microtask(() async {
       await fetchMatchesForDate(date);
     });
@@ -65,6 +74,21 @@ class AiSportAgentMatchProvider implements MatchRepository {
       if (!_controller.isClosed) {
         _controller.addError(error, stackTrace);
       }
+    }
+  }
+
+  @override
+  void pauseRealtime() {
+    _realtimePaused = true;
+    _closeRealtime();
+  }
+
+  @override
+  void resumeRealtime() {
+    _realtimePaused = false;
+    final date = _activeDate;
+    if (date != null) {
+      _connectRealtime(date);
     }
   }
 
@@ -108,6 +132,123 @@ class AiSportAgentMatchProvider implements MatchRepository {
           'AI Sport Agent matches payload does not contain a matches list.');
     }
     return rawMatches.whereType<Map<String, dynamic>>().map(_mapMatch).toList();
+  }
+
+  void _connectRealtime(DateTime date) {
+    if (!_enableRealtime || _realtimePaused) {
+      return;
+    }
+    _closeRealtime();
+
+    final uri = _webSocketUri(date);
+    try {
+      final channel = WebSocketChannel.connect(uri);
+      _realtimeChannel = channel;
+      _realtimeSubscription = channel.stream.listen(
+        _handleRealtimeMessage,
+        onError: (_) => _scheduleRealtimeReconnect(),
+        onDone: _scheduleRealtimeReconnect,
+        cancelOnError: true,
+      );
+    } catch (_) {
+      _scheduleRealtimeReconnect();
+    }
+  }
+
+  Uri _webSocketUri(DateTime date) {
+    final baseUri = Uri.parse(_baseUrl);
+    final scheme = baseUri.scheme == 'https' ? 'wss' : 'ws';
+    final path =
+        '${baseUri.path.replaceFirst(RegExp(r'/+$'), '')}/mobile/matches/ws';
+    return baseUri.replace(
+      scheme: scheme,
+      path: path,
+      queryParameters: {
+        'date': _formatDate(date),
+        'tz': 'Europe/Istanbul',
+      },
+    );
+  }
+
+  void _handleRealtimeMessage(dynamic message) {
+    final decoded = switch (message) {
+      final String text => jsonDecode(text),
+      final List<int> bytes => jsonDecode(utf8.decode(bytes)),
+      _ => null,
+    };
+    if (decoded is! Map<String, dynamic> ||
+        decoded['type'] != 'match_updated') {
+      return;
+    }
+    final rawMatch = decoded['match'];
+    if (rawMatch is! Map<String, dynamic>) {
+      return;
+    }
+    final matchId = rawMatch['id']?.toString();
+    if (matchId == null || matchId.isEmpty) {
+      return;
+    }
+    if (!_lastMatches.any((match) => match.id == matchId)) {
+      return;
+    }
+    final updatedMatches = _lastMatches
+        .map(
+          (match) => match.id == matchId
+              ? _mergeRealtimeMatch(match, rawMatch)
+              : match,
+        )
+        .toList();
+    _lastMatches = updatedMatches;
+    if (!_controller.isClosed) {
+      _controller.add(updatedMatches);
+    }
+  }
+
+  model.Match _mergeRealtimeMatch(
+    model.Match current,
+    Map<String, dynamic> data,
+  ) {
+    return model.Match(
+      id: current.id,
+      leagueId: current.leagueId,
+      leagueName: current.leagueName,
+      leagueLogoUrl: current.leagueLogoUrl,
+      homeTeam: current.homeTeam,
+      awayTeam: current.awayTeam,
+      homeLogo: current.homeLogo,
+      awayLogo: current.awayLogo,
+      startTime: current.startTime,
+      status: _mapStatus(data['status']?.toString()),
+      homeScore: _scoreFromPayload(data, 'home_score', 'homeScore') ??
+          current.homeScore,
+      awayScore: _scoreFromPayload(data, 'away_score', 'awayScore') ??
+          current.awayScore,
+      liveMinute: _scoreFromPayload(data, 'current_minute', 'currentMinute') ??
+          current.liveMinute,
+      isFeatured: current.isFeatured,
+      isFavorite: current.isFavorite,
+    );
+  }
+
+  void _scheduleRealtimeReconnect() {
+    if (!_enableRealtime || _realtimePaused || _activeDate == null) {
+      return;
+    }
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      final date = _activeDate;
+      if (date != null) {
+        _connectRealtime(date);
+      }
+    });
+  }
+
+  void _closeRealtime() {
+    _reconnectTimer?.cancel();
+    _realtimeSubscription?.cancel();
+    _realtimeSubscription = null;
+    _realtimeChannel?.sink.close();
+    _realtimeChannel = null;
   }
 
   model.Match _mapMatch(Map<String, dynamic> data) {

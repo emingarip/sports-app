@@ -41,6 +41,12 @@ class MockMatchRepository implements MatchRepository {
   }
 
   @override
+  void pauseRealtime() {}
+
+  @override
+  void resumeRealtime() {}
+
+  @override
   Future<List<Match>> searchMatches(String query) async {
     if (query.isEmpty) {
       return _matches;
