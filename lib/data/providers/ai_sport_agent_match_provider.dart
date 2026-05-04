@@ -138,7 +138,23 @@ class AiSportAgentMatchProvider implements MatchRepository {
       ),
       startTime: DateTime.parse(data['kickoff_at'] as String),
       status: _mapStatus(data['status']?.toString()),
+      homeScore: _scoreFromPayload(data, 'home_score', 'homeScore'),
+      awayScore: _scoreFromPayload(data, 'away_score', 'awayScore'),
+      liveMinute: _scoreFromPayload(data, 'current_minute', 'currentMinute'),
     );
+  }
+
+  String? _scoreFromPayload(
+    Map<String, dynamic> data,
+    String snakeCaseKey,
+    String camelCaseKey,
+  ) {
+    final value = data[snakeCaseKey] ?? data[camelCaseKey];
+    if (value == null) {
+      return null;
+    }
+    final normalized = value.toString().trim();
+    return normalized.isEmpty ? null : normalized;
   }
 
   String _requiredLogoUrl(Object? value, {String? label}) {

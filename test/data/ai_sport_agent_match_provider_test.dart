@@ -20,6 +20,9 @@ void main() {
       "id": "match-1",
       "kickoff_at": "2026-04-30T17:00:00Z",
       "status": "scheduled",
+      "home_score": null,
+      "away_score": null,
+      "current_minute": null,
       "league": {
         "id": "league-1",
         "name": "Super Lig",
@@ -78,7 +81,7 @@ void main() {
       expect(match.liveMinute, isNull);
     });
 
-    test('maps live and finished statuses', () async {
+    test('maps live and finished statuses with scores', () async {
       final provider = AiSportAgentMatchProvider(
         baseUrl: 'http://agent.test/api/v1',
         client: MockClient((request) async {
@@ -89,6 +92,9 @@ void main() {
     "id": "live-match",
     "kickoff_at": "2026-04-30T17:00:00Z",
     "status": "live",
+    "home_score": 1,
+    "away_score": 0,
+    "current_minute": 64,
     "league": null,
     "home_team": {"name": "Home"},
     "away_team": {"name": "Away"},
@@ -98,6 +104,9 @@ void main() {
     "id": "finished-match",
     "kickoff_at": "2026-04-30T19:00:00Z",
     "status": "finished",
+    "homeScore": 2,
+    "awayScore": 1,
+    "currentMinute": null,
     "league": null,
     "home_team": {"name": "Home 2"},
     "away_team": {"name": "Away 2"},
@@ -115,6 +124,12 @@ void main() {
       expect(matches[0].status, MatchStatus.live);
       expect(matches[1].status, MatchStatus.finished);
       expect(matches[0].leagueId, 'unknown_league');
+      expect(matches[0].homeScore, '1');
+      expect(matches[0].awayScore, '0');
+      expect(matches[0].liveMinute, '64');
+      expect(matches[1].homeScore, '2');
+      expect(matches[1].awayScore, '1');
+      expect(matches[1].liveMinute, isNull);
     });
 
     test('rewrites SofaScore logo urls to the backend logo proxy', () async {
