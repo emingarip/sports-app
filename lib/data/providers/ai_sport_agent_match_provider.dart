@@ -369,6 +369,10 @@ class AiSportAgentMatchProvider implements MatchRepository {
         return model.MatchStatus.live;
       case 'finished':
         return model.MatchStatus.finished;
+      case 'postponed':
+        return model.MatchStatus.postponed;
+      case 'cancelled':
+        return model.MatchStatus.cancelled;
       default:
         return model.MatchStatus.upcoming;
     }

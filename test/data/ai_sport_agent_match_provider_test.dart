@@ -134,6 +134,43 @@ void main() {
       expect(matches[1].liveMinute, isNull);
     });
 
+    test('maps postponed and cancelled statuses', () async {
+      final provider = AiSportAgentMatchProvider(
+        baseUrl: 'http://agent.test/api/v1',
+        enableRealtime: false,
+        client: MockClient((request) async {
+          return http.Response(
+            '''
+[
+  {
+    "id": "postponed-match",
+    "kickoff_at": "2026-04-30T17:00:00Z",
+    "status": "postponed",
+    "league": null,
+    "home_team": {"name": "Home"},
+    "away_team": {"name": "Away"}
+  },
+  {
+    "id": "cancelled-match",
+    "kickoff_at": "2026-04-30T19:00:00Z",
+    "status": "cancelled",
+    "league": null,
+    "home_team": {"name": "Home 2"},
+    "away_team": {"name": "Away 2"}
+  }
+]
+''',
+            200,
+          );
+        }),
+      );
+
+      final matches = await provider.getMatches();
+
+      expect(matches[0].status, MatchStatus.postponed);
+      expect(matches[1].status, MatchStatus.cancelled);
+    });
+
     test('rewrites SofaScore logo urls to the backend logo proxy', () async {
       final provider = AiSportAgentMatchProvider(
         baseUrl: 'http://agent.test/api/v1',

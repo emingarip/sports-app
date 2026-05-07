@@ -77,7 +77,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   @override
   MatchState build() {
     WidgetsBinding.instance.addObserver(this);
-    _initStream(DateTime.now());
+    final initialDate = DateTime.now();
     final repo = ref.read(matchRepositoryProvider);
 
     ref.onDispose(() {
@@ -87,13 +87,15 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
       _pollingTimer?.cancel();
     });
 
+    Future<void>.microtask(() => _initStream(initialDate));
+
     return MatchState(
       matches: [],
       statusFilter: StatusFilter.all,
       isStarredFilter: false,
       isInlineSearchOpen: false,
       inlineSearchQuery: '',
-      selectedDate: DateTime.now(),
+      selectedDate: initialDate,
     );
   }
 
@@ -238,8 +240,12 @@ int _matchStatusPriority(model.MatchStatus status) {
       return 0;
     case model.MatchStatus.upcoming:
       return 1;
-    case model.MatchStatus.finished:
+    case model.MatchStatus.postponed:
       return 2;
+    case model.MatchStatus.cancelled:
+      return 2;
+    case model.MatchStatus.finished:
+      return 3;
   }
 }
 
@@ -303,6 +309,10 @@ String buildMatchStatusLabel(model.Match match) {
       return match.liveMinute ?? 'CANLI';
     case model.MatchStatus.upcoming:
       return _formatMatchTime(match.startTime);
+    case model.MatchStatus.postponed:
+      return 'Ertelendi';
+    case model.MatchStatus.cancelled:
+      return 'Iptal';
     case model.MatchStatus.finished:
       return 'Tamamlandi';
   }
@@ -342,6 +352,9 @@ String? buildMatchSecondaryLabel(model.Match match, DateTime now) {
       final difference = match.startTime.toLocal().difference(now.toLocal());
       final minutes = difference.inMinutes.clamp(0, 120);
       return '$minutes dk sonra';
+    case model.MatchStatus.postponed:
+    case model.MatchStatus.cancelled:
+      return null;
     case model.MatchStatus.finished:
       return null;
   }
@@ -674,7 +687,10 @@ final featuredMatchItemsProvider =
     Provider<List<MatchListItemViewModel>>((ref) {
   final items = ref.watch(matchListItemsProvider);
   final activeItems = items
-      .where((item) => item.match.status != model.MatchStatus.finished)
+      .where((item) =>
+          item.match.status != model.MatchStatus.finished &&
+          item.match.status != model.MatchStatus.postponed &&
+          item.match.status != model.MatchStatus.cancelled)
       .toList();
   final source = activeItems.isNotEmpty ? activeItems : items;
   return source.take(3).map(_ensureFeaturedReason).toList();

@@ -210,22 +210,24 @@ void main() {
           leagueId: 'league-later',
           leagueName: 'League Later',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(hours: 2)),
+          startTime: now.subtract(const Duration(minutes: 10)),
         ),
         createTestMatch(
           id: 'finished',
           leagueId: 'league-later',
           leagueName: 'League Later',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(hours: 3)),
+          startTime: now.subtract(const Duration(minutes: 20)),
         ),
       ]);
 
       final container = buildContainer(favorites: const {'fav-live'});
       addTearDown(container.dispose);
 
-      container.read(matchStateProvider);
-      await Future<void>.delayed(Duration.zero);
+      final subscription =
+          container.listen(matchStateProvider, (_, __) {}, fireImmediately: true);
+      addTearDown(subscription.close);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
       final featured = container.read(featuredMatchItemsProvider);
       expect(
@@ -326,7 +328,7 @@ void main() {
           awayTeam: 'Chelsea',
           leagueName: 'Premier League',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(hours: 1)),
+          startTime: now.subtract(const Duration(minutes: 10)),
         ),
         createTestMatch(
           id: 'arsenal-prefix',
@@ -334,7 +336,7 @@ void main() {
           awayTeam: 'Zenit',
           leagueName: 'Russian League',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(hours: 2)),
+          startTime: now.subtract(const Duration(minutes: 20)),
         ),
         createTestMatch(
           id: 'arsenal-substring',
@@ -342,15 +344,17 @@ void main() {
           awayTeam: 'Burnley',
           leagueName: 'Arsenal Legends Cup',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(hours: 3)),
+          startTime: now.subtract(const Duration(minutes: 30)),
         ),
       ]);
 
       final container = buildContainer();
       addTearDown(container.dispose);
 
-      container.read(matchStateProvider);
-      await Future<void>.delayed(Duration.zero);
+      final subscription =
+          container.listen(matchStateProvider, (_, __) {}, fireImmediately: true);
+      addTearDown(subscription.close);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
       container.read(matchStateProvider.notifier).openInlineSearch();
       container

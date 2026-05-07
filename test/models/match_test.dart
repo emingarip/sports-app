@@ -4,10 +4,12 @@ import 'package:sports_app/models/match.dart';
 void main() {
   group('MatchStatus enum', () {
     test('has all expected values', () {
-      expect(MatchStatus.values.length, 3);
+      expect(MatchStatus.values.length, 5);
       expect(MatchStatus.values, contains(MatchStatus.live));
       expect(MatchStatus.values, contains(MatchStatus.upcoming));
       expect(MatchStatus.values, contains(MatchStatus.finished));
+      expect(MatchStatus.values, contains(MatchStatus.postponed));
+      expect(MatchStatus.values, contains(MatchStatus.cancelled));
     });
   });
 
