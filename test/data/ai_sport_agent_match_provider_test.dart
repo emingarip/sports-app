@@ -228,10 +228,13 @@ void main() {
         }),
       );
 
-      expect(
+      final streamExpectation = expectLater(
         provider.getMatchesStream(DateTime(2026, 4, 30)),
         emitsError(isA<Exception>()),
       );
+
+      await provider.fetchMatchesForDate(DateTime(2026, 4, 30));
+      await streamExpectation;
     });
   });
 }

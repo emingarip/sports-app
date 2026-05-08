@@ -56,9 +56,6 @@ class AiSportAgentMatchProvider implements MatchRepository {
   Stream<List<model.Match>> getMatchesStream(DateTime date) {
     _activeDate = date;
     _connectRealtime(date);
-    Future<void>.microtask(() async {
-      await fetchMatchesForDate(date);
-    });
     return _controller.stream;
   }
 

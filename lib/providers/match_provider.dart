@@ -99,7 +99,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
     );
   }
 
-  void _initStream(DateTime date) {
+  Future<void> _initStream(DateTime date) async {
     final repo = ref.read(matchRepositoryProvider);
     _subscription?.cancel();
     repo.resumeRealtime();
@@ -113,7 +113,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
       },
     );
 
-    repo.fetchMatchesForDate(date);
+    await repo.fetchMatchesForDate(date);
     _startPolling();
   }
 
@@ -178,8 +178,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
     state = state.copyWith(selectedDate: date, isLoading: true);
 
     try {
-      _initStream(date);
-      await ref.read(matchRepositoryProvider).fetchMatchesForDate(date);
+      await _initStream(date);
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
       state = state.copyWith(isLoading: false);
