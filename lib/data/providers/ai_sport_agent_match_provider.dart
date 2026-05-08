@@ -15,7 +15,7 @@ class AiSportAgentMatchProvider implements MatchRepository {
   AiSportAgentMatchProvider({
     http.Client? client,
     String? baseUrl,
-    bool enableRealtime = true,
+    bool enableRealtime = _defaultEnableRealtime,
   })  : _client = client ?? http.Client(),
         _enableRealtime = enableRealtime,
         _baseUrl = _normalizeBaseUrl(baseUrl ?? _defaultBaseUrl);
@@ -35,6 +35,10 @@ class AiSportAgentMatchProvider implements MatchRepository {
 
   static const String _configuredBaseUrl = String.fromEnvironment(
     'AI_SPORT_AGENT_BASE_URL',
+  );
+  static const bool _defaultEnableRealtime = bool.fromEnvironment(
+    'AI_SPORT_AGENT_ENABLE_REALTIME',
+    defaultValue: false,
   );
 
   static String get _defaultBaseUrl {
