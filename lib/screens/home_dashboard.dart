@@ -42,7 +42,6 @@ class HomeDashboard extends ConsumerStatefulWidget {
 }
 
 class _HomeDashboardState extends ConsumerState<HomeDashboard> {
-  int _selectedSportIndex = 0;
   final Set<String> _expandedLeagues = {};
   bool _hasInitializedExpansion = false;
   late final PageController _pageController;
@@ -702,69 +701,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         const NotificationBell(),
         const SizedBox(width: 8),
       ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: Column(
-          children: [
-            SizedBox(
-              height: 50,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                children: [
-                  _buildSportChip(0, 'Football', Icons.sports_soccer),
-                  _buildSportChip(1, 'Basketball', Icons.sports_basketball),
-                  _buildSportChip(2, 'Tennis', Icons.sports_tennis),
-                  _buildSportChip(3, 'E-Sports', Icons.sports_esports),
-                ],
-              ),
-            ),
-            Divider(height: 1, color: context.colors.surfaceContainerLow),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSportChip(int index, String label, IconData icon) {
-    final isSelected = _selectedSportIndex == index;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: ChoiceChip(
-        label: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected
-                  ? context.colors.onPrimaryContainer
-                  : context.colors.textMedium,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? context.colors.onPrimaryContainer
-                    : context.colors.textMedium,
-              ),
-            ),
-          ],
-        ),
-        selected: isSelected,
-        onSelected: (value) {
-          setState(() {
-            _selectedSportIndex = index;
-          });
-        },
-        backgroundColor: context.colors.surfaceContainerLow,
-        selectedColor: context.colors.primaryContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        side: BorderSide.none,
-        showCheckmark: false,
-      ),
     );
   }
 
