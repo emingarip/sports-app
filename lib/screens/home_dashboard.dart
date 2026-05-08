@@ -9,9 +9,11 @@ import 'package:shimmer/shimmer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/match_list_view_model.dart';
+import '../models/match.dart' as model;
 import '../models/notification.dart';
 import '../models/user_profile.dart';
 import '../providers/badge_provider.dart';
+import '../providers/favorites_provider.dart';
 import '../providers/knowledge_graph_provider.dart';
 import '../providers/match_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -43,6 +45,7 @@ class HomeDashboard extends ConsumerStatefulWidget {
 
 class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   final Set<String> _expandedLeagues = {};
+  final Set<String> _shownFavoriteGoalKeys = {};
   bool _hasInitializedExpansion = false;
   late final PageController _pageController;
 
@@ -334,6 +337,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   Widget build(BuildContext context) {
     ref.listen<MatchState>(matchStateProvider, (previous, next) {
       if (previous == null) return;
+      _showFavoriteGoalNotifications(previous, next);
       if (previous.statusFilter != next.statusFilter ||
           previous.isStarredFilter != next.isStarredFilter ||
           previous.selectedDate != next.selectedDate) {
@@ -467,6 +471,100 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showFavoriteGoalNotifications(MatchState previous, MatchState next) {
+    final favorites = ref.read(favoritesProvider);
+    if (favorites.isEmpty) return;
+
+    final previousById = {
+      for (final match in previous.matches) match.id: match,
+    };
+
+    for (final match in next.matches) {
+      if (!favorites.contains(match.id)) continue;
+      if (match.status != model.MatchStatus.live) continue;
+
+      final oldMatch = previousById[match.id];
+      if (oldMatch == null) continue;
+
+      final oldHomeScore = _parseScore(oldMatch.homeScore);
+      final oldAwayScore = _parseScore(oldMatch.awayScore);
+      final newHomeScore = _parseScore(match.homeScore);
+      final newAwayScore = _parseScore(match.awayScore);
+      if (oldHomeScore == null ||
+          oldAwayScore == null ||
+          newHomeScore == null ||
+          newAwayScore == null) {
+        continue;
+      }
+
+      final homeScored = newHomeScore > oldHomeScore;
+      final awayScored = newAwayScore > oldAwayScore;
+      if (!homeScored && !awayScored) continue;
+
+      final scoreKey = '${match.id}:$newHomeScore-$newAwayScore';
+      if (!_shownFavoriteGoalKeys.add(scoreKey)) continue;
+
+      final scoringTeam = homeScored ? match.homeTeam : match.awayTeam;
+      _showGoalSnackBar(
+        title: 'GOL! $scoringTeam',
+        message:
+            '${match.homeTeam} $newHomeScore - $newAwayScore ${match.awayTeam}',
+      );
+    }
+  }
+
+  int? _parseScore(String? value) {
+    if (value == null) return null;
+    return int.tryParse(value.trim());
+  }
+
+  void _showGoalSnackBar({
+    required String title,
+    required String message,
+  }) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.sports_soccer,
+              color: context.colors.onPrimaryContainer,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.onPrimaryContainer,
+                    ),
+                  ),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: context.colors.onPrimaryContainer
+                          .withValues(alpha: 0.78),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: context.colors.primaryContainer,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
