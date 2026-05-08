@@ -5,9 +5,12 @@ import '../services/supabase_service.dart';
 import 'match_provider.dart';
 import '../models/match.dart' as model;
 
-final knowledgeGraphRepositoryProvider = Provider<KnowledgeGraphRepository>((ref) {
-  return KnowledgeGraphRepository(SupabaseService.client);
-});
+final knowledgeGraphRepositoryProvider = Provider<KnowledgeGraphRepository>(
+  (ref) {
+    return KnowledgeGraphRepository(SupabaseService.client);
+  },
+  name: 'knowledgeGraphRepositoryProvider',
+);
 
 class KnowledgeGraphState {
   final List<UserInterest> currentInterests;
@@ -40,7 +43,8 @@ class KnowledgeGraphNotifier extends Notifier<KnowledgeGraphState> {
     return const KnowledgeGraphState();
   }
 
-  KnowledgeGraphRepository get _repo => ref.read(knowledgeGraphRepositoryProvider);
+  KnowledgeGraphRepository get _repo =>
+      ref.read(knowledgeGraphRepositoryProvider);
 
   Future<void> _init() async {
     final user = SupabaseService().getCurrentUser();
@@ -85,12 +89,14 @@ class KnowledgeGraphNotifier extends Notifier<KnowledgeGraphState> {
     final activeMatches = ref.read(matchStateProvider).matches;
     if (activeMatches.isEmpty) return;
 
-    final matchData = activeMatches.map((m) => {
-      'id': m.id,
-      'home_team': m.homeTeam,
-      'away_team': m.awayTeam,
-      'league_id': m.leagueId,
-    }).toList();
+    final matchData = activeMatches
+        .map((m) => {
+              'id': m.id,
+              'home_team': m.homeTeam,
+              'away_team': m.awayTeam,
+              'league_id': m.leagueId,
+            })
+        .toList();
 
     state = state.copyWith(isLoading: true);
     final scoredList = await _repo.getPersonalizedMatchScores(
@@ -100,16 +106,22 @@ class KnowledgeGraphNotifier extends Notifier<KnowledgeGraphState> {
 
     final scoreMap = <String, double>{};
     for (final item in scoredList) {
-      scoreMap[item['match_id'] as String] = (item['relevance_score'] as num).toDouble();
+      final matchId = item['match_id']?.toString();
+      if (matchId == null || matchId.isEmpty) continue;
+      scoreMap[matchId] = _asDouble(item['relevance_score']);
     }
 
     state = state.copyWith(matchScores: scoreMap, isLoading: false);
   }
 }
 
-final knowledgeGraphProvider = NotifierProvider<KnowledgeGraphNotifier, KnowledgeGraphState>(() {
-  return KnowledgeGraphNotifier();
-});
+final knowledgeGraphProvider =
+    NotifierProvider<KnowledgeGraphNotifier, KnowledgeGraphState>(
+  () {
+    return KnowledgeGraphNotifier();
+  },
+  name: 'knowledgeGraphProvider',
+);
 
 /// A derived provider that applies the personalized scores to the filtered match list
 final personalizedMatchesProvider = Provider<List<model.Match>>((ref) {
@@ -143,7 +155,7 @@ final personalizedMatchesProvider = Provider<List<model.Match>>((ref) {
     // 2. Compare Knowledge Graph scores
     final scoreA = kgState.matchScores[a.id] ?? 0.0;
     final scoreB = kgState.matchScores[b.id] ?? 0.0;
-    
+
     // If there is a meaningful difference in score, rank by score
     if ((scoreA - scoreB).abs() > 0.01) {
       return scoreB.compareTo(scoreA); // Descending (higher score first)
@@ -154,4 +166,10 @@ final personalizedMatchesProvider = Provider<List<model.Match>>((ref) {
   });
 
   return personalizedList;
-});
+}, name: 'personalizedMatchesProvider');
+
+double _asDouble(Object? value, [double fallback = 0]) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? fallback;
+  return fallback;
+}

@@ -17,11 +17,11 @@ class KCoinPackage {
 
   factory KCoinPackage.fromJson(Map<String, dynamic> json) {
     return KCoinPackage(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      coinAmount: json['coin_amount'] as int,
-      priceUsd: (json['price_usd'] as num).toDouble(),
-      storeProductId: json['store_product_id'] as String?,
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      coinAmount: _asInt(json['coin_amount']),
+      priceUsd: _asDouble(json['price_usd']),
+      storeProductId: _stringOrNull(json['store_product_id']),
     );
   }
 
@@ -42,4 +42,22 @@ class KCoinPackage {
       displayPrice: displayPrice ?? this.displayPrice,
     );
   }
+}
+
+String? _stringOrNull(Object? value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
+int _asInt(Object? value, [int fallback = 0]) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+double _asDouble(Object? value, [double fallback = 0]) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? fallback;
+  return fallback;
 }

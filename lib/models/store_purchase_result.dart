@@ -22,12 +22,25 @@ class StorePurchaseResult {
   factory StorePurchaseResult.fromJson(Map<String, dynamic> json) {
     return StorePurchaseResult(
       success: json['success'] == true,
-      productCode: json['product_code'] as String? ?? '',
-      productCategory: json['product_category'] as String? ?? 'general',
-      newBalance: (json['new_balance'] as num?)?.toInt(),
-      transactionId: json['transaction_id'] as String?,
-      entitlementId: json['entitlement_id'] as String?,
-      themeCode: json['theme_code'] as String?,
+      productCode: json['product_code']?.toString() ?? '',
+      productCategory: json['product_category']?.toString() ?? 'general',
+      newBalance: _asNullableInt(json['new_balance']),
+      transactionId: _stringOrNull(json['transaction_id']),
+      entitlementId: _stringOrNull(json['entitlement_id']),
+      themeCode: _stringOrNull(json['theme_code']),
     );
   }
+}
+
+String? _stringOrNull(Object? value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
+int? _asNullableInt(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
 }

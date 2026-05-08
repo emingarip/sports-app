@@ -9,7 +9,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sports_app/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-final bugReportServiceProvider = Provider((ref) => BugReportService());
+final bugReportServiceProvider = Provider(
+  (ref) => BugReportService(),
+  name: 'bugReportServiceProvider',
+);
 
 class BugReportService {
   final _client = Supabase.instance.client;

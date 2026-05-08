@@ -622,9 +622,7 @@ final baseFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
 
 final inlineSearchResultsProvider =
     Provider<List<SearchMatchResultViewModel>>((ref) {
-  final query = ref.watch(
-    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
-  );
+  final query = ref.watch(matchStateProvider).inlineSearchQuery.trim();
 
   if (query.isEmpty) {
     return const [];
@@ -637,9 +635,7 @@ final inlineSearchResultsProvider =
 }, name: 'inlineSearchResultsProvider');
 
 final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
-  final query = ref.watch(
-    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
-  );
+  final query = ref.watch(matchStateProvider).inlineSearchQuery.trim();
 
   if (query.isEmpty) {
     return ref.watch(baseFilteredMatchesProvider);
@@ -660,9 +656,7 @@ final sortedFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
 final matchListItemsProvider = Provider<List<MatchListItemViewModel>>((ref) {
   final favorites = ref.watch(favoritesProvider);
   final now = DateTime.now();
-  final query = ref.watch(
-    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
-  );
+  final query = ref.watch(matchStateProvider).inlineSearchQuery.trim();
 
   final items = (query.isEmpty
           ? ref.watch(filteredMatchesProvider)

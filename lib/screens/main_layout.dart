@@ -39,7 +39,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       final profile = await SupabaseService().getUserProfile(user.id);
       if (profile == null) return;
 
-      final username = profile['username'] as String?;
+      final username = profile['username']?.toString();
 
       if (username == null || username.trim().isEmpty) {
         if (!mounted) return;

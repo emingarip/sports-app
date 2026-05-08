@@ -6,9 +6,12 @@ import '../services/supabase_service.dart';
 import 'wallet_provider.dart';
 
 /// Provider for the badge repository instance.
-final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
-  return BadgeRepository();
-});
+final badgeRepositoryProvider = Provider<BadgeRepository>(
+  (ref) {
+    return BadgeRepository();
+  },
+  name: 'badgeRepositoryProvider',
+);
 
 /// State holding both definitions and user progress.
 class BadgeState {
@@ -108,13 +111,13 @@ class BadgeNotifier extends Notifier<BadgeState> {
       // Map unearned badges progress using stats
       for (final def in definitions) {
         if (!progressMap.containsKey(def.id)) {
-           final currentVal = statsMap[def.triggerType] ?? 0;
-           progressMap[def.id] = badge_model.UserBadge(
-             userId: user.id,
-             badgeId: def.id,
-             progress: currentVal,
-             currentTier: 0,
-           );
+          final currentVal = statsMap[def.triggerType] ?? 0;
+          progressMap[def.id] = badge_model.UserBadge(
+            userId: user.id,
+            badgeId: def.id,
+            progress: currentVal,
+            currentTier: 0,
+          );
         }
       }
 
@@ -131,11 +134,13 @@ class BadgeNotifier extends Notifier<BadgeState> {
   }
 
   /// Sends an event to the GamificationSystem and refreshes badges.
-  Future<void> triggerEvent(String eventType, [Map<String, dynamic>? metadata]) async {
+  Future<void> triggerEvent(String eventType,
+      [Map<String, dynamic>? metadata]) async {
     final user = SupabaseService().getCurrentUser();
     if (user == null) return;
     try {
-      await _repo.sendEvent(userId: user.id, eventType: eventType, metadata: metadata);
+      await _repo.sendEvent(
+          userId: user.id, eventType: eventType, metadata: metadata);
       // Wait slightly for rules to process, then refresh
       await Future.delayed(const Duration(milliseconds: 500));
       await refresh();
@@ -171,7 +176,9 @@ class BadgeNotifier extends Notifier<BadgeState> {
 }
 
 /// Main badge provider.
-final badgeProvider = NotifierProvider<BadgeNotifier, BadgeState>(() {
-  return BadgeNotifier();
-});
-
+final badgeProvider = NotifierProvider<BadgeNotifier, BadgeState>(
+  () {
+    return BadgeNotifier();
+  },
+  name: 'badgeProvider',
+);

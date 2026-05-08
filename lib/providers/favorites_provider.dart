@@ -12,7 +12,7 @@ class FavoritesNotifier extends Notifier<Set<String>> {
   @override
   Set<String> build() {
     _initStream();
-    
+
     _authSubscription?.cancel();
     _authSubscription = _client.auth.onAuthStateChange.listen((data) {
       if (data.session?.user != null) {
@@ -41,15 +41,16 @@ class FavoritesNotifier extends Notifier<Set<String>> {
         .stream(primaryKey: ['id'])
         .eq('user_id', user.id)
         .listen((events) {
-      final favoriteMatchIds = events.map((e) => e['match_id'].toString()).toSet();
-      state = favoriteMatchIds;
-    });
+          final favoriteMatchIds =
+              events.map((e) => e['match_id'].toString()).toSet();
+          state = favoriteMatchIds;
+        });
   }
 
   Future<void> toggleFavorite(String matchId) async {
     final user = _client.auth.currentUser;
-    if (user == null) return; 
-    
+    if (user == null) return;
+
     final isFavorite = state.contains(matchId);
 
     // Optimistically update
@@ -69,13 +70,13 @@ class FavoritesNotifier extends Notifier<Set<String>> {
         await _client
             .from('user_favorite_matches')
             .insert({'user_id': user.id, 'match_id': matchId});
-            
+
         // Track the favorited match in Knowledge Graph
         ref.read(knowledgeGraphProvider.notifier).trackEvent(
-          eventType: 'match_favorited',
-          entityType: 'match',
-          entityId: matchId,
-        );
+              eventType: 'match_favorited',
+              entityType: 'match',
+              entityId: matchId,
+            );
       }
     } catch (e) {
       if (kDebugMode) print('Failed to toggle favorite: $e');
@@ -89,6 +90,9 @@ class FavoritesNotifier extends Notifier<Set<String>> {
   }
 }
 
-final favoritesProvider = NotifierProvider<FavoritesNotifier, Set<String>>(() {
-  return FavoritesNotifier();
-});
+final favoritesProvider = NotifierProvider<FavoritesNotifier, Set<String>>(
+  () {
+    return FavoritesNotifier();
+  },
+  name: 'favoritesProvider',
+);

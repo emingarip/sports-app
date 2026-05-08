@@ -332,28 +332,11 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<StatusFilter>(matchStateProvider.select((s) => s.statusFilter),
-        (previous, next) {
-      if (previous != next) {
-        setState(() {
-          _resetExpandedLeagues();
-        });
-      }
-    });
-
-    ref.listen<bool>(matchStateProvider.select((s) => s.isStarredFilter),
-        (previous, next) {
-      if (previous != next) {
-        setState(() {
-          _resetExpandedLeagues();
-        });
-      }
-    });
-
-    ref.listen<DateTime>(
-        matchStateProvider.select((state) => state.selectedDate),
-        (previous, next) {
-      if (previous != next) {
+    ref.listen<MatchState>(matchStateProvider, (previous, next) {
+      if (previous == null) return;
+      if (previous.statusFilter != next.statusFilter ||
+          previous.isStarredFilter != next.isStarredFilter ||
+          previous.selectedDate != next.selectedDate) {
         setState(() {
           _resetExpandedLeagues();
         });
