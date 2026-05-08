@@ -16,7 +16,7 @@ class KCoinRepository {
           .eq('id', userId)
           .maybeSingle();
       if (response != null) {
-        return (response['k_coin_balance'] as num?)?.toInt() ?? 0;
+        return _asInt(response['k_coin_balance']);
       }
     } catch (_) {}
     return 0;
@@ -29,9 +29,7 @@ class KCoinRepository {
         .eq('is_active', true)
         .order('coin_amount', ascending: true);
 
-    return (response as List)
-        .map((e) => KCoinPackage.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _asMapList(response).map(KCoinPackage.fromJson).toList();
   }
 
   /// Sends a non-wallet event to the Gamification API and returns the raw result.
@@ -94,12 +92,13 @@ class KCoinRepository {
       );
 
       final payload = response.data;
-      if (payload is Map<String, dynamic>) {
+      if (payload is Map) {
+        final data = Map<String, dynamic>.from(payload);
         if (response.status >= 200 && response.status < 300) {
-          return RewardClaimResult.fromJson(payload);
+          return RewardClaimResult.fromJson(data);
         }
 
-        final errorMessage = payload['error']?.toString().trim();
+        final errorMessage = data['error']?.toString().trim();
         if (errorMessage != null && errorMessage.isNotEmpty) {
           throw Exception(errorMessage);
         }
@@ -133,12 +132,10 @@ class KCoinRepository {
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      final unifiedList = (txResponse as List)
-          .map((row) => Map<String, dynamic>.from(row as Map))
-          .map((row) {
+      final unifiedList = _asMapList(txResponse).map((row) {
         final transactionType =
             row['transaction_type']?.toString() ?? 'unknown';
-        final amount = (row['amount'] as num?)?.toInt() ?? 0;
+        final amount = _asInt(row['amount']);
 
         return {
           'type': transactionType,
@@ -161,11 +158,10 @@ class KCoinRepository {
             .eq('user_id', userId)
             .isFilter('ledger_transaction_id', null);
 
-        for (final row in (orphanTopups as List)) {
-          final entry = Map<String, dynamic>.from(row as Map);
+        for (final entry in _asMapList(orphanTopups)) {
           unifiedList.add({
             'type': 'topup',
-            'amount': (entry['coins_granted'] as num?)?.toInt() ?? 0,
+            'amount': _asInt(entry['coins_granted']),
             'title':
                 'K-Coin Package (${entry['product_id']?.toString() ?? 'Unknown'})',
             'is_positive': true,
@@ -223,5 +219,17 @@ class KCoinRepository {
       default:
         return 'Transaction ($transactionType)';
     }
+  }
+
+  List<Map<String, dynamic>> _asMapList(Object? value) {
+    if (value is! Iterable) return <Map<String, dynamic>>[];
+    return value.whereType<Map>().map(Map<String, dynamic>.from).toList();
+  }
+
+  int _asInt(Object? value, [int fallback = 0]) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
   }
 }

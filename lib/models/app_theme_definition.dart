@@ -37,30 +37,26 @@ class AppThemeDefinition {
       supportedModes.isEmpty || supportedModes.contains(mode);
 
   factory AppThemeDefinition.fromJson(Map<String, dynamic> json) {
-    final lightConfigSource =
-        Map<String, dynamic>.from(json['light_config'] as Map? ?? const {});
-    final darkConfigSource =
-        Map<String, dynamic>.from(json['dark_config'] as Map? ?? const {});
-    final assetsSource =
-        Map<String, dynamic>.from(json['assets'] as Map? ?? const {});
+    final lightConfigSource = _asStringMap(json['light_config']);
+    final darkConfigSource = _asStringMap(json['dark_config']);
+    final assetsSource = _asStringMap(json['assets']);
+    final themeCode = _stringOrNull(json['theme_code']);
 
     return AppThemeDefinition(
-      themeCode: (json['theme_code'] as String?)?.trim().isNotEmpty == true
-          ? json['theme_code'] as String
-          : 'classic',
-      name: (json['name'] as String?)?.trim() ?? 'Classic',
-      description: (json['description'] as String?)?.trim() ?? '',
-      status: (json['status'] as String?)?.trim() ?? 'draft',
-      version: (json['version'] as num?)?.toInt() ?? 1,
-      supportedModes: ((json['supported_modes'] as List<dynamic>?) ?? const [])
+      themeCode: themeCode ?? 'classic',
+      name: _stringOrNull(json['name']) ?? 'Classic',
+      description: _stringOrNull(json['description']) ?? '',
+      status: _stringOrNull(json['status']) ?? 'draft',
+      version: _asInt(json['version'], 1),
+      supportedModes: _asList(json['supported_modes'])
           .map((mode) => mode.toString())
           .toList(),
       lightConfig: ThemeConfig.fromJson(lightConfigSource),
       darkConfig: ThemeConfig.fromJson(darkConfigSource),
       assets: ThemeAssets.fromJson(assetsSource),
-      previewLightUrl: json['preview_light_url'] as String?,
-      previewDarkUrl: json['preview_dark_url'] as String?,
-      isActive: json['is_active'] as bool? ?? false,
+      previewLightUrl: _stringOrNull(json['preview_light_url']),
+      previewDarkUrl: _stringOrNull(json['preview_dark_url']),
+      isActive: _asBool(json['is_active']),
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
@@ -383,4 +379,30 @@ String? _stringOrNull(dynamic value) {
 
   final text = value.toString().trim();
   return text.isEmpty ? null : text;
+}
+
+Map<String, dynamic> _asStringMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return <String, dynamic>{};
+}
+
+List<dynamic> _asList(Object? value) {
+  if (value is List<dynamic>) return value;
+  if (value is Iterable) return value.toList();
+  return const <dynamic>[];
+}
+
+int _asInt(Object? value, [int fallback = 0]) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+bool _asBool(Object? value) {
+  if (value is bool) return value;
+  if (value is String) return value.toLowerCase() == 'true';
+  if (value is num) return value != 0;
+  return false;
 }

@@ -32,13 +32,16 @@ class MatchCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLive = match.status == model.MatchStatus.live;
+    final isUnplayedTerminal =
+        match.status == model.MatchStatus.postponed ||
+            match.status == model.MatchStatus.cancelled;
     final isFavorite = ref.watch(favoritesProvider).contains(match.id);
     final effectiveStatusLabel = statusLabel ?? _defaultStatusLabel(match);
     final normalizedHighlightQuery = highlightQuery?.trim() ?? '';
     final leagueName = match.leagueName?.trim() ?? '';
     final showLeagueContext =
         normalizedHighlightQuery.isNotEmpty && leagueName.isNotEmpty;
-    final teamNameStyle = const TextStyle(
+    const teamNameStyle = TextStyle(
       fontSize: 10,
       fontWeight: FontWeight.bold,
     );
@@ -216,7 +219,8 @@ class MatchCard extends ConsumerWidget {
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: match.status == model.MatchStatus.upcoming
+                        child: match.status == model.MatchStatus.upcoming ||
+                                isUnplayedTerminal
                             ? Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -382,6 +386,8 @@ class MatchCard extends ConsumerWidget {
     final isLive = match.status == model.MatchStatus.live;
     if (isLive) return match.liveMinute ?? 'LIVE';
     if (match.status == model.MatchStatus.finished) return 'Full Time';
+    if (match.status == model.MatchStatus.postponed) return 'Ertelendi';
+    if (match.status == model.MatchStatus.cancelled) return 'Iptal';
     return _formatTime(match.startTime);
   }
 

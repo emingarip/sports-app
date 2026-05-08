@@ -5,15 +5,21 @@ import '../models/store_product.dart';
 import '../models/user_entitlement.dart';
 
 // Provider for StoreService
-final storeServiceProvider = Provider<StoreService>((ref) {
-  return StoreService(SupabaseService.client);
-});
+final storeServiceProvider = Provider<StoreService>(
+  (ref) {
+    return StoreService(SupabaseService.client);
+  },
+  name: 'storeServiceProvider',
+);
 
 // Provider for active store products listing
-final storeProductsProvider = FutureProvider<List<StoreProduct>>((ref) async {
-  final storeService = ref.read(storeServiceProvider);
-  return storeService.getActiveProducts();
-});
+final storeProductsProvider = FutureProvider<List<StoreProduct>>(
+  (ref) async {
+    final storeService = ref.read(storeServiceProvider);
+    return storeService.getActiveProducts();
+  },
+  name: 'storeProductsProvider',
+);
 
 // AsyncNotifier for User Entitlements
 class EntitlementsNotifier extends AsyncNotifier<List<UserEntitlement>> {
@@ -26,7 +32,7 @@ class EntitlementsNotifier extends AsyncNotifier<List<UserEntitlement>> {
   // Helper method to easily check access
   bool hasAccess(String productCode) {
     if (!state.hasValue || state.value == null) return false;
-    
+
     try {
       final entitlement = state.value!.firstWhere(
         (e) => e.productCode == productCode,
@@ -41,11 +47,16 @@ class EntitlementsNotifier extends AsyncNotifier<List<UserEntitlement>> {
   // Call this after a successful purchase to refresh entitlements
   Future<void> refresh() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => ref.read(storeServiceProvider).getMyEntitlements());
+    state = await AsyncValue.guard(
+        () => ref.read(storeServiceProvider).getMyEntitlements());
   }
 }
 
 // Global provider for User Entitlements
-final entitlementsProvider = AsyncNotifierProvider<EntitlementsNotifier, List<UserEntitlement>>(() {
-  return EntitlementsNotifier();
-});
+final entitlementsProvider =
+    AsyncNotifierProvider<EntitlementsNotifier, List<UserEntitlement>>(
+  () {
+    return EntitlementsNotifier();
+  },
+  name: 'entitlementsProvider',
+);

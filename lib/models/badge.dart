@@ -35,19 +35,29 @@ class Badge {
   factory Badge.fromJson(Map<String, dynamic> json) {
     return Badge(
       id: json['id']?.toString() ?? '',
-      category: json['category']?.toString() ?? json['criteria']?.toString() ?? 'Diğer',
+      category: json['category']?.toString() ??
+          json['criteria']?.toString() ??
+          'Diğer',
       nameTr: json['name_tr']?.toString() ?? json['name']?.toString() ?? '',
       nameEn: json['name_en']?.toString() ?? json['name']?.toString() ?? '',
-      descriptionTr: json['description_tr']?.toString() ?? json['description']?.toString() ?? '',
-      descriptionEn: json['description_en']?.toString() ?? json['description']?.toString() ?? '',
-      iconName: json['icon_name']?.toString() ?? json['icon']?.toString() ?? 'emoji_events',
-      maxTier: json['max_tier'] as int? ?? 1,
-      triggerType: json['metric']?.toString() ?? json['trigger_type']?.toString() ?? 'backend_triggered',
-      triggerTarget: json['target'] as int? ?? json['trigger_target'] as int? ?? 1,
-      tier2Target: json['tier2_target'] as int?,
-      tier3Target: json['tier3_target'] as int?,
-      kCoinReward: json['k_coin_reward'] as int? ?? json['points'] as int? ?? 0,
-      sortOrder: json['sort_order'] as int? ?? 0,
+      descriptionTr: json['description_tr']?.toString() ??
+          json['description']?.toString() ??
+          '',
+      descriptionEn: json['description_en']?.toString() ??
+          json['description']?.toString() ??
+          '',
+      iconName: json['icon_name']?.toString() ??
+          json['icon']?.toString() ??
+          'emoji_events',
+      maxTier: _asInt(json['max_tier'], 1),
+      triggerType: json['metric']?.toString() ??
+          json['trigger_type']?.toString() ??
+          'backend_triggered',
+      triggerTarget: _asInt(json['target'] ?? json['trigger_target'], 1),
+      tier2Target: _asNullableInt(json['tier2_target']),
+      tier3Target: _asNullableInt(json['tier3_target']),
+      kCoinReward: _asInt(json['k_coin_reward'] ?? json['points']),
+      sortOrder: _asInt(json['sort_order']),
     );
   }
 
@@ -110,14 +120,16 @@ class UserBadge {
 
   factory UserBadge.fromJson(Map<String, dynamic> json) {
     return UserBadge(
-      id: json['id'] as String?,
+      id: json['id']?.toString(),
       userId: json['user_id']?.toString() ?? 'me',
       badgeId: json['badge_id']?.toString() ?? json['id']?.toString() ?? '',
-      currentTier: json['current_tier'] as int? ?? 1,
-      progress: json['progress'] as int? ?? json['points'] as int? ?? 1,
+      currentTier: _asInt(json['current_tier'], 1),
+      progress: _asInt(json['progress'] ?? json['points'], 1),
       unlockedAt: (json['unlocked_at'] != null)
           ? DateTime.tryParse(json['unlocked_at'].toString())
-          : (json['earned_at'] != null ? DateTime.tryParse(json['earned_at'].toString()) : null),
+          : (json['earned_at'] != null
+              ? DateTime.tryParse(json['earned_at'].toString())
+              : null),
       lastTierUp: json['last_tier_up'] != null
           ? DateTime.tryParse(json['last_tier_up'].toString())
           : null,
@@ -154,13 +166,28 @@ class UserStreak {
 
   factory UserStreak.fromJson(Map<String, dynamic> json) {
     return UserStreak(
-      userId: json['user_id'] as String,
-      currentStreak: json['current_streak'] as int? ?? 0,
-      longestStreak: json['longest_streak'] as int? ?? 0,
+      userId: json['user_id']?.toString() ?? '',
+      currentStreak: _asInt(json['current_streak']),
+      longestStreak: _asInt(json['longest_streak']),
       lastLoginDate: json['last_login_date'] != null
-          ? DateTime.parse(json['last_login_date'] as String)
+          ? DateTime.tryParse(json['last_login_date'].toString())
           : null,
-      totalLogins: json['total_logins'] as int? ?? 0,
+      totalLogins: _asInt(json['total_logins']),
     );
   }
+}
+
+int _asInt(Object? value, [int fallback = 0]) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+int? _asNullableInt(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
 }

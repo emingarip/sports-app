@@ -9,7 +9,10 @@ class NavigationNotifier extends Notifier<int> {
   }
 }
 
-final navigationProvider = NotifierProvider<NavigationNotifier, int>(NavigationNotifier.new);
+final navigationProvider = NotifierProvider<NavigationNotifier, int>(
+  NavigationNotifier.new,
+  name: 'navigationProvider',
+);
 
 class CalendarOverlayNotifier extends Notifier<bool> {
   @override
@@ -20,4 +23,7 @@ class CalendarOverlayNotifier extends Notifier<bool> {
   }
 }
 
-final calendarOverlayProvider = NotifierProvider<CalendarOverlayNotifier, bool>(CalendarOverlayNotifier.new);
+final calendarOverlayProvider = NotifierProvider<CalendarOverlayNotifier, bool>(
+  CalendarOverlayNotifier.new,
+  name: 'calendarOverlayProvider',
+);

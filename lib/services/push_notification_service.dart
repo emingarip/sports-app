@@ -5,19 +5,48 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'supabase_service.dart';
 
-final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
-  return PushNotificationService();
-});
+final pushNotificationServiceProvider = Provider<PushNotificationService>(
+  (ref) {
+    return PushNotificationService();
+  },
+  name: 'pushNotificationServiceProvider',
+);
 
 class PushNotificationService {
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  static const String _firebaseWebApiKey =
+      String.fromEnvironment('FIREBASE_WEB_API_KEY');
+  static const String _firebaseWebAppId =
+      String.fromEnvironment('FIREBASE_WEB_APP_ID');
+  static const String _firebaseVapidKey = String.fromEnvironment(
+    'FIREBASE_VAPID_KEY',
+    defaultValue:
+        'BC-j7AHpqkk3VruJBUG71vzIODZCKyOmfkC7MNy2UBbo0fvgtBgnw5ocmRFjX2gz_NWMwnqVzyCCN_T0Gm0i_ds',
+  );
+
+  bool get _isAvailable {
+    if (!kIsWeb) return true;
+    return _firebaseWebApiKey.isNotEmpty && _firebaseWebAppId.isNotEmpty;
+  }
+
+  FirebaseMessaging? get _fcm {
+    if (!_isAvailable) return null;
+    try {
+      return FirebaseMessaging.instance;
+    } catch (e) {
+      debugPrint("FCM unavailable: $e");
+      return null;
+    }
+  }
 
   Future<void> requestPermission() async {
     try {
+      final fcm = _fcm;
+      if (fcm == null) return;
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('has_requested_notification_permission', true);
 
-      NotificationSettings settings = await _fcm.requestPermission(
+      NotificationSettings settings = await fcm.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -32,7 +61,10 @@ class PushNotificationService {
 
   Future<void> initialize() async {
     try {
-      NotificationSettings settings = await _fcm.getNotificationSettings();
+      final fcm = _fcm;
+      if (fcm == null) return;
+
+      NotificationSettings settings = await fcm.getNotificationSettings();
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         await _setupFCM();
       }
@@ -43,20 +75,25 @@ class PushNotificationService {
 
   Future<bool> isPermissionNotDetermined() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final hasRequested = prefs.getBool('has_requested_notification_permission') ?? false;
+      final fcm = _fcm;
+      if (fcm == null) return false;
 
-      NotificationSettings settings = await _fcm.getNotificationSettings();
+      final prefs = await SharedPreferences.getInstance();
+      final hasRequested =
+          prefs.getBool('has_requested_notification_permission') ?? false;
+
+      NotificationSettings settings = await fcm.getNotificationSettings();
       // Web and iOS return notDetermined initially.
       if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
         return !hasRequested;
       }
-      
+
       // Android 13+ returns denied initially.
-      if (defaultTargetPlatform == TargetPlatform.android && settings.authorizationStatus == AuthorizationStatus.denied) {
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          settings.authorizationStatus == AuthorizationStatus.denied) {
         return !hasRequested;
       }
-      
+
       return false;
     } catch (e) {
       return false;
@@ -65,13 +102,16 @@ class PushNotificationService {
 
   Future<void> _setupFCM() async {
     try {
+      final fcm = _fcm;
+      if (fcm == null) return;
+
       String? token;
       if (kIsWeb) {
-        token = await _fcm.getToken(
-          vapidKey: const String.fromEnvironment('FIREBASE_VAPID_KEY', defaultValue: 'BC-j7AHpqkk3VruJBUG71vzIODZCKyOmfkC7MNy2UBbo0fvgtBgnw5ocmRFjX2gz_NWMwnqVzyCCN_T0Gm0i_ds'),
+        token = await fcm.getToken(
+          vapidKey: _firebaseVapidKey,
         );
       } else {
-        token = await _fcm.getToken();
+        token = await fcm.getToken();
       }
       debugPrint('FCM Token: $token');
 
@@ -79,7 +119,7 @@ class PushNotificationService {
         await _saveTokenToDatabase(token);
       }
 
-      _fcm.onTokenRefresh.listen((newToken) {
+      fcm.onTokenRefresh.listen((newToken) {
         _saveTokenToDatabase(newToken);
       });
 
@@ -117,12 +157,12 @@ class PushNotificationService {
   Future<String> _getDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
     String? deviceId = prefs.getString('push_fcm_device_id');
-    
+
     if (deviceId == null) {
       deviceId = const Uuid().v4();
       await prefs.setString('push_fcm_device_id', deviceId);
     }
-    
+
     return "${defaultTargetPlatform.name.toLowerCase()}-$deviceId";
   }
 
@@ -133,7 +173,8 @@ class PushNotificationService {
       debugPrint('Message data: ${message.data}');
 
       if (message.notification != null) {
-        debugPrint('Message also contained a notification: ${message.notification}');
+        debugPrint(
+            'Message also contained a notification: ${message.notification}');
         // You could trigger a local flushbar/snackbar here if you want
         // But our Realtime Database listener in `NotificationNotifier` already does this!
         // So we might not need to do anything here for foreground.

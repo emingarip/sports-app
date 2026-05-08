@@ -28,17 +28,22 @@ class MockMatchRepository implements MatchRepository {
   Future<List<Match>> getMatches() async => _matches;
 
   @override
-  Stream<List<Match>> getMatchesStream(DateTime date) {
-    // Emit current state immediately, then listen for updates
-    Future.microtask(() => _controller.add(_matches));
-    return _controller.stream;
+  Stream<List<Match>> getMatchesStream(DateTime date) async* {
+    yield _matches;
+    yield* _controller.stream;
   }
 
   @override
   Future<void> fetchMatchesForDate(DateTime date) async {
-    // Mock implementation does nothing, as we set matches explicitly in tests
+    _controller.add(_matches);
     return;
   }
+
+  @override
+  void pauseRealtime() {}
+
+  @override
+  void resumeRealtime() {}
 
   @override
   Future<List<Match>> searchMatches(String query) async {

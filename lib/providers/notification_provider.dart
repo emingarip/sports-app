@@ -12,7 +12,7 @@ class NotificationNotifier extends Notifier<List<AppNotification>> {
   @override
   List<AppNotification> build() {
     _initStreams();
-    
+
     _authSubscription?.cancel();
     _authSubscription = _client.auth.onAuthStateChange.listen((data) {
       if (data.session?.user != null) {
@@ -46,12 +46,15 @@ class NotificationNotifier extends Notifier<List<AppNotification>> {
         .order('created_at', ascending: false)
         .limit(50)
         .listen((events) {
-      final notifications = events.map((e) => AppNotification.fromJson(e)).toList();
-      state = notifications;
-    });
+          final notifications = events
+              .map(
+                  (e) => AppNotification.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+          state = notifications;
+        });
 
-    // 2. We don't necessarily need a separate RealtimeChannel if .stream() 
-    // already gives us updates. Supabase .stream() listens to all changes 
+    // 2. We don't necessarily need a separate RealtimeChannel if .stream()
+    // already gives us updates. Supabase .stream() listens to all changes
     // (INSERT, UPDATE, DELETE) natively via WebSockets!
     // So the above _subscription is actually enough to keep `state` perfectly in sync.
   }
@@ -60,8 +63,7 @@ class NotificationNotifier extends Notifier<List<AppNotification>> {
     try {
       await _client
           .from('notifications')
-          .update({'is_read': true})
-          .eq('id', id);
+          .update({'is_read': true}).eq('id', id);
     } catch (e) {
       print('Error marking notification as read: $e');
     }
@@ -83,11 +85,18 @@ class NotificationNotifier extends Notifier<List<AppNotification>> {
   }
 }
 
-final notificationProvider = NotifierProvider<NotificationNotifier, List<AppNotification>>(() {
-  return NotificationNotifier();
-});
+final notificationProvider =
+    NotifierProvider<NotificationNotifier, List<AppNotification>>(
+  () {
+    return NotificationNotifier();
+  },
+  name: 'notificationProvider',
+);
 
-final unreadNotificationCountProvider = Provider<int>((ref) {
-  final notifications = ref.watch(notificationProvider);
-  return notifications.where((n) => !n.isRead).length;
-});
+final unreadNotificationCountProvider = Provider<int>(
+  (ref) {
+    final notifications = ref.watch(notificationProvider);
+    return notifications.where((n) => !n.isRead).length;
+  },
+  name: 'unreadNotificationCountProvider',
+);

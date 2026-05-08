@@ -89,6 +89,27 @@ void main() {
       });
     });
 
+    testWidgets('renders postponed match with postponed label instead of time',
+        (WidgetTester tester) async {
+      await mockNetworkImagesFor(() async {
+        final match = createTestMatch(
+          status: model.MatchStatus.postponed,
+          startTime: DateTime(2026, 3, 20, 20, 30),
+          homeScore: null,
+          awayScore: null,
+          liveMinute: null,
+        );
+
+        await tester.pumpWidget(buildTestableWidget(
+          MatchCard(match: match, hasBorder: false),
+        ));
+
+        expect(find.text('Ertelendi'), findsOneWidget);
+        expect(find.text('20:30'), findsNothing);
+        expect(find.text('VS'), findsOneWidget);
+      });
+    });
+
     testWidgets('renders reason and secondary labels when provided',
         (WidgetTester tester) async {
       await mockNetworkImagesFor(() async {

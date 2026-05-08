@@ -99,6 +99,12 @@ class SupabaseMatchProvider implements MatchRepository {
   }
 
   @override
+  void pauseRealtime() {}
+
+  @override
+  void resumeRealtime() {}
+
+  @override
   Future<List<model.Match>> searchMatches(String query) async {
     final response = await _client
         .from('matches')

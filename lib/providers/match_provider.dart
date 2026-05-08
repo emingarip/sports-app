@@ -11,9 +11,12 @@ import '../models/match.dart' as model;
 import '../models/match_list_view_model.dart';
 import 'favorites_provider.dart';
 
-final matchRepositoryProvider = Provider<MatchRepository>((ref) {
-  return AiSportAgentMatchProvider();
-});
+final matchRepositoryProvider = Provider<MatchRepository>(
+  (ref) {
+    return AiSportAgentMatchProvider();
+  },
+  name: 'matchRepositoryProvider',
+);
 
 enum StatusFilter { all, live, finished }
 
@@ -77,13 +80,17 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   @override
   MatchState build() {
     WidgetsBinding.instance.addObserver(this);
-    _initStream(DateTime.now());
+    final initialDate = DateTime.now();
+    final repo = ref.read(matchRepositoryProvider);
 
     ref.onDispose(() {
       WidgetsBinding.instance.removeObserver(this);
+      repo.pauseRealtime();
       _subscription?.cancel();
       _pollingTimer?.cancel();
     });
+
+    Future<void>.microtask(() => _initStream(initialDate));
 
     return MatchState(
       matches: [],
@@ -91,13 +98,14 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
       isStarredFilter: false,
       isInlineSearchOpen: false,
       inlineSearchQuery: '',
-      selectedDate: DateTime.now(),
+      selectedDate: initialDate,
     );
   }
 
-  void _initStream(DateTime date) {
+  Future<void> _initStream(DateTime date) async {
     final repo = ref.read(matchRepositoryProvider);
     _subscription?.cancel();
+    repo.resumeRealtime();
     _subscription = repo.getMatchesStream(date).listen(
       (data) {
         state = state.copyWith(matches: data);
@@ -108,36 +116,29 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
       },
     );
 
-    repo.fetchMatchesForDate(DateTime.now());
+    await repo.fetchMatchesForDate(date);
     _startPolling();
   }
 
   void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      final now = DateTime.now();
-      if (state.selectedDate.year == now.year &&
-          state.selectedDate.month == now.month &&
-          state.selectedDate.day == now.day) {
-        ref.read(matchRepositoryProvider).fetchMatchesForDate(now);
-      }
+      ref.read(matchRepositoryProvider).fetchMatchesForDate(state.selectedDate);
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final repo = ref.read(matchRepositoryProvider);
     if (state == AppLifecycleState.resumed) {
-      final now = DateTime.now();
-      if (this.state.selectedDate.year == now.year &&
-          this.state.selectedDate.month == now.month &&
-          this.state.selectedDate.day == now.day) {
-        ref.read(matchRepositoryProvider).fetchMatchesForDate(now);
-      }
+      repo.resumeRealtime();
+      repo.fetchMatchesForDate(this.state.selectedDate);
       _startPolling();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       debugPrint(
           'App in background: pausing match polling timer to save battery.');
+      repo.pauseRealtime();
       _pollingTimer?.cancel();
     }
   }
@@ -180,8 +181,7 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
     state = state.copyWith(selectedDate: date, isLoading: true);
 
     try {
-      _initStream(date);
-      await ref.read(matchRepositoryProvider).fetchMatchesForDate(date);
+      await _initStream(date);
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
       state = state.copyWith(isLoading: false);
@@ -197,9 +197,12 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   }
 }
 
-final matchStateProvider = NotifierProvider<MatchNotifier, MatchState>(() {
-  return MatchNotifier();
-});
+final matchStateProvider = NotifierProvider<MatchNotifier, MatchState>(
+  () {
+    return MatchNotifier();
+  },
+  name: 'matchStateProvider',
+);
 
 bool _isSameCalendarDay(DateTime a, DateTime b) {
   final left = a.toLocal();
@@ -242,8 +245,12 @@ int _matchStatusPriority(model.MatchStatus status) {
       return 0;
     case model.MatchStatus.upcoming:
       return 1;
-    case model.MatchStatus.finished:
+    case model.MatchStatus.postponed:
       return 2;
+    case model.MatchStatus.cancelled:
+      return 2;
+    case model.MatchStatus.finished:
+      return 3;
   }
 }
 
@@ -307,6 +314,10 @@ String buildMatchStatusLabel(model.Match match) {
       return match.liveMinute ?? 'CANLI';
     case model.MatchStatus.upcoming:
       return _formatMatchTime(match.startTime);
+    case model.MatchStatus.postponed:
+      return 'Ertelendi';
+    case model.MatchStatus.cancelled:
+      return 'Iptal';
     case model.MatchStatus.finished:
       return 'Tamamlandi';
   }
@@ -346,6 +357,9 @@ String? buildMatchSecondaryLabel(model.Match match, DateTime now) {
       final difference = match.startTime.toLocal().difference(now.toLocal());
       final minutes = difference.inMinutes.clamp(0, 120);
       return '$minutes dk sonra';
+    case model.MatchStatus.postponed:
+    case model.MatchStatus.cancelled:
+      return null;
     case model.MatchStatus.finished:
       return null;
   }
@@ -604,13 +618,11 @@ final baseFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
 
     return true;
   }).toList();
-});
+}, name: 'baseFilteredMatchesProvider');
 
 final inlineSearchResultsProvider =
     Provider<List<SearchMatchResultViewModel>>((ref) {
-  final query = ref.watch(
-    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
-  );
+  final query = ref.watch(matchStateProvider).inlineSearchQuery.trim();
 
   if (query.isEmpty) {
     return const [];
@@ -620,12 +632,10 @@ final inlineSearchResultsProvider =
     matches: ref.watch(baseFilteredMatchesProvider),
     query: query,
   );
-});
+}, name: 'inlineSearchResultsProvider');
 
 final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
-  final query = ref.watch(
-    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
-  );
+  final query = ref.watch(matchStateProvider).inlineSearchQuery.trim();
 
   if (query.isEmpty) {
     return ref.watch(baseFilteredMatchesProvider);
@@ -635,20 +645,18 @@ final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
       .watch(inlineSearchResultsProvider)
       .map((result) => result.match)
       .toList();
-});
+}, name: 'filteredMatchesProvider');
 
 final sortedFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
   final matches = [...ref.watch(filteredMatchesProvider)];
   matches.sort(compareMatches);
   return matches;
-});
+}, name: 'sortedFilteredMatchesProvider');
 
 final matchListItemsProvider = Provider<List<MatchListItemViewModel>>((ref) {
   final favorites = ref.watch(favoritesProvider);
   final now = DateTime.now();
-  final query = ref.watch(
-    matchStateProvider.select((state) => state.inlineSearchQuery.trim()),
-  );
+  final query = ref.watch(matchStateProvider).inlineSearchQuery.trim();
 
   final items = (query.isEmpty
           ? ref.watch(filteredMatchesProvider)
@@ -667,7 +675,7 @@ final matchListItemsProvider = Provider<List<MatchListItemViewModel>>((ref) {
     items.sort(compareMatchListItems);
   }
   return items;
-});
+}, name: 'matchListItemsProvider');
 
 MatchListItemViewModel _ensureFeaturedReason(MatchListItemViewModel item) {
   if (item.reasonLabel != null) return item;
@@ -678,18 +686,21 @@ final featuredMatchItemsProvider =
     Provider<List<MatchListItemViewModel>>((ref) {
   final items = ref.watch(matchListItemsProvider);
   final activeItems = items
-      .where((item) => item.match.status != model.MatchStatus.finished)
+      .where((item) =>
+          item.match.status != model.MatchStatus.finished &&
+          item.match.status != model.MatchStatus.postponed &&
+          item.match.status != model.MatchStatus.cancelled)
       .toList();
   final source = activeItems.isNotEmpty ? activeItems : items;
   return source.take(3).map(_ensureFeaturedReason).toList();
-});
+}, name: 'featuredMatchItemsProvider');
 
 final featuredMatchIdsProvider = Provider<Set<String>>((ref) {
   return ref
       .watch(featuredMatchItemsProvider)
       .map((item) => item.match.id)
       .toSet();
-});
+}, name: 'featuredMatchIdsProvider');
 
 final remainingMatchItemsProvider =
     Provider<List<MatchListItemViewModel>>((ref) {
@@ -698,7 +709,7 @@ final remainingMatchItemsProvider =
       .watch(matchListItemsProvider)
       .where((item) => !featuredIds.contains(item.match.id))
       .toList();
-});
+}, name: 'remainingMatchItemsProvider');
 
 final liveNowSectionProvider = Provider<MatchSectionViewModel?>((ref) {
   final items = ref
@@ -707,7 +718,7 @@ final liveNowSectionProvider = Provider<MatchSectionViewModel?>((ref) {
       .toList();
   if (items.isEmpty) return null;
   return MatchSectionViewModel(title: 'Canli Simdi', items: items);
-});
+}, name: 'liveNowSectionProvider');
 
 final startingSoonSectionProvider = Provider<MatchSectionViewModel?>((ref) {
   final now = DateTime.now();
@@ -717,7 +728,7 @@ final startingSoonSectionProvider = Provider<MatchSectionViewModel?>((ref) {
       .toList();
   if (items.isEmpty) return null;
   return MatchSectionViewModel(title: 'Yakinda Basliyor', items: items);
-});
+}, name: 'startingSoonSectionProvider');
 
 final otherMatchesSectionProvider = Provider<MatchSectionViewModel?>((ref) {
   final now = DateTime.now();
@@ -731,7 +742,7 @@ final otherMatchesSectionProvider = Provider<MatchSectionViewModel?>((ref) {
     items: items,
     groupedByLeague: true,
   );
-});
+}, name: 'otherMatchesSectionProvider');
 
 final leagueMatchSectionsProvider = Provider<List<LeagueMatchSection>>((ref) {
   final otherSection = ref.watch(otherMatchesSectionProvider);
@@ -774,4 +785,4 @@ final leagueMatchSectionsProvider = Provider<List<LeagueMatchSection>>((ref) {
   });
 
   return sections;
-});
+}, name: 'leagueMatchSectionsProvider');

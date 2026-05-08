@@ -105,7 +105,7 @@ class SupabaseService {
     try {
       final response =
           await client.from('users').select().eq('id', userId).maybeSingle();
-      return response;
+      return response == null ? null : Map<String, dynamic>.from(response);
     } catch (e) {
       debugPrint('Error fetching user profile: $e');
       return null;

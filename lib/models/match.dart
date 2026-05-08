@@ -1,4 +1,4 @@
-enum MatchStatus { live, upcoming, finished }
+enum MatchStatus { live, upcoming, finished, postponed, cancelled }
 
 class Match {
   final String id;

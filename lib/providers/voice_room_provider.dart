@@ -468,5 +468,7 @@ class VoiceRoomNotifier extends Notifier<VoiceRoomState> {
   }
 }
 
-final voiceRoomProvider =
-    NotifierProvider<VoiceRoomNotifier, VoiceRoomState>(VoiceRoomNotifier.new);
+final voiceRoomProvider = NotifierProvider<VoiceRoomNotifier, VoiceRoomState>(
+  VoiceRoomNotifier.new,
+  name: 'voiceRoomProvider',
+);

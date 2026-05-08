@@ -21,14 +21,15 @@ class AudioRoom {
 
   factory AudioRoom.fromJson(Map<String, dynamic> json) {
     return AudioRoom(
-      id: json['id'] as String,
-      roomName: json['room_name'] as String,
-      matchId: json['match_id'] as String?,
-      hostId: json['host_id'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      status: json['status'] as String,
-      listenerCount: json['listener_count'] as int? ?? 0,
-      isPrivate: json['is_private'] as bool? ?? false,
+      id: json['id']?.toString() ?? '',
+      roomName: json['room_name']?.toString() ?? '',
+      matchId: _stringOrNull(json['match_id']),
+      hostId: json['host_id']?.toString() ?? '',
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      status: json['status']?.toString() ?? 'inactive',
+      listenerCount: _asInt(json['listener_count']),
+      isPrivate: _asBool(json['is_private']),
     );
   }
 
@@ -44,4 +45,23 @@ class AudioRoom {
       'is_private': isPrivate,
     };
   }
+}
+
+String? _stringOrNull(Object? value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
+int _asInt(Object? value, [int fallback = 0]) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+bool _asBool(Object? value) {
+  if (value is bool) return value;
+  if (value is String) return value.toLowerCase() == 'true';
+  if (value is num) return value != 0;
+  return false;
 }

@@ -209,23 +209,25 @@ void main() {
           id: 'later',
           leagueId: 'league-later',
           leagueName: 'League Later',
-          status: MatchStatus.upcoming,
-          startTime: now.add(const Duration(hours: 5)),
+          status: MatchStatus.finished,
+          startTime: now.subtract(const Duration(minutes: 10)),
         ),
         createTestMatch(
           id: 'finished',
           leagueId: 'league-later',
           leagueName: 'League Later',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(hours: 3)),
+          startTime: now.subtract(const Duration(minutes: 20)),
         ),
       ]);
 
       final container = buildContainer(favorites: const {'fav-live'});
       addTearDown(container.dispose);
 
-      container.read(matchStateProvider);
-      await Future<void>.delayed(Duration.zero);
+      final subscription =
+          container.listen(matchStateProvider, (_, __) {}, fireImmediately: true);
+      addTearDown(subscription.close);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
       final featured = container.read(featuredMatchItemsProvider);
       expect(
@@ -325,32 +327,34 @@ void main() {
           homeTeam: 'Arsenal',
           awayTeam: 'Chelsea',
           leagueName: 'Premier League',
-          status: MatchStatus.upcoming,
-          startTime: now.add(const Duration(hours: 1)),
+          status: MatchStatus.finished,
+          startTime: now.subtract(const Duration(minutes: 10)),
         ),
         createTestMatch(
           id: 'arsenal-prefix',
           homeTeam: 'Arsenal Tula',
           awayTeam: 'Zenit',
           leagueName: 'Russian League',
-          status: MatchStatus.upcoming,
-          startTime: now.add(const Duration(hours: 2)),
+          status: MatchStatus.finished,
+          startTime: now.subtract(const Duration(minutes: 20)),
         ),
         createTestMatch(
           id: 'arsenal-substring',
           homeTeam: 'Brighton',
           awayTeam: 'Burnley',
           leagueName: 'Arsenal Legends Cup',
-          status: MatchStatus.upcoming,
-          startTime: now.add(const Duration(hours: 3)),
+          status: MatchStatus.finished,
+          startTime: now.subtract(const Duration(minutes: 30)),
         ),
       ]);
 
       final container = buildContainer();
       addTearDown(container.dispose);
 
-      container.read(matchStateProvider);
-      await Future<void>.delayed(Duration.zero);
+      final subscription =
+          container.listen(matchStateProvider, (_, __) {}, fireImmediately: true);
+      addTearDown(subscription.close);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
       container.read(matchStateProvider.notifier).openInlineSearch();
       container

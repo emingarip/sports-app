@@ -17,12 +17,15 @@ class UserEntitlement {
 
   factory UserEntitlement.fromJson(Map<String, dynamic> json) {
     return UserEntitlement(
-      id: json['id'],
-      userId: json['user_id'],
-      productCode: json['product_code'],
-      purchasedAt: DateTime.parse(json['purchased_at']),
-      expiresAt: json['expires_at'] != null ? DateTime.parse(json['expires_at']) : null,
-      isActive: json['is_active'] ?? false,
+      id: json['id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      productCode: json['product_code']?.toString() ?? '',
+      purchasedAt: DateTime.tryParse(json['purchased_at']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      expiresAt: json['expires_at'] != null
+          ? DateTime.tryParse(json['expires_at'].toString())
+          : null,
+      isActive: _asBool(json['is_active']),
     );
   }
 
@@ -31,4 +34,11 @@ class UserEntitlement {
     if (expiresAt == null) return true; // Lifetime
     return expiresAt!.isAfter(DateTime.now());
   }
+}
+
+bool _asBool(Object? value) {
+  if (value is bool) return value;
+  if (value is String) return value.toLowerCase() == 'true';
+  if (value is num) return value != 0;
+  return false;
 }

@@ -5,29 +5,29 @@ import 'package:sports_app/services/supabase_service.dart';
 final activeRoomsProvider = StreamProvider.autoDispose<List<AudioRoom>>((ref) {
   return SupabaseService.client
       .from('audio_rooms')
-      .stream(primaryKey: ['id'])
-      .map((list) {
-        final activeRooms = list
-            .where((json) => json['status'] == 'active')
-            .map((json) => AudioRoom.fromJson(json))
-            .toList();
-        
-        activeRooms.sort((a, b) => b.listenerCount.compareTo(a.listenerCount));
-        return activeRooms.take(10).toList();
-      });
-});
+      .stream(primaryKey: ['id']).map((list) {
+    final activeRooms = list
+        .where((json) => json['status'] == 'active')
+        .map((json) => AudioRoom.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
 
-final matchRoomsProvider = StreamProvider.autoDispose.family<List<AudioRoom>, String>((ref, matchId) {
+    activeRooms.sort((a, b) => b.listenerCount.compareTo(a.listenerCount));
+    return activeRooms.take(10).toList();
+  });
+}, name: 'activeRoomsProvider');
+
+final matchRoomsProvider =
+    StreamProvider.autoDispose.family<List<AudioRoom>, String>((ref, matchId) {
   return SupabaseService.client
       .from('audio_rooms')
-      .stream(primaryKey: ['id'])
-      .map((list) {
-        final matchRooms = list
-            .where((json) => json['status'] == 'active' && json['match_id'] == matchId)
-            .map((json) => AudioRoom.fromJson(json))
-            .toList();
-            
-        matchRooms.sort((a, b) => b.listenerCount.compareTo(a.listenerCount));
-        return matchRooms;
-      });
-});
+      .stream(primaryKey: ['id']).map((list) {
+    final matchRooms = list
+        .where(
+            (json) => json['status'] == 'active' && json['match_id'] == matchId)
+        .map((json) => AudioRoom.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+
+    matchRooms.sort((a, b) => b.listenerCount.compareTo(a.listenerCount));
+    return matchRooms;
+  });
+}, name: 'matchRoomsProvider');
