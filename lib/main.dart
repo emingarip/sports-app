@@ -72,6 +72,7 @@ void main() {
     await DeepLinkService().initialize();
     runApp(
       const ProviderScope(
+        observers: [_ProviderErrorLogger()],
         child: BetterFeedback(
           child: MyApp(),
         ),
@@ -82,6 +83,20 @@ void main() {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     }
   });
+}
+
+final class _ProviderErrorLogger extends ProviderObserver {
+  const _ProviderErrorLogger();
+
+  @override
+  void providerDidFail(
+    ProviderObserverContext context,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    debugPrint('Provider failed: ${context.provider} -> $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 }
 
 class MyApp extends ConsumerWidget {

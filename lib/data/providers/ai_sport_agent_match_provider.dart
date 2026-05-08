@@ -132,7 +132,10 @@ class AiSportAgentMatchProvider implements MatchRepository {
       throw const FormatException(
           'AI Sport Agent matches payload does not contain a matches list.');
     }
-    return rawMatches.whereType<Map<String, dynamic>>().map(_mapMatch).toList();
+    return rawMatches
+        .whereType<Map>()
+        .map((data) => _mapMatch(Map<String, dynamic>.from(data)))
+        .toList();
   }
 
   void _connectRealtime(DateTime date) {
@@ -177,15 +180,19 @@ class AiSportAgentMatchProvider implements MatchRepository {
       final List<int> bytes => jsonDecode(utf8.decode(bytes)),
       _ => null,
     };
-    if (decoded is! Map<String, dynamic> ||
-        decoded['type'] != 'match_updated') {
+    if (decoded is! Map) {
       return;
     }
-    final rawMatch = decoded['match'];
-    if (rawMatch is! Map<String, dynamic>) {
+    final payload = Map<String, dynamic>.from(decoded);
+    if (payload['type'] != 'match_updated') {
       return;
     }
-    final matchId = rawMatch['id']?.toString();
+    final rawMatch = payload['match'];
+    if (rawMatch is! Map) {
+      return;
+    }
+    final matchPayload = Map<String, dynamic>.from(rawMatch);
+    final matchId = matchPayload['id']?.toString();
     if (matchId == null || matchId.isEmpty) {
       return;
     }
@@ -195,7 +202,7 @@ class AiSportAgentMatchProvider implements MatchRepository {
     final updatedMatches = _lastMatches
         .map(
           (match) => match.id == matchId
-              ? _mergeRealtimeMatch(match, rawMatch)
+              ? _mergeRealtimeMatch(match, matchPayload)
               : match,
         )
         .toList();
@@ -253,9 +260,9 @@ class AiSportAgentMatchProvider implements MatchRepository {
   }
 
   model.Match _mapMatch(Map<String, dynamic> data) {
-    final league = data['league'] as Map<String, dynamic>?;
-    final homeTeam = data['home_team'] as Map<String, dynamic>?;
-    final awayTeam = data['away_team'] as Map<String, dynamic>?;
+    final league = _asStringMap(data['league']);
+    final homeTeam = _asStringMap(data['home_team']);
+    final awayTeam = _asStringMap(data['away_team']);
     final leagueName = league?['name']?.toString();
     final homeTeamName = homeTeam?['name']?.toString() ?? 'Unknown';
     final awayTeamName = awayTeam?['name']?.toString() ?? 'Unknown';
@@ -278,7 +285,7 @@ class AiSportAgentMatchProvider implements MatchRepository {
         awayTeam?['logo_url'],
         label: awayTeamName,
       ),
-      startTime: DateTime.parse(data['kickoff_at'] as String),
+      startTime: DateTime.parse(data['kickoff_at']?.toString() ?? ''),
       status: _mapStatus(data['status']?.toString()),
       homeScore: _scoreFromPayload(data, 'home_score', 'homeScore'),
       awayScore: _scoreFromPayload(data, 'away_score', 'awayScore'),
@@ -297,6 +304,13 @@ class AiSportAgentMatchProvider implements MatchRepository {
     }
     final normalized = value.toString().trim();
     return normalized.isEmpty ? null : normalized;
+  }
+
+  Map<String, dynamic>? _asStringMap(Object? value) {
+    if (value == null) return null;
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
   }
 
   String _requiredLogoUrl(Object? value, {String? label}) {

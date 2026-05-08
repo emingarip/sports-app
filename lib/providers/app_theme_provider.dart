@@ -72,8 +72,7 @@ class ThemeCatalog extends _$ThemeCatalog {
 
 @riverpod
 Set<String> ownedThemeCodes(Ref ref) {
-  final entitlements =
-      ref.watch(entitlementsProvider).asData?.value ??
+  final entitlements = ref.watch(entitlementsProvider).asData?.value ??
       const <UserEntitlement>[];
   final products =
       ref.watch(storeProductsProvider).asData?.value ?? const <StoreProduct>[];
@@ -193,9 +192,11 @@ class AppThemeController extends _$AppThemeController {
     state = state.copyWith(isSyncing: true);
     try {
       final profile = await SupabaseService().getUserProfile(user.id);
+      final remoteThemeCodeValue =
+          profile?['active_theme_code']?.toString().trim();
       final remoteThemeCode =
-          (profile?['active_theme_code'] as String?)?.trim().isNotEmpty == true
-              ? profile!['active_theme_code'] as String
+          remoteThemeCodeValue != null && remoteThemeCodeValue.isNotEmpty
+              ? remoteThemeCodeValue
               : AppTheme.classicThemeCode;
 
       if (remoteThemeCode == AppTheme.classicThemeCode) {
