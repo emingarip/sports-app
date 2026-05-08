@@ -38,7 +38,7 @@ class AiSportAgentMatchProvider implements MatchRepository {
   );
   static const bool _defaultEnableRealtime = bool.fromEnvironment(
     'AI_SPORT_AGENT_ENABLE_REALTIME',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static String get _defaultBaseUrl {
