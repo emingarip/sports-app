@@ -2,6 +2,7 @@
 *.class
 *.log
 *.pyc
+*.pyo
 *.swp
 .DS_Store
 .atom/
@@ -31,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/android/build/
 /coverage/
 
 # Symbolication related
@@ -53,3 +55,14 @@ simulation_engine/node_modules/
 sports_games_web/out/
 vercel_app.html
 supabase/.temp/
+.codex-runtime/
+_tmp_ws_doc.html
+ai_workforce.db
+nul
+sports_api/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
