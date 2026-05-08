@@ -14,6 +14,8 @@ import '../providers/store_provider.dart';
 import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 
+const double _insightsShellMaxWidth = 600;
+
 class AiMatchInsightsScreen extends ConsumerStatefulWidget {
   const AiMatchInsightsScreen({super.key});
 
@@ -62,81 +64,93 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
       ),
       body: SafeArea(
         bottom: false,
-        child: rankedItems.isEmpty
-            ? const _EmptyState()
-            : RefreshIndicator(
-                onRefresh: () => _refreshSelected(),
-                child: FutureBuilder<WizardInsightReport>(
-                  future: _reportFuture,
-                  builder: (context, snapshot) {
-                    return CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: _MatchSelector(
-                            items: rankedItems,
-                            selectedMatchId: _selectedMatchId,
-                            favorites: favorites,
-                            onSelected: _selectMatch,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _insightsShellMaxWidth),
+            child: rankedItems.isEmpty
+                ? const _EmptyState()
+                : RefreshIndicator(
+                    onRefresh: () => _refreshSelected(),
+                    child: FutureBuilder<WizardInsightReport>(
+                      future: _reportFuture,
+                      builder: (context, snapshot) {
+                        return CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
                           ),
-                        ),
-                        if (snapshot.connectionState == ConnectionState.waiting)
-                          const SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        else if (snapshot.hasError)
-                          SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: _ErrorState(onRetry: _refreshSelected),
-                          )
-                        else if (!snapshot.hasData)
-                          const SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: _EmptyState(),
-                          )
-                        else ...[
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                              child: _DecisionHeader(report: snapshot.data!),
-                            ),
-                          ),
-                          SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            sliver: SliverList(
-                              delegate: SliverChildListDelegate(
-                                [
-                                  ...snapshot.data!.cards.map(
-                                    (card) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 12),
-                                      child: _Lockable(
-                                        locked: card.isPremium && !hasPremium,
-                                        onUnlock:
-                                            _showPremiumPurchaseBottomSheet,
-                                        child: _WizardCard(card: card),
-                                      ),
-                                    ),
-                                  ),
-                                  _MarketSection(
-                                    markets: snapshot.data!.markets,
-                                    hasPremium: hasPremium,
-                                    onUnlock: _showPremiumPurchaseBottomSheet,
-                                  ),
-                                  const SizedBox(height: 120),
-                                ],
+                          slivers: [
+                            SliverToBoxAdapter(
+                              child: _MatchSelector(
+                                items: rankedItems,
+                                selectedMatchId: _selectedMatchId,
+                                favorites: favorites,
+                                onSelected: _selectMatch,
                               ),
                             ),
-                          ),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              ),
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting)
+                              const SliverFillRemaining(
+                                hasScrollBody: false,
+                                child:
+                                    Center(child: CircularProgressIndicator()),
+                              )
+                            else if (snapshot.hasError)
+                              SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: _ErrorState(onRetry: _refreshSelected),
+                              )
+                            else if (!snapshot.hasData)
+                              const SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: _EmptyState(),
+                              )
+                            else ...[
+                              SliverToBoxAdapter(
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                                  child:
+                                      _DecisionHeader(report: snapshot.data!),
+                                ),
+                              ),
+                              SliverPadding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                sliver: SliverList(
+                                  delegate: SliverChildListDelegate(
+                                    [
+                                      ...snapshot.data!.cards.map(
+                                        (card) => Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 12),
+                                          child: _Lockable(
+                                            locked:
+                                                card.isPremium && !hasPremium,
+                                            onUnlock:
+                                                _showPremiumPurchaseBottomSheet,
+                                            child: _WizardCard(card: card),
+                                          ),
+                                        ),
+                                      ),
+                                      _MarketSection(
+                                        markets: snapshot.data!.markets,
+                                        hasPremium: hasPremium,
+                                        onUnlock:
+                                            _showPremiumPurchaseBottomSheet,
+                                      ),
+                                      const SizedBox(height: 120),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ),
       ),
     );
   }
@@ -199,6 +213,40 @@ bool _hasAiPremiumAccess(Iterable<dynamic> entitlements) {
   });
 }
 
+String _selectorSubtitle(model.Match match, String statusLabel) {
+  if (match.status == model.MatchStatus.live &&
+      match.homeScore != null &&
+      match.awayScore != null) {
+    return '$statusLabel  ${match.homeScore}-${match.awayScore}';
+  }
+  return statusLabel;
+}
+
+String _matchScoreText(WizardMatchSummary match) {
+  if (match.homeScore == null || match.awayScore == null) {
+    return 'Skor yok';
+  }
+  return '${match.homeScore}-${match.awayScore}';
+}
+
+String _matchStatusText(WizardMatchSummary match) {
+  final description = match.statusDescription?.trim();
+  if (description != null && description.isNotEmpty) return description;
+  switch (match.status) {
+    case 'live':
+      return 'Canli';
+    case 'finished':
+      return 'Tamamlandi';
+    case 'postponed':
+      return 'Ertelendi';
+    case 'cancelled':
+      return 'Iptal';
+    default:
+      final local = match.kickoffAt.toLocal();
+      return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+}
+
 class _MatchSelector extends StatelessWidget {
   final List<MatchListItemViewModel> items;
   final String? selectedMatchId;
@@ -215,84 +263,105 @@ class _MatchSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 108,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          final match = item.match;
-          final selected = match.id == selectedMatchId;
-          return InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => onSelected(match),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 238,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: selected
-                    ? context.colors.primary.withValues(alpha: 0.12)
-                    : context.colors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: selected
-                      ? context.colors.primary
-                      : context.colors.surfaceContainerHighest,
-                ),
+      height: 142,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Text(
+              'Mac sec',
+              style: TextStyle(
+                fontFamily: 'Lexend',
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: context.colors.textHigh,
               ),
-              child: Row(
-                children: [
-                  _Logo(url: match.homeLogo, size: 34),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              scrollDirection: Axis.horizontal,
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                final match = item.match;
+                final selected = match.id == selectedMatchId;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => onSelected(match),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 254,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? context.colors.primary.withValues(alpha: 0.12)
+                          : context.colors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selected
+                            ? context.colors.primary
+                            : context.colors.surfaceContainerHighest,
+                      ),
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          '${match.homeTeam} - ${match.awayTeam}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: 'Lexend',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: context.colors.textHigh,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            if (favorites.contains(match.id)) ...[
-                              Icon(Icons.star,
-                                  size: 14, color: context.colors.primary),
-                              const SizedBox(width: 4),
-                            ],
-                            Flexible(
-                              child: Text(
-                                item.statusLabel,
-                                maxLines: 1,
+                        _Logo(url: match.homeLogo, size: 34),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${match.homeTeam} - ${match.awayTeam}',
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  color: context.colors.textMedium,
-                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Lexend',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.colors.textHigh,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  if (favorites.contains(match.id)) ...[
+                                    Icon(Icons.star,
+                                        size: 14,
+                                        color: context.colors.primary),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      _selectorSubtitle(
+                                          match, item.statusLabel),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: context.colors.textMedium,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -311,7 +380,7 @@ class _DecisionHeader extends StatelessWidget {
       _ => context.colors.primary,
     };
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: context.colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
@@ -324,12 +393,12 @@ class _DecisionHeader extends StatelessWidget {
             children: [
               _DecisionPill(label: report.decision, color: color),
               const Spacer(),
-              _Metric(label: 'Guven', value: '${report.confidence}/100'),
+              _Metric(label: 'Guven', value: '${report.confidence}'),
               const SizedBox(width: 10),
               _Metric(label: 'Risk', value: report.riskLevel.toUpperCase()),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             '${report.match.homeTeam} - ${report.match.awayTeam}',
             style: TextStyle(
@@ -339,6 +408,22 @@ class _DecisionHeader extends StatelessWidget {
               color: context.colors.textHigh,
             ),
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _HeaderChip(
+                icon: Icons.sports_soccer,
+                text: _matchScoreText(report.match),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _HeaderChip(
+                  icon: Icons.schedule,
+                  text: _matchStatusText(report.match),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text(
             report.summary,
@@ -347,6 +432,53 @@ class _DecisionHeader extends StatelessWidget {
               fontSize: 13,
               height: 1.45,
               color: context.colors.textMedium,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: report.confidence.clamp(0, 100) / 100,
+              minHeight: 6,
+              backgroundColor: context.colors.surfaceContainerHigh,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _HeaderChip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: context.colors.textMedium),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: context.colors.textMedium,
+              ),
             ),
           ),
         ],
