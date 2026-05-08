@@ -549,6 +549,7 @@ class _SwipeDeckState extends State<_SwipeDeck> {
                   child: Transform.rotate(
                     angle: rotation,
                     child: Stack(
+                      clipBehavior: Clip.none,
                       children: [
                         _DeckCard(
                           item: widget.item,
@@ -654,8 +655,8 @@ class _DeckCard extends StatelessWidget {
     final match = item.match;
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 470),
-      padding: const EdgeInsets.all(20),
+      constraints: const BoxConstraints(maxHeight: 560),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: context.colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(22),
@@ -675,43 +676,80 @@ class _DeckCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Logo(url: match.homeLogo, size: 44),
-              const SizedBox(width: 10),
               Expanded(
+                child: _TeamSnapshot(
+                  logoUrl: match.homeLogo,
+                  name: match.homeTeam,
+                  alignment: CrossAxisAlignment.start,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${match.homeTeam} - ${match.awayTeam}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      _matchScoreText(report.match),
                       style: TextStyle(
                         fontFamily: 'Lexend',
-                        fontSize: 17,
+                        fontSize: 18,
                         fontWeight: FontWeight.w900,
                         color: context.colors.textHigh,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      match.leagueName ?? 'Futbol',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: context.colors.textMedium,
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.colors.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        _matchStatusText(report.match),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: context.colors.textMedium,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+              Expanded(
+                child: _TeamSnapshot(
+                  logoUrl: match.awayLogo,
+                  name: match.awayTeam,
+                  alignment: CrossAxisAlignment.end,
+                  textAlign: TextAlign.end,
+                ),
+              ),
               if (isFavorite)
-                Icon(Icons.star, color: context.colors.primary, size: 24),
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child:
+                      Icon(Icons.star, color: context.colors.primary, size: 22),
+                ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
+          Text(
+            match.leagueName ?? 'Futbol',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: context.colors.textMedium,
+            ),
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               _DecisionPill(label: report.decision, color: decisionColor),
@@ -733,23 +771,7 @@ class _DeckCard extends StatelessWidget {
               color: context.colors.textMedium,
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _HeaderChip(
-                icon: Icons.sports_soccer,
-                text: _matchScoreText(report.match),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _HeaderChip(
-                  icon: Icons.schedule,
-                  text: _matchStatusText(report.match),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -759,12 +781,192 @@ class _DeckCard extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(decisionColor),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          _QuickContextGrid(report: report),
+          const SizedBox(height: 12),
           if (report.cards.isNotEmpty) _DeckReason(card: report.cards.first),
         ],
       ),
     );
   }
+}
+
+class _TeamSnapshot extends StatelessWidget {
+  final String logoUrl;
+  final String name;
+  final CrossAxisAlignment alignment;
+  final TextAlign textAlign;
+
+  const _TeamSnapshot({
+    required this.logoUrl,
+    required this.name,
+    required this.alignment,
+    this.textAlign = TextAlign.start,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: alignment,
+      children: [
+        _Logo(url: logoUrl, size: 42),
+        const SizedBox(height: 8),
+        Text(
+          name,
+          textAlign: textAlign,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 13,
+            height: 1.15,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickContextGrid extends StatelessWidget {
+  final WizardInsightReport report;
+
+  const _QuickContextGrid({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final quick = report.quickContext;
+    final tiles = [
+      _QuickContextTileData(
+        icon: Icons.timeline,
+        title: 'Form',
+        value: _quickFormValue(quick.form),
+        detail: quick.form.summary,
+      ),
+      _QuickContextTileData(
+        icon: Icons.format_list_numbered,
+        title: 'Lig',
+        value: _quickStandingsValue(quick.standings),
+        detail: quick.standings.summary,
+      ),
+      _QuickContextTileData(
+        icon: Icons.compare_arrows,
+        title: 'H2H',
+        value: quick.h2h.matches > 0 ? '${quick.h2h.matches} mac' : 'Veri yok',
+        detail: quick.h2h.summary,
+      ),
+      _QuickContextTileData(
+        icon: Icons.flag,
+        title: 'Anlam',
+        value: quick.available ? 'Baglam' : 'Bekleniyor',
+        detail: quick.stakes.summary,
+      ),
+    ];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tiles.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 2.35,
+      ),
+      itemBuilder: (context, index) => _QuickContextTile(data: tiles[index]),
+    );
+  }
+}
+
+class _QuickContextTileData {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String detail;
+
+  const _QuickContextTileData({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.detail,
+  });
+}
+
+class _QuickContextTile extends StatelessWidget {
+  final _QuickContextTileData data;
+
+  const _QuickContextTile({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(data.icon, size: 16, color: context.colors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.title,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: context.colors.textMedium,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  data.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Expanded(
+                  child: Text(
+                    data.detail,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      height: 1.2,
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.textMedium,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _quickFormValue(WizardQuickForm form) {
+  final home = form.home ?? '-';
+  final away = form.away ?? '-';
+  return '$home / $away';
+}
+
+String _quickStandingsValue(WizardQuickStandings standings) {
+  final home = standings.homeRank == null ? '-' : '${standings.homeRank}.';
+  final away = standings.awayRank == null ? '-' : '${standings.awayRank}.';
+  return '$home / $away';
 }
 
 class _DeckReason extends StatelessWidget {
@@ -872,26 +1074,38 @@ class _SwipeStamp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (opacity <= 0) return const SizedBox.shrink();
-    return Positioned.fill(
+    final left = alignment == Alignment.topLeft ? 12.0 : null;
+    final right = alignment == Alignment.topRight ? 12.0 : null;
+    final center = alignment == Alignment.topCenter;
+    return Positioned(
+      top: -38,
+      left: center ? 0 : left,
+      right: center ? 0 : right,
       child: Align(
-        alignment: alignment,
+        alignment: center ? Alignment.topCenter : Alignment.center,
         child: Opacity(
           opacity: opacity,
-          child: Container(
-            margin: const EdgeInsets.all(22),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color, width: 2),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Lexend',
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: color,
+          child: Transform.rotate(
+            angle: alignment == Alignment.topLeft
+                ? -0.12
+                : alignment == Alignment.topRight
+                    ? 0.12
+                    : 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color, width: 2),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Lexend',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                ),
               ),
             ),
           ),

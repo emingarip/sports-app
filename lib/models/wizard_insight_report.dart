@@ -4,6 +4,7 @@ class WizardInsightReport {
   final int confidence;
   final String riskLevel;
   final String summary;
+  final WizardQuickContext quickContext;
   final List<WizardCard> cards;
   final List<WizardMarketSignal> markets;
   final List<WizardQuestion> questions;
@@ -18,6 +19,7 @@ class WizardInsightReport {
     required this.confidence,
     required this.riskLevel,
     required this.summary,
+    required this.quickContext,
     required this.cards,
     required this.markets,
     required this.questions,
@@ -34,6 +36,7 @@ class WizardInsightReport {
       confidence: _asInt(json['confidence']),
       riskLevel: json['riskLevel']?.toString() ?? 'medium',
       summary: json['summary']?.toString() ?? '',
+      quickContext: WizardQuickContext.fromJson(_asMap(json['quickContext'])),
       cards: _asList(json['cards'])
           .map((item) => WizardCard.fromJson(_asMap(item)))
           .toList(),
@@ -47,6 +50,124 @@ class WizardInsightReport {
       generatedAt: _asDateTime(json['generatedAt']),
       expiresAt: _asDateTime(json['expiresAt']),
       stale: json['stale'] == true,
+    );
+  }
+}
+
+class WizardQuickContext {
+  final bool available;
+  final WizardQuickForm form;
+  final WizardQuickStandings standings;
+  final WizardQuickH2H h2h;
+  final WizardQuickStakes stakes;
+
+  const WizardQuickContext({
+    required this.available,
+    required this.form,
+    required this.standings,
+    required this.h2h,
+    required this.stakes,
+  });
+
+  factory WizardQuickContext.fromJson(Map<String, dynamic> json) {
+    return WizardQuickContext(
+      available: json['available'] == true,
+      form: WizardQuickForm.fromJson(_asMap(json['form'])),
+      standings: WizardQuickStandings.fromJson(_asMap(json['standings'])),
+      h2h: WizardQuickH2H.fromJson(_asMap(json['h2h'])),
+      stakes: WizardQuickStakes.fromJson(_asMap(json['stakes'])),
+    );
+  }
+}
+
+class WizardQuickForm {
+  final String? home;
+  final String? away;
+  final String edge;
+  final String summary;
+
+  const WizardQuickForm({
+    required this.home,
+    required this.away,
+    required this.edge,
+    required this.summary,
+  });
+
+  factory WizardQuickForm.fromJson(Map<String, dynamic> json) {
+    return WizardQuickForm(
+      home: _nullableString(json['home']),
+      away: _nullableString(json['away']),
+      edge: json['edge']?.toString() ?? 'unknown',
+      summary: json['summary']?.toString() ?? 'Form verisi henuz yok.',
+    );
+  }
+}
+
+class WizardQuickStandings {
+  final int? homeRank;
+  final int? awayRank;
+  final int? homePoints;
+  final int? awayPoints;
+  final int? teamCount;
+  final String summary;
+
+  const WizardQuickStandings({
+    required this.homeRank,
+    required this.awayRank,
+    required this.homePoints,
+    required this.awayPoints,
+    required this.teamCount,
+    required this.summary,
+  });
+
+  factory WizardQuickStandings.fromJson(Map<String, dynamic> json) {
+    return WizardQuickStandings(
+      homeRank: _asNullableInt(json['homeRank']),
+      awayRank: _asNullableInt(json['awayRank']),
+      homePoints: _asNullableInt(json['homePoints']),
+      awayPoints: _asNullableInt(json['awayPoints']),
+      teamCount: _asNullableInt(json['teamCount']),
+      summary:
+          json['summary']?.toString() ?? 'Lig siralamasi verisi henuz yok.',
+    );
+  }
+}
+
+class WizardQuickH2H {
+  final int matches;
+  final int homeWins;
+  final int draws;
+  final int awayWins;
+  final String summary;
+
+  const WizardQuickH2H({
+    required this.matches,
+    required this.homeWins,
+    required this.draws,
+    required this.awayWins,
+    required this.summary,
+  });
+
+  factory WizardQuickH2H.fromJson(Map<String, dynamic> json) {
+    return WizardQuickH2H(
+      matches: _asInt(json['matches']),
+      homeWins: _asInt(json['homeWins']),
+      draws: _asInt(json['draws']),
+      awayWins: _asInt(json['awayWins']),
+      summary: json['summary']?.toString() ?? 'Ikili rekabet verisi henuz yok.',
+    );
+  }
+}
+
+class WizardQuickStakes {
+  final String summary;
+
+  const WizardQuickStakes({required this.summary});
+
+  factory WizardQuickStakes.fromJson(Map<String, dynamic> json) {
+    return WizardQuickStakes(
+      summary:
+          json['summary']?.toString() ?? 'Mac baglami icin yeterli veri yok.',
     );
   }
 }
@@ -203,6 +324,12 @@ int? _asNullableInt(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value.toString());
+}
+
+String? _nullableString(Object? value) {
+  final text = value?.toString().trim();
+  if (text == null || text.isEmpty || text == 'null') return null;
+  return text;
 }
 
 DateTime _asDateTime(Object? value) {
