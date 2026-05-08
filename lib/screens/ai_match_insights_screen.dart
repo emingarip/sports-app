@@ -11,6 +11,7 @@ import '../models/wizard_insight_report.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/match_provider.dart';
 import '../providers/store_provider.dart';
+import '../providers/wallet_provider.dart';
 import '../theme/app_theme.dart';
 
 class AiMatchInsightsScreen extends ConsumerStatefulWidget {
@@ -29,9 +30,8 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
   Widget build(BuildContext context) {
     final items = ref.watch(matchListItemsProvider);
     final favorites = ref.watch(favoritesProvider);
-    ref.watch(entitlementsProvider);
-    final hasPremium =
-        ref.watch(entitlementsProvider.notifier).hasAccess('ai_premium_base');
+    final entitlements = ref.watch(entitlementsProvider).asData?.value ?? [];
+    final hasPremium = _hasAiPremiumAccess(entitlements);
     final rankedItems = _rankWizardItems(items, favorites);
 
     if (rankedItems.isNotEmpty) {
@@ -186,6 +186,17 @@ List<MatchListItemViewModel> _rankWizardItems(
     return compareMatchListItems(a, b);
   });
   return ranked;
+}
+
+bool _hasAiPremiumAccess(Iterable<dynamic> entitlements) {
+  return entitlements.any((entitlement) {
+    final productCode = entitlement.productCode?.toString() ?? '';
+    final isValid = entitlement.isValid == true;
+    return isValid &&
+        (productCode == 'ai_premium_base' ||
+            productCode == 'ai_premium_monthly' ||
+            productCode.contains('premium'));
+  });
 }
 
 class _MatchSelector extends StatelessWidget {
@@ -718,12 +729,46 @@ class _PremiumPurchaseModal extends ConsumerStatefulWidget {
 class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
   bool _isPurchasing = false;
 
+  StoreProduct? _findProduct(List<StoreProduct> products, String productCode) {
+    for (final product in products) {
+      if (product.productCode == productCode) return product;
+    }
+    return null;
+  }
+
   Future<void> _buyProduct(StoreProduct product) async {
     setState(() => _isPurchasing = true);
     try {
-      await ref.read(storeServiceProvider).buyStoreItem(product.productCode);
+      final result = await ref
+          .read(storeServiceProvider)
+          .buyStoreItem(product.productCode);
+      if (result.newBalance != null) {
+        ref
+            .read(walletBalanceProvider.notifier)
+            .setBalanceFromServer(result.newBalance!);
+      } else {
+        await ref.read(walletBalanceProvider.notifier).refreshBalance();
+      }
       await ref.read(entitlementsProvider.notifier).refresh();
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${product.title} aktif edildi.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceAll('Exception: ', '')),
+            backgroundColor: context.colors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isPurchasing = false);
     }
@@ -742,8 +787,11 @@ class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
         top: false,
         child: productsAsync.when(
           data: (products) {
-            StoreProduct? product;
+            StoreProduct? product =
+                _findProduct(products, 'ai_premium_monthly') ??
+                    _findProduct(products, 'ai_premium_base');
             for (final item in products) {
+              if (product != null) break;
               if (item.productCode.contains('premium_base') ||
                   item.productCode.contains('premium')) {
                 product = item;

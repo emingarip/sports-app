@@ -60,10 +60,8 @@ class StoreService {
 
       return result;
     } on FunctionException catch (e) {
-      final details = e.details;
-      if (details is Map && details['error'] is String) {
-        throw Exception(details['error'].toString());
-      }
+      final message = _functionErrorMessage(e);
+      if (message != null) throw Exception(message);
 
       final reason = e.reasonPhrase;
       if (reason != null && reason.isNotEmpty) {
@@ -79,6 +77,36 @@ class StoreService {
       }
       throw Exception('Satin alma basarisiz oldu: $e');
     }
+  }
+
+  String? _functionErrorMessage(FunctionException error) {
+    final details = error.details;
+    if (details is Map && details['error'] != null) {
+      return _friendlyPurchaseError(details['error'].toString());
+    }
+    if (details is String && details.trim().isNotEmpty) {
+      final text = details.trim();
+      final match = RegExp(r'"error"\s*:\s*"([^"]+)"').firstMatch(text);
+      return _friendlyPurchaseError(match?.group(1) ?? text);
+    }
+    final message = error.toString();
+    if (message.contains('Insufficient K-Coin balance')) {
+      return _friendlyPurchaseError('Insufficient K-Coin balance');
+    }
+    return null;
+  }
+
+  String _friendlyPurchaseError(String message) {
+    if (message.contains('Insufficient K-Coin balance')) {
+      return 'Yetersiz bakiye. K-Coin kazanmalisiniz veya bakiyenizi artirmalisiniz.';
+    }
+    if (message.contains('already owned')) {
+      return 'Bu urun zaten hesabinizda aktif.';
+    }
+    if (message.contains('Product not found')) {
+      return 'Urun su anda aktif degil.';
+    }
+    return message;
   }
 
   List<Map<String, dynamic>> _asMapList(Object? value) {
