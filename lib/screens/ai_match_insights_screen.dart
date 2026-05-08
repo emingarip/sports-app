@@ -1,12 +1,17 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../models/match_insight.dart';
-import '../services/insight_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/providers/ai_sport_agent_wizard_provider.dart';
+import '../models/match.dart' as model;
+import '../models/match_list_view_model.dart';
+import '../models/store_product.dart';
+import '../models/wizard_insight_report.dart';
+import '../providers/favorites_provider.dart';
 import '../providers/match_provider.dart';
 import '../providers/store_provider.dart';
-import '../models/store_product.dart';
+import '../theme/app_theme.dart';
 
 class AiMatchInsightsScreen extends ConsumerStatefulWidget {
   const AiMatchInsightsScreen({super.key});
@@ -17,307 +22,693 @@ class AiMatchInsightsScreen extends ConsumerStatefulWidget {
 }
 
 class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
-  List<MatchInsight> _insights = [];
-  bool _isLoading = true;
-  final InsightService _insightService = InsightService();
-
-  String? _loadedMatchId;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final activeMatch = ref.read(matchStateProvider.notifier).activeLiveMatch;
-      if (activeMatch != null) {
-        _loadInsights(activeMatch.id);
-      } else {
-        setState(() => _isLoading = false);
-      }
-    });
-  }
-
-  Future<void> _loadInsights(String matchId) async {
-    if (_loadedMatchId == matchId) return;
-
-    setState(() {
-      _isLoading = true;
-      _loadedMatchId = matchId;
-      _insights = [];
-    });
-
-    try {
-      var insights = await _insightService.getInsightsForMatch(matchId);
-
-      // If no insights exist, ask the edge function to generate some (if possible)
-      // and re-fetch.
-      if (insights.isEmpty) {
-        await _insightService.generateInsights(matchId);
-        insights = await _insightService.getInsightsForMatch(matchId);
-      }
-
-      if (mounted) {
-        setState(() {
-          _insights = insights;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  int get _completedCount => _insights.where((i) => i.isAnswered).length;
-  double get _progress =>
-      _insights.isEmpty ? 0 : _completedCount / _insights.length;
-
-  void _onVoteChanged(MatchInsight insight, UserVoteType vote) async {
-    setState(() {
-      insight.userVote = vote;
-      if (vote != UserVoteType.disagree) {
-        insight.disagreeReason = null;
-        insight.customReason = null;
-      }
-    });
-
-    try {
-      final activeMatch = ref.read(matchStateProvider.notifier).activeLiveMatch;
-      if (activeMatch != null) {
-        await _insightService.voteInsight(insight.id, activeMatch.id, vote,
-            reason: insight.disagreeReason, customReason: insight.customReason);
-      }
-    } catch (e) {
-      // Handle error gracefully
-    }
-  }
+  String? _selectedMatchId;
+  Future<WizardInsightReport>? _reportFuture;
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(entitlementsProvider); // Rebuild when entitlements change
+    final items = ref.watch(matchListItemsProvider);
+    final favorites = ref.watch(favoritesProvider);
+    ref.watch(entitlementsProvider);
     final hasPremium =
         ref.watch(entitlementsProvider.notifier).hasAccess('ai_premium_base');
+    final rankedItems = _rankWizardItems(items, favorites);
+
+    if (rankedItems.isNotEmpty) {
+      final selectedExists =
+          rankedItems.any((item) => item.match.id == _selectedMatchId);
+      if (_selectedMatchId == null || !selectedExists) {
+        _selectedMatchId = rankedItems.first.match.id;
+        _reportFuture = _loadReport(_selectedMatchId!);
+      }
+    }
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: AppBar(
-              backgroundColor: context.colors.background.withValues(alpha: 0.8),
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: context.colors.primary),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: Text(
-                'AI Match Insights',
-                style: TextStyle(
-                    fontFamily: 'Lexend',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.textHigh),
-              ),
-              centerTitle: true,
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.more_vert, color: context.colors.textMedium),
-                  onPressed: () {},
-                ),
-              ],
-            ),
+      appBar: AppBar(
+        backgroundColor: context.colors.background.withValues(alpha: 0.9),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          'Insights Sihirbazi',
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: context.colors.textHigh,
           ),
         ),
+        centerTitle: true,
       ),
       body: SafeArea(
         bottom: false,
-        child: _isLoading
-            ? Center(
-                child: CircularProgressIndicator(color: context.colors.primary))
-            : CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: MatchSummaryCard(
-                        completedCount: _completedCount,
-                        totalCount: _insights.length,
-                        progress: _progress,
+        child: rankedItems.isEmpty
+            ? const _EmptyState()
+            : RefreshIndicator(
+                onRefresh: () => _refreshSelected(),
+                child: FutureBuilder<WizardInsightReport>(
+                  future: _reportFuture,
+                  builder: (context, snapshot) {
+                    return CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
                       ),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final insight = _insights[index];
-                          // Free insights (first 2) or Premium user
-                          if (hasPremium || index < 2) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: InsightCard(
-                                insight: insight,
-                                onVoteChanged: (vote) =>
-                                    _onVoteChanged(insight, vote),
-                              ),
-                            );
-                          }
-
-                          // For non-premium users, blur the remaining insights
-                          // Only show the "Lock" widget on the very first restricted insight
-                          final isFirstRestricted = index == 2;
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Stack(
-                              children: [
-                                ImageFiltered(
-                                  imageFilter:
-                                      ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                                  child: IgnorePointer(
-                                    child: InsightCard(
-                                      insight: insight,
-                                      onVoteChanged: (_) {},
-                                    ),
-                                  ),
-                                ),
-                                if (isFirstRestricted)
-                                  Positioned.fill(
-                                    child: Center(
-                                      child: Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 32),
-                                        padding: const EdgeInsets.all(24),
-                                        decoration: BoxDecoration(
-                                          color: context
-                                              .colors.surfaceContainerHighest
-                                              .withValues(alpha: 0.95),
-                                          borderRadius:
-                                              BorderRadius.circular(24),
-                                          border: Border.all(
-                                              color: context
-                                                  .colors.primaryContainer
-                                                  .withValues(alpha: 0.5),
-                                              width: 2),
-                                        ),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.lock_person,
-                                                color: context
-                                                    .colors.primaryContainer,
-                                                size: 48),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              'Premium Insights Locked',
-                                              style: TextStyle(
-                                                  fontFamily: 'Lexend',
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color:
-                                                      context.colors.textHigh),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                                'Unlock all advanced algorithms and AI insights for this match.',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                    fontFamily: 'Inter',
-                                                    fontSize: 13,
-                                                    color: context
-                                                        .colors.textMedium)),
-                                            const SizedBox(height: 20),
-                                            SizedBox(
-                                              width: double.infinity,
-                                              child: FilledButton.icon(
-                                                onPressed: () {
-                                                  _showPremiumPurchaseBottomSheet(
-                                                      context, ref);
-                                                },
-                                                icon: const Icon(
-                                                    Icons.workspace_premium),
-                                                label: const Text(
-                                                    'Unlock via Store',
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold)),
-                                                style: FilledButton.styleFrom(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(vertical: 16),
-                                                  backgroundColor: context
-                                                      .colors.primaryContainer,
-                                                  foregroundColor:
-                                                      context.colors.background,
-                                                ),
-                                              ),
-                                            )
-                                          ],
-                                        ),
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: _MatchSelector(
+                            items: rankedItems,
+                            selectedMatchId: _selectedMatchId,
+                            favorites: favorites,
+                            onSelected: _selectMatch,
+                          ),
+                        ),
+                        if (snapshot.connectionState == ConnectionState.waiting)
+                          const SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (snapshot.hasError)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: _ErrorState(onRetry: _refreshSelected),
+                          )
+                        else if (!snapshot.hasData)
+                          const SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: _EmptyState(),
+                          )
+                        else ...[
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                              child: _DecisionHeader(report: snapshot.data!),
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverList(
+                              delegate: SliverChildListDelegate(
+                                [
+                                  ...snapshot.data!.cards.map(
+                                    (card) => Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 12),
+                                      child: _Lockable(
+                                        locked: card.isPremium && !hasPremium,
+                                        onUnlock:
+                                            _showPremiumPurchaseBottomSheet,
+                                        child: _WizardCard(card: card),
                                       ),
                                     ),
                                   ),
-                              ],
+                                  _MarketSection(
+                                    markets: snapshot.data!.markets,
+                                    hasPremium: hasPremium,
+                                    onUnlock: _showPremiumPurchaseBottomSheet,
+                                  ),
+                                  const SizedBox(height: 120),
+                                ],
+                              ),
                             ),
-                          );
-                        },
-                        childCount: _insights.length,
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 140),
-                      child: Center(
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor:
-                                context.colors.surfaceContainerHigh,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 16),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(32)),
                           ),
-                          onPressed: () {},
-                          child: Text(
-                            'LOAD MORE INSIGHTS',
-                            style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.textHigh,
-                                letterSpacing: 1),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                        ],
+                      ],
+                    );
+                  },
+                ),
               ),
       ),
     );
   }
 
-  void _showPremiumPurchaseBottomSheet(BuildContext context, WidgetRef ref) {
+  Future<WizardInsightReport> _loadReport(String matchId) {
+    return ref.read(aiSportAgentWizardProvider).fetchReport(matchId);
+  }
+
+  void _selectMatch(model.Match match) {
+    setState(() {
+      _selectedMatchId = match.id;
+      _reportFuture = _loadReport(match.id);
+    });
+  }
+
+  Future<void> _refreshSelected() async {
+    final matchId = _selectedMatchId;
+    if (matchId == null) return;
+    final future = _loadReport(matchId);
+    setState(() => _reportFuture = future);
+    try {
+      await future;
+    } catch (_) {
+      // FutureBuilder renders the retry state.
+    }
+  }
+
+  void _showPremiumPurchaseBottomSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => _PremiumPurchaseModal(parentRef: ref),
+      builder: (ctx) => const _PremiumPurchaseModal(),
+    );
+  }
+}
+
+List<MatchListItemViewModel> _rankWizardItems(
+  List<MatchListItemViewModel> items,
+  Set<String> favorites,
+) {
+  final ranked = [...items];
+  ranked.sort((a, b) {
+    final favoriteCompare = (favorites.contains(b.match.id) ? 1 : 0)
+        .compareTo(favorites.contains(a.match.id) ? 1 : 0);
+    if (favoriteCompare != 0) return favoriteCompare;
+    return compareMatchListItems(a, b);
+  });
+  return ranked;
+}
+
+class _MatchSelector extends StatelessWidget {
+  final List<MatchListItemViewModel> items;
+  final String? selectedMatchId;
+  final Set<String> favorites;
+  final ValueChanged<model.Match> onSelected;
+
+  const _MatchSelector({
+    required this.items,
+    required this.selectedMatchId,
+    required this.favorites,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 108,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final match = item.match;
+          final selected = match.id == selectedMatchId;
+          return InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => onSelected(match),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 238,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: selected
+                    ? context.colors.primary.withValues(alpha: 0.12)
+                    : context.colors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: selected
+                      ? context.colors.primary
+                      : context.colors.surfaceContainerHighest,
+                ),
+              ),
+              child: Row(
+                children: [
+                  _Logo(url: match.homeLogo, size: 34),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${match.homeTeam} - ${match.awayTeam}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Lexend',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.textHigh,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            if (favorites.contains(match.id)) ...[
+                              Icon(Icons.star,
+                                  size: 14, color: context.colors.primary),
+                              const SizedBox(width: 4),
+                            ],
+                            Flexible(
+                              child: Text(
+                                item.statusLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: context.colors.textMedium,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DecisionHeader extends StatelessWidget {
+  final WizardInsightReport report;
+
+  const _DecisionHeader({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (report.decision) {
+      'PASS' => context.colors.error,
+      'CONSIDER' => Colors.green.shade700,
+      _ => context.colors.primary,
+    };
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _DecisionPill(label: report.decision, color: color),
+              const Spacer(),
+              _Metric(label: 'Guven', value: '${report.confidence}/100'),
+              const SizedBox(width: 10),
+              _Metric(label: 'Risk', value: report.riskLevel.toUpperCase()),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '${report.match.homeTeam} - ${report.match.awayTeam}',
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            report.summary,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              height: 1.45,
+              color: context.colors.textMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DecisionPill extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _DecisionPill({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Lexend',
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _WizardCard extends StatelessWidget {
+  final WizardCard card;
+
+  const _WizardCard({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  card.title,
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+              ),
+              _Metric(label: card.signal, value: '${card.confidence}'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            card.text,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              height: 1.45,
+              color: context.colors.textMedium,
+            ),
+          ),
+          if (card.evidence.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: card.evidence
+                  .map((item) => _EvidenceChip(item: item))
+                  .toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MarketSection extends StatelessWidget {
+  final List<WizardMarketSignal> markets;
+  final bool hasPremium;
+  final VoidCallback onUnlock;
+
+  const _MarketSection({
+    required this.markets,
+    required this.hasPremium,
+    required this.onUnlock,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (markets.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 10),
+          child: Text(
+            'Market Sinyalleri',
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: context.colors.textHigh,
+            ),
+          ),
+        ),
+        ...markets.map(
+          (market) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _Lockable(
+              locked: market.isPremium && !hasPremium,
+              onUnlock: onUnlock,
+              child: _MarketCard(market: market),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MarketCard extends StatelessWidget {
+  final WizardMarketSignal market;
+
+  const _MarketCard({required this.market});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.analytics_outlined, color: context.colors.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  market.title,
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  market.text,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    height: 1.35,
+                    color: context.colors.textMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _Metric(label: market.signal, value: '${market.confidence}'),
+        ],
+      ),
+    );
+  }
+}
+
+class _Lockable extends StatelessWidget {
+  final bool locked;
+  final Widget child;
+  final VoidCallback onUnlock;
+
+  const _Lockable({
+    required this.locked,
+    required this.child,
+    required this.onUnlock,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!locked) return child;
+    return Stack(
+      children: [
+        ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          child: IgnorePointer(child: child),
+        ),
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              color:
+                  context.colors.surfaceContainerLowest.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Center(
+              child: FilledButton.icon(
+                onPressed: onUnlock,
+                icon: const Icon(Icons.lock_open),
+                label: const Text('Premium ile ac'),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EvidenceChip extends StatelessWidget {
+  final WizardEvidence item;
+
+  const _EvidenceChip({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        '${item.label}: ${item.value}',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: context.colors.textMedium,
+        ),
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _Metric({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 9,
+            color: context.colors.textMedium,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 12,
+            color: context.colors.textHigh,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Logo extends StatelessWidget {
+  final String url;
+  final double size;
+
+  const _Logo({required this.url, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Container(
+          width: size,
+          height: size,
+          color: context.colors.surfaceContainerHigh,
+          child: Icon(Icons.sports_soccer, size: size * 0.55),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text(
+          'Analiz icin gorunen mac bulunamadi.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: context.colors.textMedium),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final Future<void> Function() onRetry;
+
+  const _ErrorState({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, color: context.colors.error, size: 42),
+            const SizedBox(height: 12),
+            Text(
+              'Sihirbaz raporu yuklenemedi.',
+              style: TextStyle(
+                fontFamily: 'Lexend',
+                fontWeight: FontWeight.bold,
+                color: context.colors.textHigh,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: onRetry,
+              child: const Text('Tekrar dene'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class _PremiumPurchaseModal extends ConsumerStatefulWidget {
-  final WidgetRef parentRef;
-  const _PremiumPurchaseModal({required this.parentRef});
+  const _PremiumPurchaseModal();
 
   @override
   ConsumerState<_PremiumPurchaseModal> createState() =>
@@ -327,34 +718,12 @@ class _PremiumPurchaseModal extends ConsumerStatefulWidget {
 class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
   bool _isPurchasing = false;
 
-  void _buyProduct(StoreProduct product) async {
+  Future<void> _buyProduct(StoreProduct product) async {
     setState(() => _isPurchasing = true);
     try {
       await ref.read(storeServiceProvider).buyStoreItem(product.productCode);
       await ref.read(entitlementsProvider.notifier).refresh();
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Kilit Açıldı! Premium ayrıcalıkların keyfini çıkarın.',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isPurchasing = false);
     }
@@ -363,572 +732,70 @@ class _PremiumPurchaseModalState extends ConsumerState<_PremiumPurchaseModal> {
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(storeProductsProvider);
-
     return Container(
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: context.colors.surfaceContainerLowest,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.all(24),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: context.colors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 24),
-            Icon(Icons.workspace_premium,
-                color: context.colors.primaryContainer, size: 64),
-            const SizedBox(height: 16),
-            Text('Premium K-Coin Paketi',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: context.colors.textHigh,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(
-                'Hesabınızı yükseltin ve gelişmiş yapay zeka analizlerinin tamamına anında erişin.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: context.colors.textMedium)),
-            const SizedBox(height: 32),
-            productsAsync.when(
-              data: (products) {
-                // Find ai_premium_base or ai_premium_1m
-                final p = products
-                    .where((p) =>
-                        p.productCode.contains('premium_base') ||
-                        p.productCode.contains('premium'))
-                    .firstOrNull;
-                if (p == null) {
-                  return Text('Mağazada uygun paket bulunamadı.',
-                      style: TextStyle(color: context.colors.error));
-                }
-
-                return SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: context.colors.primaryContainer,
-                      foregroundColor: context.colors.background,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                    ),
-                    onPressed: _isPurchasing ? null : () => _buyProduct(p),
-                    child: _isPurchasing
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : Text('Satın Al (${p.price} K-Coin)',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                );
-              },
-              loading: () => const CircularProgressIndicator(),
-              error: (e, st) => Text('Paketler yüklenemedi.',
-                  style: TextStyle(color: context.colors.error)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class MatchSummaryCard extends StatelessWidget {
-  final int completedCount;
-  final int totalCount;
-  final double progress;
-
-  const MatchSummaryCard({
-    super.key,
-    required this.completedCount,
-    required this.totalCount,
-    required this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color:
-                context.colors.surfaceContainerHighest.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                children: [
-                  Container(
-                      width: 56,
-                      height: 56,
-                      color: Colors.grey[200]), // Placeholder for team logo
-                  const SizedBox(height: 8),
-                  Text('LIVERPOOL',
-                      style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.textHigh)),
-                ],
-              ),
-              Column(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFD8863),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Text('LIVE',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1)),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('2 - 1',
-                      style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          color: context.colors.textHigh)),
-                  const SizedBox(height: 4),
-                  Text("74' MINS",
-                      style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.textMedium,
-                          letterSpacing: 0.5)),
-                ],
-              ),
-              Column(
-                children: [
-                  Container(
-                      width: 56,
-                      height: 56,
-                      color: Colors.grey[200]), // Placeholder for team logo
-                  const SizedBox(height: 8),
-                  Text('R. MADRID',
-                      style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.textHigh)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Divider(color: context.colors.surfaceContainerHigh),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('AI generated 10 key insights for this match',
-                  style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      color: context.colors.textMedium,
-                      fontWeight: FontWeight.w500)),
-              Text('$completedCount / $totalCount COMPLETED',
-                  style: TextStyle(
-                      fontFamily: 'Lexend',
-                      fontSize: 10,
-                      color: context.colors.primary,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: context.colors.surfaceContainer,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                  context.colors.primaryContainer),
-              minHeight: 6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class InsightCard extends StatefulWidget {
-  final MatchInsight insight;
-  final Function(UserVoteType) onVoteChanged;
-
-  const InsightCard({
-    super.key,
-    required this.insight,
-    required this.onVoteChanged,
-  });
-
-  @override
-  State<InsightCard> createState() => _InsightCardState();
-}
-
-class _InsightCardState extends State<InsightCard>
-    with SingleTickerProviderStateMixin {
-  bool get _isAnswered => widget.insight.isAnswered;
-  bool get _isDisagree => widget.insight.userVote == UserVoteType.disagree;
-
-  final List<String> _quickReasons = [
-    'Stats misleading',
-    'Form not relevant',
-    'Key players missing',
-    'Tactical mismatch',
-  ];
-
-  void _handleVote(UserVoteType vote) {
-    widget.onVoteChanged(vote);
-  }
-
-  void _selectReason(String reason) {
-    setState(() {
-      widget.insight.disagreeReason = reason;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _isDisagree
-              ? context.colors.error.withValues(alpha: 0.3)
-              : context.colors.surfaceContainerHighest.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: context.colors.primaryContainer
-                          .withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text('AI INSIGHT',
-                        style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                            color: context.colors.primary)),
-                  ),
-                  if (widget.insight.consensusData?.fanLabel != null) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: context.colors.secondaryContainer
-                            .withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.local_fire_department,
-                              size: 10, color: context.colors.secondary),
-                          const SizedBox(width: 4),
-                          Text(
-                              widget.insight.consensusData!.fanLabel!
-                                  .toUpperCase(),
-                              style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: context.colors.secondary)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              if (!_isAnswered)
-                Icon(Icons.share, size: 16, color: context.colors.textMedium),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(widget.insight.text,
-              style: TextStyle(
-                  fontFamily: 'Lexend',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: context.colors.textHigh,
-                  height: 1.4)),
-          const SizedBox(height: 16),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            child: _isAnswered ? _buildAnsweredState() : _buildActionRow(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionRow() {
-    return Row(
-      children: [
-        Expanded(
-            child: _VoteButton(
-                icon: Icons.thumb_up,
-                label: 'Agree',
-                onTap: () => _handleVote(UserVoteType.agree))),
-        const SizedBox(width: 8),
-        Expanded(
-            child: _VoteButton(
-                icon: Icons.question_mark,
-                label: 'Not sure',
-                onTap: () => _handleVote(UserVoteType.unsure))),
-        const SizedBox(width: 8),
-        Expanded(
-            child: _VoteButton(
-                icon: Icons.thumb_down,
-                label: 'Disagree',
-                onTap: () => _handleVote(UserVoteType.disagree))),
-      ],
-    );
-  }
-
-  Widget _buildAnsweredState() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.insight.consensusData != null) ...[
-          Container(
-            height: 32,
-            decoration: BoxDecoration(
-              color: context.colors.surfaceContainer,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Stack(
+        child: productsAsync.when(
+          data: (products) {
+            StoreProduct? product;
+            for (final item in products) {
+              if (item.productCode.contains('premium_base') ||
+                  item.productCode.contains('premium')) {
+                product = item;
+                break;
+              }
+            }
+            final selectedProduct = product;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                FractionallySizedBox(
-                  widthFactor: widget.insight.consensusData!.agreePercent / 100,
-                  child: Container(
-                    decoration: BoxDecoration(
-                        color: context.colors.primaryContainer,
-                        borderRadius: BorderRadius.circular(16)),
+                Icon(Icons.workspace_premium,
+                    size: 54, color: context.colors.primary),
+                const SizedBox(height: 12),
+                Text(
+                  'Premium Analiz',
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textHigh,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.check_circle,
-                              size: 12,
-                              color: context.colors.onPrimaryContainer),
-                          const SizedBox(width: 4),
-                          Text(
-                              '${widget.insight.consensusData!.agreePercent}% AGREE',
-                              style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: context.colors.onPrimaryContainer)),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                              '${widget.insight.consensusData!.unsurePercent}% Unsure',
-                              style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 10,
-                                  color: context.colors.textMedium)),
-                          const SizedBox(width: 12),
-                          Text(
-                              '${widget.insight.consensusData!.disagreePercent}% Disagree',
-                              style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 10,
-                                  color: context.colors.textMedium)),
-                        ],
-                      ),
-                    ],
+                const SizedBox(height: 8),
+                Text(
+                  'Market sinyalleri ve canli izleme planini ac.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: context.colors.textMedium),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: selectedProduct == null || _isPurchasing
+                        ? null
+                        : () => _buyProduct(selectedProduct),
+                    child: Text(
+                      selectedProduct == null
+                          ? 'Paket bulunamadi'
+                          : _isPurchasing
+                              ? 'Isleniyor...'
+                              : 'Ac (${selectedProduct.price} K-Coin)',
+                    ),
                   ),
                 ),
               ],
-            ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => Text(
+            'Paketler yuklenemedi.',
+            style: TextStyle(color: context.colors.error),
           ),
-        ],
-        if (_isDisagree)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            child: Container(
-              margin: const EdgeInsets.only(top: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: context.colors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: context.colors.surfaceContainerHigh),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('WHY DO YOU DISAGREE?',
-                      style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.textMedium,
-                          letterSpacing: 1)),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _quickReasons.map((r) {
-                      final isSelected = widget.insight.disagreeReason == r;
-                      return GestureDetector(
-                        onTap: () => _selectReason(r),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? context.colors.errorContainer
-                                : context.colors.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: isSelected
-                                    ? context.colors.error
-                                        .withValues(alpha: 0.3)
-                                    : context.colors.outline
-                                        .withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            r,
-                            style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isSelected
-                                    ? context.colors.onErrorContainer
-                                    : context.colors.textHigh),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 36,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: context.colors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(8),
-                      border:
-                          Border.all(color: context.colors.surfaceContainer),
-                    ),
-                    child: TextField(
-                      style: const TextStyle(fontSize: 12),
-                      decoration: InputDecoration(
-                        hintText: 'Add your own...',
-                        hintStyle: TextStyle(
-                            fontSize: 12, color: context.colors.textLow),
-                        border: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: GestureDetector(
-            onTap: () => _handleVote(UserVoteType.none),
-            child: Text('CHANGE VOTE',
-                style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.primary,
-                    decoration: TextDecoration.underline)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _VoteButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _VoteButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: context.colors.surfaceContainer,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 14, color: context.colors.textHigh),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.textHigh)),
-          ],
         ),
       ),
     );
