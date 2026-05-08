@@ -44,8 +44,9 @@ class AppThemePreferences {
     }
 
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return AppThemeDefinition.fromJson(decoded);
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return null;
+      return AppThemeDefinition.fromJson(Map<String, dynamic>.from(decoded));
     } catch (_) {
       return null;
     }

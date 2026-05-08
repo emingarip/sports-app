@@ -15,9 +15,9 @@ class ThemeService {
         .eq('status', 'published')
         .order('name', ascending: true);
 
-    return (response as List)
+    return _asMapList(response)
         .map((json) => AppThemeDefinition.fromJson(
-              Map<String, dynamic>.from(json as Map),
+              json,
             ))
         .toList();
   }
@@ -35,9 +35,7 @@ class ThemeService {
       return null;
     }
 
-    return AppThemeDefinition.fromJson(
-      Map<String, dynamic>.from(response as Map),
-    );
+    return AppThemeDefinition.fromJson(_asStringMap(response));
   }
 
   Future<Map<String, dynamic>> setActiveTheme(String themeCode) async {
@@ -57,5 +55,16 @@ class ThemeService {
     }
 
     return <String, dynamic>{'success': false};
+  }
+
+  List<Map<String, dynamic>> _asMapList(Object? value) {
+    if (value is! Iterable) return <Map<String, dynamic>>[];
+    return value.whereType<Map>().map(Map<String, dynamic>.from).toList();
+  }
+
+  Map<String, dynamic> _asStringMap(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return <String, dynamic>{};
   }
 }

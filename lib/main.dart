@@ -94,7 +94,10 @@ final class _ProviderErrorLogger extends ProviderObserver {
     Object error,
     StackTrace stackTrace,
   ) {
-    debugPrint('Provider failed: ${context.provider} -> $error');
+    debugPrint(
+      'Provider failed: name=${context.provider.name} '
+      'provider=${context.provider} -> $error',
+    );
     debugPrintStack(stackTrace: stackTrace);
   }
 }

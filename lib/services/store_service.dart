@@ -17,9 +17,7 @@ class StoreService {
         .eq('is_active', true)
         .order('price', ascending: true);
 
-    return (response as List)
-        .map((json) => StoreProduct.fromJson(json))
-        .toList();
+    return _asMapList(response).map(StoreProduct.fromJson).toList();
   }
 
   Future<List<UserEntitlement>> getMyEntitlements() async {
@@ -35,9 +33,7 @@ class StoreService {
         .eq('is_active', true)
         .or('expires_at.is.null,expires_at.gte.now()');
 
-    return (response as List)
-        .map((json) => UserEntitlement.fromJson(json))
-        .toList();
+    return _asMapList(response).map(UserEntitlement.fromJson).toList();
   }
 
   Future<StorePurchaseResult> buyStoreItem(String productCode) async {
@@ -56,7 +52,7 @@ class StoreService {
         },
       );
 
-      final data = Map<String, dynamic>.from(response.data as Map);
+      final data = _asStringMap(response.data);
       final result = StorePurchaseResult.fromJson(data);
       if (!result.success) {
         throw Exception('Satin alma basarisiz oldu.');
@@ -66,7 +62,7 @@ class StoreService {
     } on FunctionException catch (e) {
       final details = e.details;
       if (details is Map && details['error'] is String) {
-        throw Exception(details['error'] as String);
+        throw Exception(details['error'].toString());
       }
 
       final reason = e.reasonPhrase;
@@ -83,5 +79,16 @@ class StoreService {
       }
       throw Exception('Satin alma basarisiz oldu: $e');
     }
+  }
+
+  List<Map<String, dynamic>> _asMapList(Object? value) {
+    if (value is! Iterable) return <Map<String, dynamic>>[];
+    return value.whereType<Map>().map(Map<String, dynamic>.from).toList();
+  }
+
+  Map<String, dynamic> _asStringMap(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return <String, dynamic>{};
   }
 }
