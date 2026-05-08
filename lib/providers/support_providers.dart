@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/repositories/support/support_repository.dart';
 
-final supportRepositoryProvider = Provider<SupportRepository>((ref) {
-  return SupportRepository();
-});
+final supportRepositoryProvider = Provider<SupportRepository>(
+  (ref) {
+    return SupportRepository();
+  },
+  name: 'supportRepositoryProvider',
+);
 
 class SupportButtonVisibilityNotifier extends Notifier<bool> {
   @override
@@ -14,4 +17,8 @@ class SupportButtonVisibilityNotifier extends Notifier<bool> {
   }
 }
 
-final supportButtonVisibilityProvider = NotifierProvider<SupportButtonVisibilityNotifier, bool>(SupportButtonVisibilityNotifier.new);
+final supportButtonVisibilityProvider =
+    NotifierProvider<SupportButtonVisibilityNotifier, bool>(
+  SupportButtonVisibilityNotifier.new,
+  name: 'supportButtonVisibilityProvider',
+);

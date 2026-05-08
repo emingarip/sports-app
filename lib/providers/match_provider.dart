@@ -11,9 +11,12 @@ import '../models/match.dart' as model;
 import '../models/match_list_view_model.dart';
 import 'favorites_provider.dart';
 
-final matchRepositoryProvider = Provider<MatchRepository>((ref) {
-  return AiSportAgentMatchProvider();
-});
+final matchRepositoryProvider = Provider<MatchRepository>(
+  (ref) {
+    return AiSportAgentMatchProvider();
+  },
+  name: 'matchRepositoryProvider',
+);
 
 enum StatusFilter { all, live, finished }
 
@@ -194,9 +197,12 @@ class MatchNotifier extends Notifier<MatchState> with WidgetsBindingObserver {
   }
 }
 
-final matchStateProvider = NotifierProvider<MatchNotifier, MatchState>(() {
-  return MatchNotifier();
-});
+final matchStateProvider = NotifierProvider<MatchNotifier, MatchState>(
+  () {
+    return MatchNotifier();
+  },
+  name: 'matchStateProvider',
+);
 
 bool _isSameCalendarDay(DateTime a, DateTime b) {
   final left = a.toLocal();
@@ -612,7 +618,7 @@ final baseFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
 
     return true;
   }).toList();
-});
+}, name: 'baseFilteredMatchesProvider');
 
 final inlineSearchResultsProvider =
     Provider<List<SearchMatchResultViewModel>>((ref) {
@@ -628,7 +634,7 @@ final inlineSearchResultsProvider =
     matches: ref.watch(baseFilteredMatchesProvider),
     query: query,
   );
-});
+}, name: 'inlineSearchResultsProvider');
 
 final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
   final query = ref.watch(
@@ -643,13 +649,13 @@ final filteredMatchesProvider = Provider<List<model.Match>>((ref) {
       .watch(inlineSearchResultsProvider)
       .map((result) => result.match)
       .toList();
-});
+}, name: 'filteredMatchesProvider');
 
 final sortedFilteredMatchesProvider = Provider<List<model.Match>>((ref) {
   final matches = [...ref.watch(filteredMatchesProvider)];
   matches.sort(compareMatches);
   return matches;
-});
+}, name: 'sortedFilteredMatchesProvider');
 
 final matchListItemsProvider = Provider<List<MatchListItemViewModel>>((ref) {
   final favorites = ref.watch(favoritesProvider);
@@ -675,7 +681,7 @@ final matchListItemsProvider = Provider<List<MatchListItemViewModel>>((ref) {
     items.sort(compareMatchListItems);
   }
   return items;
-});
+}, name: 'matchListItemsProvider');
 
 MatchListItemViewModel _ensureFeaturedReason(MatchListItemViewModel item) {
   if (item.reasonLabel != null) return item;
@@ -693,14 +699,14 @@ final featuredMatchItemsProvider =
       .toList();
   final source = activeItems.isNotEmpty ? activeItems : items;
   return source.take(3).map(_ensureFeaturedReason).toList();
-});
+}, name: 'featuredMatchItemsProvider');
 
 final featuredMatchIdsProvider = Provider<Set<String>>((ref) {
   return ref
       .watch(featuredMatchItemsProvider)
       .map((item) => item.match.id)
       .toSet();
-});
+}, name: 'featuredMatchIdsProvider');
 
 final remainingMatchItemsProvider =
     Provider<List<MatchListItemViewModel>>((ref) {
@@ -709,7 +715,7 @@ final remainingMatchItemsProvider =
       .watch(matchListItemsProvider)
       .where((item) => !featuredIds.contains(item.match.id))
       .toList();
-});
+}, name: 'remainingMatchItemsProvider');
 
 final liveNowSectionProvider = Provider<MatchSectionViewModel?>((ref) {
   final items = ref
@@ -718,7 +724,7 @@ final liveNowSectionProvider = Provider<MatchSectionViewModel?>((ref) {
       .toList();
   if (items.isEmpty) return null;
   return MatchSectionViewModel(title: 'Canli Simdi', items: items);
-});
+}, name: 'liveNowSectionProvider');
 
 final startingSoonSectionProvider = Provider<MatchSectionViewModel?>((ref) {
   final now = DateTime.now();
@@ -728,7 +734,7 @@ final startingSoonSectionProvider = Provider<MatchSectionViewModel?>((ref) {
       .toList();
   if (items.isEmpty) return null;
   return MatchSectionViewModel(title: 'Yakinda Basliyor', items: items);
-});
+}, name: 'startingSoonSectionProvider');
 
 final otherMatchesSectionProvider = Provider<MatchSectionViewModel?>((ref) {
   final now = DateTime.now();
@@ -742,7 +748,7 @@ final otherMatchesSectionProvider = Provider<MatchSectionViewModel?>((ref) {
     items: items,
     groupedByLeague: true,
   );
-});
+}, name: 'otherMatchesSectionProvider');
 
 final leagueMatchSectionsProvider = Provider<List<LeagueMatchSection>>((ref) {
   final otherSection = ref.watch(otherMatchesSectionProvider);
@@ -785,4 +791,4 @@ final leagueMatchSectionsProvider = Provider<List<LeagueMatchSection>>((ref) {
   });
 
   return sections;
-});
+}, name: 'leagueMatchSectionsProvider');

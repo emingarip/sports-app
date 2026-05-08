@@ -17,7 +17,9 @@ class AnnouncementState {
 
   // Derived getter: Only announcements that are active AND not dismissed
   List<Announcement> get visibleAnnouncements {
-    return activeAnnouncements.where((a) => !dismissedIds.contains(a.id)).toList();
+    return activeAnnouncements
+        .where((a) => !dismissedIds.contains(a.id))
+        .toList();
   }
 
   AnnouncementState copyWith({
@@ -44,14 +46,15 @@ class AnnouncementNotifier extends Notifier<AnnouncementState> {
     });
     // Can't await directly in build returning synchronous state, we'll kick it off.
     Future.microtask(_init);
-    return AnnouncementState(activeAnnouncements: [], dismissedIds: [], isLoading: true);
+    return AnnouncementState(
+        activeAnnouncements: [], dismissedIds: [], isLoading: true);
   }
 
   Future<void> _init() async {
     // 1. Load dismissed IDs from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final dismissed = prefs.getStringList(_prefsKey) ?? [];
-    
+
     state = state.copyWith(dismissedIds: dismissed);
 
     // 2. Fetch initial active announcements
@@ -69,11 +72,11 @@ class AnnouncementNotifier extends Notifier<AnnouncementState> {
           .eq('is_active', true)
           .order('created_at', ascending: false);
 
-      final announcements = (response as List<dynamic>)
-          .map((data) => Announcement.fromJson(data))
-          .toList();
+      final announcements =
+          _asMapList(response).map(Announcement.fromJson).toList();
 
-      state = state.copyWith(activeAnnouncements: announcements, isLoading: false);
+      state =
+          state.copyWith(activeAnnouncements: announcements, isLoading: false);
     } catch (e) {
       print('Error fetching announcements: $e');
       state = state.copyWith(isLoading: false);
@@ -81,15 +84,18 @@ class AnnouncementNotifier extends Notifier<AnnouncementState> {
   }
 
   void _setupRealtimeSubscription() {
-    _announcementSubscription = Supabase.instance.client.channel('public:global_announcements').onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'global_announcements',
-      callback: (payload) {
-        // Safe check for realtime event payloads
-        _fetchActiveAnnouncements(); // Re-fetch on any change to keep logic simple
-      },
-    ).subscribe();
+    _announcementSubscription = Supabase.instance.client
+        .channel('public:global_announcements')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'global_announcements',
+          callback: (payload) {
+            // Safe check for realtime event payloads
+            _fetchActiveAnnouncements(); // Re-fetch on any change to keep logic simple
+          },
+        )
+        .subscribe();
   }
 
   Future<void> dismissAnnouncement(String id) async {
@@ -103,5 +109,13 @@ class AnnouncementNotifier extends Notifier<AnnouncementState> {
   }
 }
 
-final announcementProvider = NotifierProvider<AnnouncementNotifier, AnnouncementState>(AnnouncementNotifier.new);
+final announcementProvider =
+    NotifierProvider<AnnouncementNotifier, AnnouncementState>(
+  AnnouncementNotifier.new,
+  name: 'announcementProvider',
+);
 
+List<Map<String, dynamic>> _asMapList(Object? value) {
+  if (value is! Iterable) return <Map<String, dynamic>>[];
+  return value.whereType<Map>().map(Map<String, dynamic>.from).toList();
+}
