@@ -57,6 +57,27 @@ void main() {
       });
     });
 
+    testWidgets('renders halftime match without stale minute',
+        (WidgetTester tester) async {
+      await mockNetworkImagesFor(() async {
+        final match = createTestMatch(
+          status: model.MatchStatus.live,
+          homeScore: '0',
+          awayScore: '1',
+          liveMinute: '6',
+          statusDescription: 'Halftime',
+        );
+
+        await tester.pumpWidget(buildTestableWidget(
+          MatchCard(match: match, hasBorder: false),
+        ));
+
+        expect(find.text('LIVE'), findsOneWidget);
+        expect(find.text('Devre arasi'), findsOneWidget);
+        expect(find.text('6'), findsNothing);
+      });
+    });
+
     testWidgets('renders finished match correctly',
         (WidgetTester tester) async {
       await mockNetworkImagesFor(() async {

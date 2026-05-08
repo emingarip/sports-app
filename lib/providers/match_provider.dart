@@ -309,6 +309,7 @@ String _formatMatchTime(DateTime time) {
 String buildMatchStatusLabel(model.Match match) {
   switch (match.status) {
     case model.MatchStatus.live:
+      if (_isHalftimeStatus(match.statusDescription)) return 'Devre arasi';
       final minute = parseLiveMinute(match.liveMinute);
       if (minute != null) return '$minute. dk';
       return match.liveMinute ?? 'CANLI';
@@ -321,6 +322,16 @@ String buildMatchStatusLabel(model.Match match) {
     case model.MatchStatus.finished:
       return 'Tamamlandi';
   }
+}
+
+bool _isHalftimeStatus(String? statusDescription) {
+  final normalized = statusDescription?.trim().toLowerCase();
+  if (normalized == null || normalized.isEmpty) return false;
+  return normalized == 'halftime' ||
+      normalized == 'half time' ||
+      normalized == 'half-time' ||
+      normalized.contains('halftime') ||
+      normalized.contains('half time');
 }
 
 String? buildMatchReasonLabel(

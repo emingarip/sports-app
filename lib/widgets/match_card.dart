@@ -32,9 +32,8 @@ class MatchCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLive = match.status == model.MatchStatus.live;
-    final isUnplayedTerminal =
-        match.status == model.MatchStatus.postponed ||
-            match.status == model.MatchStatus.cancelled;
+    final isUnplayedTerminal = match.status == model.MatchStatus.postponed ||
+        match.status == model.MatchStatus.cancelled;
     final isFavorite = ref.watch(favoritesProvider).contains(match.id);
     final effectiveStatusLabel = statusLabel ?? _defaultStatusLabel(match);
     final normalizedHighlightQuery = highlightQuery?.trim() ?? '';
@@ -384,11 +383,24 @@ class MatchCard extends ConsumerWidget {
 
   String _defaultStatusLabel(model.Match match) {
     final isLive = match.status == model.MatchStatus.live;
+    if (isLive && _isHalftimeStatus(match.statusDescription)) {
+      return 'Devre arasi';
+    }
     if (isLive) return match.liveMinute ?? 'LIVE';
     if (match.status == model.MatchStatus.finished) return 'Full Time';
     if (match.status == model.MatchStatus.postponed) return 'Ertelendi';
     if (match.status == model.MatchStatus.cancelled) return 'Iptal';
     return _formatTime(match.startTime);
+  }
+
+  bool _isHalftimeStatus(String? statusDescription) {
+    final normalized = statusDescription?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) return false;
+    return normalized == 'halftime' ||
+        normalized == 'half time' ||
+        normalized == 'half-time' ||
+        normalized.contains('halftime') ||
+        normalized.contains('half time');
   }
 
   String _formatTime(DateTime time) {

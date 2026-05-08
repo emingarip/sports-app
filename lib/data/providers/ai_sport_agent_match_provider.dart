@@ -233,6 +233,9 @@ class AiSportAgentMatchProvider implements MatchRepository {
           current.awayScore,
       liveMinute: _scoreFromPayload(data, 'current_minute', 'currentMinute') ??
           current.liveMinute,
+      statusDescription:
+          _scoreFromPayload(data, 'status_description', 'statusDescription') ??
+              current.statusDescription,
       isFeatured: current.isFeatured,
       isFavorite: current.isFavorite,
     );
@@ -290,6 +293,8 @@ class AiSportAgentMatchProvider implements MatchRepository {
       homeScore: _scoreFromPayload(data, 'home_score', 'homeScore'),
       awayScore: _scoreFromPayload(data, 'away_score', 'awayScore'),
       liveMinute: _scoreFromPayload(data, 'current_minute', 'currentMinute'),
+      statusDescription:
+          _scoreFromPayload(data, 'status_description', 'statusDescription'),
     );
   }
 

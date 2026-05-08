@@ -153,6 +153,16 @@ void main() {
       );
     });
 
+    test('buildMatchStatusLabel shows halftime instead of break minute', () {
+      final match = createTestMatch(
+        status: MatchStatus.live,
+        liveMinute: '6',
+        statusDescription: 'Halftime',
+      );
+
+      expect(buildMatchStatusLabel(match), 'Devre arasi');
+    });
+
     test('providers split featured, live, soon and grouped other sections',
         () async {
       final now = DateTime.now();
@@ -224,8 +234,8 @@ void main() {
       final container = buildContainer(favorites: const {'fav-live'});
       addTearDown(container.dispose);
 
-      final subscription =
-          container.listen(matchStateProvider, (_, __) {}, fireImmediately: true);
+      final subscription = container.listen(matchStateProvider, (_, __) {},
+          fireImmediately: true);
       addTearDown(subscription.close);
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
@@ -351,8 +361,8 @@ void main() {
       final container = buildContainer();
       addTearDown(container.dispose);
 
-      final subscription =
-          container.listen(matchStateProvider, (_, __) {}, fireImmediately: true);
+      final subscription = container.listen(matchStateProvider, (_, __) {},
+          fireImmediately: true);
       addTearDown(subscription.close);
       await Future<void>.delayed(const Duration(milliseconds: 10));
 

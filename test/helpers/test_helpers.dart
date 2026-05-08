@@ -16,6 +16,7 @@ Match createTestMatch({
   String? homeScore = '2',
   String? awayScore = '1',
   String? liveMinute = "45'",
+  String? statusDescription,
   bool isFeatured = false,
   bool isFavorite = false,
 }) {
@@ -33,6 +34,7 @@ Match createTestMatch({
     homeScore: homeScore,
     awayScore: awayScore,
     liveMinute: liveMinute,
+    statusDescription: statusDescription,
     isFeatured: isFeatured,
     isFavorite: isFavorite,
   );

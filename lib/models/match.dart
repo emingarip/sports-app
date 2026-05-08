@@ -14,6 +14,7 @@ class Match {
   final String? homeScore;
   final String? awayScore;
   final String? liveMinute;
+  final String? statusDescription;
   final bool isFeatured;
   final bool isFavorite;
 
@@ -31,6 +32,7 @@ class Match {
     this.homeScore,
     this.awayScore,
     this.liveMinute,
+    this.statusDescription,
     this.isFeatured = false,
     this.isFavorite = false,
   });

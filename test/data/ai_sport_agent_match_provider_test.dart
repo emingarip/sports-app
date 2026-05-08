@@ -97,6 +97,7 @@ void main() {
     "home_score": 1,
     "away_score": 0,
     "current_minute": 64,
+    "status_description": "1st half",
     "league": null,
     "home_team": {"name": "Home"},
     "away_team": {"name": "Away"},
@@ -129,9 +130,47 @@ void main() {
       expect(matches[0].homeScore, '1');
       expect(matches[0].awayScore, '0');
       expect(matches[0].liveMinute, '64');
+      expect(matches[0].statusDescription, '1st half');
       expect(matches[1].homeScore, '2');
       expect(matches[1].awayScore, '1');
       expect(matches[1].liveMinute, isNull);
+    });
+
+    test('maps halftime status description without a live minute', () async {
+      final provider = AiSportAgentMatchProvider(
+        baseUrl: 'http://agent.test/api/v1',
+        enableRealtime: false,
+        client: MockClient((request) async {
+          return http.Response(
+            '''
+[
+  {
+    "id": "halftime-match",
+    "kickoff_at": "2026-05-08T08:30:00Z",
+    "status": "live",
+    "home_score": 0,
+    "away_score": 1,
+    "current_minute": null,
+    "status_description": "Halftime",
+    "league": null,
+    "home_team": {"name": "Semen Padang FC"},
+    "away_team": {"name": "Persik Kediri"},
+    "source_confidence": 1.0
+  }
+]
+''',
+            200,
+          );
+        }),
+      );
+
+      final match = (await provider.getMatches()).single;
+
+      expect(match.status, MatchStatus.live);
+      expect(match.homeScore, '0');
+      expect(match.awayScore, '1');
+      expect(match.liveMinute, isNull);
+      expect(match.statusDescription, 'Halftime');
     });
 
     test('maps postponed and cancelled statuses', () async {
