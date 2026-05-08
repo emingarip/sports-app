@@ -13,7 +13,7 @@ class PredictionService {
         .eq('match_id', matchId)
         .eq('status', 'open');
 
-    return List<Map<String, dynamic>>.from(response);
+    return _asMapList(response);
   }
 
   // Get all active predictions globally with match details
@@ -25,7 +25,7 @@ class PredictionService {
         .eq('status', 'open')
         .order('created_at', ascending: false);
 
-    return List<Map<String, dynamic>>.from(response);
+    return _asMapList(response);
   }
 
   // Place a bet securely via RPC
@@ -63,9 +63,9 @@ class PredictionService {
           )
         ''').eq('user_id', user.id).order('created_at', ascending: false);
 
-    return (response as List).map((json) {
-      final prediction = json['predictions'];
-      final match = prediction['matches'];
+    return _asMapList(response).map((json) {
+      final prediction = _asStringMap(json['predictions']);
+      final match = _asStringMap(prediction['matches']);
       return {
         'id': json['id'],
         'match': '${match['home_team']} vs ${match['away_team']}',
@@ -75,5 +75,16 @@ class PredictionService {
         'status': json['status'],
       };
     }).toList();
+  }
+
+  List<Map<String, dynamic>> _asMapList(Object? value) {
+    if (value is! Iterable) return <Map<String, dynamic>>[];
+    return value.whereType<Map>().map(Map<String, dynamic>.from).toList();
+  }
+
+  Map<String, dynamic> _asStringMap(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return <String, dynamic>{};
   }
 }

@@ -21,12 +21,12 @@ class LeaderboardUser {
 
   factory LeaderboardUser.fromJson(Map<String, dynamic> json) {
     return LeaderboardUser(
-      id: json['id'] as String,
-      username: json['username'] as String,
-      avatarUrl: json['avatar_url'] as String?,
-      kCoinBalance: json['k_coin_balance'] as int? ?? 0,
-      reputationScore: json['reputation_score'] as int? ?? 0,
-      activeFrame: json['active_frame'] as String?,
+      id: json['id']?.toString() ?? '',
+      username: json['username']?.toString() ?? 'Kullanici',
+      avatarUrl: _stringOrNull(json['avatar_url']),
+      kCoinBalance: _asInt(json['k_coin_balance']),
+      reputationScore: _asInt(json['reputation_score']),
+      activeFrame: _stringOrNull(json['active_frame']),
     );
   }
 }
@@ -42,13 +42,12 @@ class LeaderboardNotifier extends AsyncNotifier<List<LeaderboardUser>> {
   Future<List<LeaderboardUser>> _fetchLeaderboard() async {
     final response = await _client
         .from('users')
-        .select('id, username, avatar_url, k_coin_balance, reputation_score, active_frame')
+        .select(
+            'id, username, avatar_url, k_coin_balance, reputation_score, active_frame')
         .order('k_coin_balance', ascending: false)
         .limit(50);
 
-    final users = (response as List<dynamic>)
-        .map((data) => LeaderboardUser.fromJson(data as Map<String, dynamic>))
-        .toList();
+    final users = _asMapList(response).map(LeaderboardUser.fromJson).toList();
 
     return users;
   }
@@ -59,6 +58,27 @@ class LeaderboardNotifier extends AsyncNotifier<List<LeaderboardUser>> {
   }
 }
 
-final leaderboardProvider = AsyncNotifierProvider<LeaderboardNotifier, List<LeaderboardUser>>(() {
-  return LeaderboardNotifier();
-});
+final leaderboardProvider =
+    AsyncNotifierProvider<LeaderboardNotifier, List<LeaderboardUser>>(
+  () {
+    return LeaderboardNotifier();
+  },
+  name: 'leaderboardProvider',
+);
+
+List<Map<String, dynamic>> _asMapList(Object? value) {
+  if (value is! Iterable) return <Map<String, dynamic>>[];
+  return value.whereType<Map>().map(Map<String, dynamic>.from).toList();
+}
+
+String? _stringOrNull(Object? value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
+int _asInt(Object? value, [int fallback = 0]) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
