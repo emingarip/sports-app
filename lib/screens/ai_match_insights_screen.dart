@@ -837,6 +837,9 @@ class _QuickContextGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final quick = report.quickContext;
+    if (!quick.available) {
+      return const _QuickContextUnavailable();
+    }
     final tiles = [
       _QuickContextTileData(
         icon: Icons.timeline,
@@ -874,6 +877,41 @@ class _QuickContextGrid extends StatelessWidget {
         childAspectRatio: 2.35,
       ),
       itemBuilder: (context, index) => _QuickContextTile(data: tiles[index]),
+    );
+  }
+}
+
+class _QuickContextUnavailable extends StatelessWidget {
+  const _QuickContextUnavailable();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.manage_search, size: 18, color: context.colors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Form, lig ve H2H baglami bu mac icin henuz hazir degil.',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.25,
+                fontWeight: FontWeight.w700,
+                color: context.colors.textMedium,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
