@@ -16,6 +16,8 @@ import '../theme/app_theme.dart';
 
 const double _insightsShellMaxWidth = 600;
 
+enum _InsightsMode { wizard, deck }
+
 class AiMatchInsightsScreen extends ConsumerStatefulWidget {
   const AiMatchInsightsScreen({super.key});
 
@@ -27,6 +29,10 @@ class AiMatchInsightsScreen extends ConsumerStatefulWidget {
 class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
   String? _selectedMatchId;
   Future<WizardInsightReport>? _reportFuture;
+  _InsightsMode _mode = _InsightsMode.wizard;
+  int _deckIndex = 0;
+  final List<int> _deckHistory = [];
+  final Map<String, Future<WizardInsightReport>> _deckReportFutures = {};
 
   @override
   Widget build(BuildContext context) {
@@ -67,91 +73,173 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _insightsShellMaxWidth),
-            child: rankedItems.isEmpty
-                ? const _EmptyState()
-                : RefreshIndicator(
-                    onRefresh: () => _refreshSelected(),
-                    child: FutureBuilder<WizardInsightReport>(
-                      future: _reportFuture,
-                      builder: (context, snapshot) {
-                        return CustomScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(
-                            parent: BouncingScrollPhysics(),
-                          ),
-                          slivers: [
-                            SliverToBoxAdapter(
-                              child: _MatchSelector(
-                                items: rankedItems,
-                                selectedMatchId: _selectedMatchId,
-                                favorites: favorites,
-                                onSelected: _selectMatch,
-                              ),
-                            ),
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting)
-                              const SliverFillRemaining(
-                                hasScrollBody: false,
-                                child:
-                                    Center(child: CircularProgressIndicator()),
-                              )
-                            else if (snapshot.hasError)
-                              SliverFillRemaining(
-                                hasScrollBody: false,
-                                child: _ErrorState(onRetry: _refreshSelected),
-                              )
-                            else if (!snapshot.hasData)
-                              const SliverFillRemaining(
-                                hasScrollBody: false,
-                                child: _EmptyState(),
-                              )
-                            else ...[
-                              SliverToBoxAdapter(
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                                  child:
-                                      _DecisionHeader(report: snapshot.data!),
-                                ),
-                              ),
-                              SliverPadding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                sliver: SliverList(
-                                  delegate: SliverChildListDelegate(
-                                    [
-                                      ...snapshot.data!.cards.map(
-                                        (card) => Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 12),
-                                          child: _Lockable(
-                                            locked:
-                                                card.isPremium && !hasPremium,
-                                            onUnlock:
-                                                _showPremiumPurchaseBottomSheet,
-                                            child: _WizardCard(card: card),
-                                          ),
-                                        ),
-                                      ),
-                                      _MarketSection(
-                                        markets: snapshot.data!.markets,
-                                        hasPremium: hasPremium,
-                                        onUnlock:
-                                            _showPremiumPurchaseBottomSheet,
-                                      ),
-                                      const SizedBox(height: 120),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+            child: _buildContent(
+              rankedItems: rankedItems,
+              favorites: favorites,
+              hasPremium: hasPremium,
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildContent({
+    required List<MatchListItemViewModel> rankedItems,
+    required Set<String> favorites,
+    required bool hasPremium,
+  }) {
+    if (rankedItems.isEmpty) {
+      return const _EmptyState();
+    }
+    if (_deckIndex > rankedItems.length) {
+      _deckIndex = rankedItems.length - 1;
+    }
+    if (_mode == _InsightsMode.deck) {
+      return _buildDeckMode(rankedItems: rankedItems, favorites: favorites);
+    }
+    return RefreshIndicator(
+      onRefresh: () => _refreshSelected(),
+      child: FutureBuilder<WizardInsightReport>(
+        future: _reportFuture,
+        builder: (context, snapshot) {
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              SliverToBoxAdapter(
+                child: _ModeSwitcher(
+                  mode: _mode,
+                  onChanged: _setMode,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _MatchSelector(
+                  items: rankedItems,
+                  selectedMatchId: _selectedMatchId,
+                  favorites: favorites,
+                  onSelected: _selectMatch,
+                ),
+              ),
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (snapshot.hasError)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _ErrorState(onRetry: _refreshSelected),
+                )
+              else if (!snapshot.hasData)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _EmptyState(),
+                )
+              else ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: _DecisionHeader(report: snapshot.data!),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate(
+                      [
+                        ...snapshot.data!.cards.map(
+                          (card) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _Lockable(
+                              locked: card.isPremium && !hasPremium,
+                              onUnlock: _showPremiumPurchaseBottomSheet,
+                              child: _WizardCard(card: card),
+                            ),
+                          ),
+                        ),
+                        _MarketSection(
+                          markets: snapshot.data!.markets,
+                          hasPremium: hasPremium,
+                          onUnlock: _showPremiumPurchaseBottomSheet,
+                        ),
+                        const SizedBox(height: 120),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDeckMode({
+    required List<MatchListItemViewModel> rankedItems,
+    required Set<String> favorites,
+  }) {
+    final isFinished = _deckIndex >= rankedItems.length;
+    final item = isFinished ? null : rankedItems[_deckIndex];
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      slivers: [
+        SliverToBoxAdapter(
+          child: _ModeSwitcher(
+            mode: _mode,
+            onChanged: _setMode,
+          ),
+        ),
+        if (item == null)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _DeckFinished(
+              reviewedCount: rankedItems.length,
+              onRestart: _restartDeck,
+            ),
+          )
+        else
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: FutureBuilder<WizardInsightReport>(
+              future: _deckReportFuture(item.match.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return _DeckError(
+                    onRetry: () {
+                      setState(() {
+                        _deckReportFutures.remove(item.match.id);
+                      });
+                    },
+                    onSkip: _passDeckCard,
+                  );
+                }
+                return _SwipeDeck(
+                  key: ValueKey(item.match.id),
+                  item: item,
+                  report: snapshot.data!,
+                  isFavorite: favorites.contains(item.match.id),
+                  currentIndex: _deckIndex + 1,
+                  totalCount: rankedItems.length,
+                  canUndo: _deckHistory.isNotEmpty,
+                  onPass: _passDeckCard,
+                  onKeep: () {
+                    _keepDeckCard(item.match.id);
+                  },
+                  onDetails: () => _openDeckDetails(item.match),
+                  onUndo: _undoDeckCard,
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 
@@ -159,10 +247,63 @@ class _AiMatchInsightsScreenState extends ConsumerState<AiMatchInsightsScreen> {
     return ref.read(aiSportAgentWizardProvider).fetchReport(matchId);
   }
 
+  Future<WizardInsightReport> _deckReportFuture(String matchId) {
+    return _deckReportFutures.putIfAbsent(matchId, () => _loadReport(matchId));
+  }
+
+  void _setMode(_InsightsMode mode) {
+    if (_mode == mode) return;
+    setState(() {
+      _mode = mode;
+    });
+  }
+
   void _selectMatch(model.Match match) {
     setState(() {
+      _mode = _InsightsMode.wizard;
       _selectedMatchId = match.id;
       _reportFuture = _loadReport(match.id);
+    });
+  }
+
+  void _passDeckCard() {
+    setState(() {
+      _deckHistory.add(_deckIndex);
+      _deckIndex += 1;
+    });
+  }
+
+  Future<void> _keepDeckCard(String matchId) async {
+    final favorites = ref.read(favoritesProvider);
+    if (!favorites.contains(matchId)) {
+      await ref.read(favoritesProvider.notifier).toggleFavorite(matchId);
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Mac takibe alindi.'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(milliseconds: 900),
+      ),
+    );
+    _passDeckCard();
+  }
+
+  void _openDeckDetails(model.Match match) {
+    _selectMatch(match);
+  }
+
+  void _undoDeckCard() {
+    if (_deckHistory.isEmpty) return;
+    setState(() {
+      _deckIndex = _deckHistory.removeLast();
+    });
+  }
+
+  void _restartDeck() {
+    setState(() {
+      _deckIndex = 0;
+      _deckHistory.clear();
     });
   }
 
@@ -244,6 +385,655 @@ String _matchStatusText(WizardMatchSummary match) {
     default:
       final local = match.kickoffAt.toLocal();
       return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _ModeSwitcher extends StatelessWidget {
+  final _InsightsMode mode;
+  final ValueChanged<_InsightsMode> onChanged;
+
+  const _ModeSwitcher({
+    required this.mode,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: context.colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Row(
+          children: [
+            _ModeButton(
+              label: 'Sihirbaz',
+              icon: Icons.auto_awesome,
+              selected: mode == _InsightsMode.wizard,
+              onTap: () => onChanged(_InsightsMode.wizard),
+            ),
+            _ModeButton(
+              label: 'Hizli Tara',
+              icon: Icons.swipe,
+              selected: mode == _InsightsMode.deck,
+              onTap: () => onChanged(_InsightsMode.deck),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModeButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? context.colors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 17,
+                color: selected
+                    ? context.colors.background
+                    : context.colors.textMedium,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Lexend',
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: selected
+                      ? context.colors.background
+                      : context.colors.textMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwipeDeck extends StatefulWidget {
+  final MatchListItemViewModel item;
+  final WizardInsightReport report;
+  final bool isFavorite;
+  final int currentIndex;
+  final int totalCount;
+  final bool canUndo;
+  final VoidCallback onPass;
+  final VoidCallback onKeep;
+  final VoidCallback onDetails;
+  final VoidCallback onUndo;
+
+  const _SwipeDeck({
+    super.key,
+    required this.item,
+    required this.report,
+    required this.isFavorite,
+    required this.currentIndex,
+    required this.totalCount,
+    required this.canUndo,
+    required this.onPass,
+    required this.onKeep,
+    required this.onDetails,
+    required this.onUndo,
+  });
+
+  @override
+  State<_SwipeDeck> createState() => _SwipeDeckState();
+}
+
+class _SwipeDeckState extends State<_SwipeDeck> {
+  Offset _dragOffset = Offset.zero;
+
+  @override
+  Widget build(BuildContext context) {
+    final decisionColor = _decisionColor(context, widget.report.decision);
+    final rotation = (_dragOffset.dx / 620).clamp(-0.10, 0.10);
+    final passOpacity = (-_dragOffset.dx / 120).clamp(0.0, 1.0);
+    final keepOpacity = (_dragOffset.dx / 120).clamp(0.0, 1.0);
+    final detailOpacity = (-_dragOffset.dy / 120).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 118),
+      child: Column(
+        children: [
+          _DeckProgress(
+            currentIndex: widget.currentIndex,
+            totalCount: widget.totalCount,
+            canUndo: widget.canUndo,
+            onUndo: widget.onUndo,
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Center(
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  setState(() => _dragOffset += details.delta);
+                },
+                onPanEnd: (_) => _settleDrag(),
+                onTap: widget.onDetails,
+                child: Transform.translate(
+                  offset: _dragOffset,
+                  child: Transform.rotate(
+                    angle: rotation,
+                    child: Stack(
+                      children: [
+                        _DeckCard(
+                          item: widget.item,
+                          report: widget.report,
+                          isFavorite: widget.isFavorite,
+                          decisionColor: decisionColor,
+                        ),
+                        _SwipeStamp(
+                          label: 'GEC',
+                          color: context.colors.error,
+                          alignment: Alignment.topRight,
+                          opacity: passOpacity,
+                        ),
+                        _SwipeStamp(
+                          label: 'TAKIP',
+                          color: context.colors.success,
+                          alignment: Alignment.topLeft,
+                          opacity: keepOpacity,
+                        ),
+                        _SwipeStamp(
+                          label: 'DETAY',
+                          color: context.colors.primary,
+                          alignment: Alignment.topCenter,
+                          opacity: detailOpacity,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _DeckActionButton(
+                icon: Icons.close,
+                color: context.colors.error,
+                onPressed: widget.onPass,
+              ),
+              const SizedBox(width: 16),
+              _DeckActionButton(
+                icon: Icons.keyboard_arrow_up,
+                color: context.colors.primary,
+                large: true,
+                onPressed: widget.onDetails,
+              ),
+              const SizedBox(width: 16),
+              _DeckActionButton(
+                icon: Icons.star,
+                color: context.colors.success,
+                onPressed: widget.onKeep,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Sola gec, saga takibe al, yukari detayli analiz',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: context.colors.textMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _settleDrag() {
+    final offset = _dragOffset;
+    setState(() => _dragOffset = Offset.zero);
+    if (offset.dy < -110) {
+      widget.onDetails();
+      return;
+    }
+    if (offset.dx > 115) {
+      widget.onKeep();
+      return;
+    }
+    if (offset.dx < -115) {
+      widget.onPass();
+    }
+  }
+}
+
+class _DeckCard extends StatelessWidget {
+  final MatchListItemViewModel item;
+  final WizardInsightReport report;
+  final bool isFavorite;
+  final Color decisionColor;
+
+  const _DeckCard({
+    required this.item,
+    required this.report,
+    required this.isFavorite,
+    required this.decisionColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final match = item.match;
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 470),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: decisionColor.withValues(alpha: 0.35),
+          width: 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: context.colors.cardShadow.withValues(alpha: 0.18),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _Logo(url: match.homeLogo, size: 44),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${match.homeTeam} - ${match.awayTeam}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Lexend',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: context.colors.textHigh,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      match.leagueName ?? 'Futbol',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.textMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isFavorite)
+                Icon(Icons.star, color: context.colors.primary, size: 24),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              _DecisionPill(label: report.decision, color: decisionColor),
+              const Spacer(),
+              _Metric(label: 'Guven', value: '${report.confidence}'),
+              const SizedBox(width: 12),
+              _Metric(label: 'Risk', value: report.riskLevel.toUpperCase()),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            report.summary,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              height: 1.45,
+              color: context.colors.textMedium,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _HeaderChip(
+                icon: Icons.sports_soccer,
+                text: _matchScoreText(report.match),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _HeaderChip(
+                  icon: Icons.schedule,
+                  text: _matchStatusText(report.match),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: report.confidence.clamp(0, 100) / 100,
+              minHeight: 8,
+              backgroundColor: context.colors.surfaceContainerHigh,
+              valueColor: AlwaysStoppedAnimation<Color>(decisionColor),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (report.cards.isNotEmpty) _DeckReason(card: report.cards.first),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeckReason extends StatelessWidget {
+  final WizardCard card;
+
+  const _DeckReason({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.bolt, size: 18, color: context.colors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              card.text,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                color: context.colors.textMedium,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeckProgress extends StatelessWidget {
+  final int currentIndex;
+  final int totalCount;
+  final bool canUndo;
+  final VoidCallback onUndo;
+
+  const _DeckProgress({
+    required this.currentIndex,
+    required this.totalCount,
+    required this.canUndo,
+    required this.onUndo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hizli analiz',
+                style: TextStyle(
+                  fontFamily: 'Lexend',
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: context.colors.textHigh,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$currentIndex / $totalCount mac',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.colors.textMedium,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: canUndo ? onUndo : null,
+          icon: const Icon(Icons.undo),
+          tooltip: 'Geri al',
+        ),
+      ],
+    );
+  }
+}
+
+class _SwipeStamp extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Alignment alignment;
+  final double opacity;
+
+  const _SwipeStamp({
+    required this.label,
+    required this.color,
+    required this.alignment,
+    required this.opacity,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (opacity <= 0) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: Align(
+        alignment: alignment,
+        child: Opacity(
+          opacity: opacity,
+          child: Container(
+            margin: const EdgeInsets.all(22),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color, width: 2),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Lexend',
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final bool large;
+  final VoidCallback onPressed;
+
+  const _DeckActionButton({
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+    this.large = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = large ? 62.0 : 54.0;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+          backgroundColor: color.withValues(alpha: 0.14),
+          foregroundColor: color,
+        ),
+        onPressed: onPressed,
+        child: Icon(icon, size: large ? 30 : 24),
+      ),
+    );
+  }
+}
+
+class _DeckFinished extends StatelessWidget {
+  final int reviewedCount;
+  final VoidCallback onRestart;
+
+  const _DeckFinished({
+    required this.reviewedCount,
+    required this.onRestart,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 130),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.done_all, size: 58, color: context.colors.success),
+          const SizedBox(height: 18),
+          Text(
+            'Tarama tamamlandi',
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$reviewedCount mac hizli analizden gecti.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.colors.textMedium),
+          ),
+          const SizedBox(height: 22),
+          FilledButton.icon(
+            onPressed: onRestart,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Yeniden tara'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeckError extends StatelessWidget {
+  final VoidCallback onRetry;
+  final VoidCallback onSkip;
+
+  const _DeckError({
+    required this.onRetry,
+    required this.onSkip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 130),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 46, color: context.colors.error),
+          const SizedBox(height: 14),
+          Text(
+            'Kart yuklenemedi',
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontWeight: FontWeight.bold,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton(
+                onPressed: onSkip,
+                child: const Text('Gec'),
+              ),
+              const SizedBox(width: 10),
+              FilledButton(
+                onPressed: onRetry,
+                child: const Text('Tekrar dene'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Color _decisionColor(BuildContext context, String decision) {
+  switch (decision) {
+    case 'PASS':
+      return context.colors.error;
+    case 'CONSIDER':
+      return context.colors.success;
+    default:
+      return context.colors.primary;
   }
 }
 
