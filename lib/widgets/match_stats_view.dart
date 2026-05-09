@@ -1,50 +1,37 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/providers/ai_sport_agent_stats_provider.dart';
 import '../models/match.dart' as model;
+import '../models/match_stats.dart';
 import '../theme/app_theme.dart';
 
-class MatchStatData {
-  final String label;
-  final int homeValue;
-  final int awayValue;
-  final bool isPercentage;
-
-  MatchStatData({
-    required this.label,
-    required this.homeValue,
-    required this.awayValue,
-    this.isPercentage = false,
-  });
-
-  int get total => isPercentage ? 100 : homeValue + awayValue;
-  double get homePercentage => total == 0 ? 0 : homeValue / total;
-  double get awayPercentage => total == 0 ? 0 : awayValue / total;
-}
-
-class MatchStatsView extends StatefulWidget {
+class MatchStatsView extends ConsumerStatefulWidget {
   final model.Match match;
 
   const MatchStatsView({super.key, required this.match});
 
   @override
-  State<MatchStatsView> createState() => _MatchStatsViewState();
+  ConsumerState<MatchStatsView> createState() => _MatchStatsViewState();
 }
 
-class _MatchStatsViewState extends State<MatchStatsView> with SingleTickerProviderStateMixin {
-  late final List<MatchStatData> _stats;
+class _MatchStatsViewState extends ConsumerState<MatchStatsView>
+    with SingleTickerProviderStateMixin {
+  late Future<MatchStatsReport> _statsFuture;
   late AnimationController _animController;
   late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
-    _stats = _generateDeterministicStats(widget.match.id);
-
+    _statsFuture =
+        ref.read(aiSportAgentStatsProvider).fetchStats(widget.match.id);
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 900),
     );
-    _animation = CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic);
+    _animation =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic);
     _animController.forward();
   }
 
@@ -54,153 +41,349 @@ class _MatchStatsViewState extends State<MatchStatsView> with SingleTickerProvid
     super.dispose();
   }
 
-  List<MatchStatData> _generateDeterministicStats(String matchId) {
-    // We seed the random generator using the hashcode of the match ID.
-    // This ensures that the generated stats are permanently consistent for the same match.
-    final rand = Random(matchId.hashCode);
-
-    int homePossession = 35 + rand.nextInt(31); // 35% to 65%
-    int awayPossession = 100 - homePossession;
-
-    int homeTotalShots = rand.nextInt(20) + 5; // 5 to 24
-    int awayTotalShots = rand.nextInt(20) + 5;
-
-    int homeShotsOnTarget = (homeTotalShots * (0.3 + rand.nextDouble() * 0.4)).round();
-    int awayShotsOnTarget = (awayTotalShots * (0.3 + rand.nextDouble() * 0.4)).round();
-
-    int homeCorners = rand.nextInt(10) + 1; // 1 to 10
-    int awayCorners = rand.nextInt(10) + 1;
-
-    int homeFouls = rand.nextInt(15) + 5; // 5 to 19
-    int awayFouls = rand.nextInt(15) + 5;
-
-    int homeYellow = rand.nextInt(5); // 0 to 4
-    int awayYellow = rand.nextInt(5);
-
-    int homeRed = rand.nextDouble() > 0.85 ? 1 : 0; // 15% chance
-    int awayRed = rand.nextDouble() > 0.85 ? 1 : 0;
-
-    int homePasses = 300 + (homePossession * 5) + rand.nextInt(100);
-    int awayPasses = 300 + (awayPossession * 5) + rand.nextInt(100);
-
-    return [
-      MatchStatData(label: "Ball Possession", homeValue: homePossession, awayValue: awayPossession, isPercentage: true),
-      MatchStatData(label: "Expected Goals (xG)", homeValue: (homeShotsOnTarget * 0.15 * 100).round(), awayValue: (awayShotsOnTarget * 0.15 * 100).round()), // Represented conceptually without decimals internally, formatted in UI
-      MatchStatData(label: "Total Shots", homeValue: homeTotalShots, awayValue: awayTotalShots),
-      MatchStatData(label: "Shots on Target", homeValue: homeShotsOnTarget, awayValue: awayShotsOnTarget),
-      MatchStatData(label: "Total Passes", homeValue: homePasses, awayValue: awayPasses),
-      MatchStatData(label: "Corner Kicks", homeValue: homeCorners, awayValue: awayCorners),
-      MatchStatData(label: "Fouls", homeValue: homeFouls, awayValue: awayFouls),
-      MatchStatData(label: "Yellow Cards", homeValue: homeYellow, awayValue: awayYellow),
-      MatchStatData(label: "Red Cards", homeValue: homeRed, awayValue: awayRed),
-    ];
+  Future<void> _refresh() async {
+    final future =
+        ref.read(aiSportAgentStatsProvider).fetchStats(widget.match.id);
+    setState(() {
+      _statsFuture = future;
+    });
+    _animController
+      ..reset()
+      ..forward();
+    await future;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return ListView.builder(
-          padding: const EdgeInsets.only(top: 24, bottom: 40, left: 24, right: 24),
-          itemCount: _stats.length,
-          itemBuilder: (context, index) {
-            final stat = _stats[index];
-            final isXg = stat.label == "Expected Goals (xG)";
-
-            String homeStr = isXg ? (stat.homeValue / 100).toStringAsFixed(2) : (stat.isPercentage ? '${stat.homeValue}%' : '${stat.homeValue}');
-            String awayStr = isXg ? (stat.awayValue / 100).toStringAsFixed(2) : (stat.isPercentage ? '${stat.awayValue}%' : '${stat.awayValue}');
-
-            // For visuals, we need percentage out of the total.
-            // If total is 0 (e.g., Red Cards 0-0), fill neither.
-            double homeFlex = stat.total == 0 ? 0.0 : (stat.homeValue / stat.total);
-            double awayFlex = stat.total == 0 ? 0.0 : (stat.awayValue / stat.total);
-
-            // Apply animation scale
-            homeFlex *= _animation.value;
-            awayFlex *= _animation.value;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        homeStr,
-                        style: TextStyle(
-                          color: context.colors.textHigh,
-                          fontFamily: 'Lexend',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        stat.label.toUpperCase(),
-                        style: TextStyle(
-                          color: context.colors.textMedium,
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      Text(
-                        awayStr,
-                        style: TextStyle(
-                          color: context.colors.textHigh,
-                          fontFamily: 'Lexend',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      // Home Bar
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: FractionallySizedBox(
-                            widthFactor: homeFlex == 0.0 && stat.total == 0 ? 0.0 : homeFlex.clamp(0.02, 1.0),
-                            child: Container(
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: homeFlex > awayFlex ? context.colors.primaryContainer : context.colors.surfaceContainerHighest,
-                                borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)), // Rounded outer tail
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4), // Middle split
-                      // Away Bar
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: awayFlex == 0.0 && stat.total == 0 ? 0.0 : awayFlex.clamp(0.02, 1.0),
-                            child: Container(
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: awayFlex > homeFlex ? context.colors.accent : context.colors.surfaceContainerHighest,
-                                borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)), // Rounded outer tail
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: FutureBuilder<MatchStatsReport>(
+        future: _statsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const _StatsEmptyState(
+              title: 'Istatistikler yuklenemedi',
+              message: 'Tekrar denemek icin asagi cek.',
             );
-          },
+          }
+          final report = snapshot.data;
+          if (report == null || !report.hasData) {
+            return const _StatsEmptyState(
+              title: 'Istatistik bekleniyor',
+              message: 'Canli mac verisi geldikce bu alan dolacak.',
+            );
+          }
+          return AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 96),
+                children: [
+                  _StatsSummaryCard(report: report),
+                  if (report.momentum.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _MomentumCard(report: report),
+                  ],
+                  const SizedBox(height: 20),
+                  ...report.stats.map((stat) => _StatRow(
+                        stat: stat,
+                        animationValue: _animation.value,
+                      )),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StatsSummaryCard extends StatelessWidget {
+  final MatchStatsReport report;
+
+  const _StatsSummaryCard({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final updatedText = report.syncedAt == null
+        ? 'Canli veri'
+        : 'Guncelleme ${report.syncedAt!.toLocal().hour.toString().padLeft(2, '0')}:${report.syncedAt!.toLocal().minute.toString().padLeft(2, '0')}';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.bar_chart_rounded, color: context.colors.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              updatedText,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: context.colors.textMedium,
+              ),
+            ),
+          ),
+          _MiniCount(label: 'Shotmap', value: report.shotmapCount),
+          const SizedBox(width: 8),
+          _MiniCount(label: 'Rating', value: report.bestPlayersCount),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniCount extends StatelessWidget {
+  final String label;
+  final int value;
+
+  const _MiniCount({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            color: context.colors.textMedium,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MomentumCard extends StatelessWidget {
+  final MatchStatsReport report;
+
+  const _MomentumCard({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final values = report.momentum.map((item) => item.value).toList();
+    final homePressure = values.where((item) => item > 0).fold<double>(
+          0,
+          (sum, item) => sum + item.abs(),
         );
-      },
+    final awayPressure = values.where((item) => item < 0).fold<double>(
+          0,
+          (sum, item) => sum + item.abs(),
+        );
+    final total = homePressure + awayPressure;
+    final homeRatio = total == 0 ? 0.5 : homePressure / total;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'MOMENTUM',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textMedium,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: (homeRatio * 100).round().clamp(1, 99),
+                  child: Container(height: 10, color: context.colors.primary),
+                ),
+                Expanded(
+                  flex: ((1 - homeRatio) * 100).round().clamp(1, 99),
+                  child: Container(height: 10, color: context.colors.accent),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final MatchStatData stat;
+  final double animationValue;
+
+  const _StatRow({required this.stat, required this.animationValue});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = stat.total;
+    var homeFlex = total == 0 ? 0.0 : stat.homeRatio * animationValue;
+    var awayFlex = total == 0 ? 0.0 : stat.awayRatio * animationValue;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ValueText(value: stat.homeDisplay),
+              Expanded(
+                child: Text(
+                  stat.label.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.colors.textMedium,
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+              _ValueText(value: stat.awayDisplay),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FractionallySizedBox(
+                    widthFactor: homeFlex == 0.0 && total == 0
+                        ? 0.0
+                        : homeFlex.clamp(0.02, 1.0),
+                    child: Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: homeFlex > awayFlex
+                            ? context.colors.primaryContainer
+                            : context.colors.surfaceContainerHighest,
+                        borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: awayFlex == 0.0 && total == 0
+                        ? 0.0
+                        : awayFlex.clamp(0.02, 1.0),
+                    child: Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: awayFlex > homeFlex
+                            ? context.colors.accent
+                            : context.colors.surfaceContainerHighest,
+                        borderRadius: const BorderRadius.horizontal(
+                          right: Radius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ValueText extends StatelessWidget {
+  final String value;
+
+  const _ValueText({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 58,
+      child: Text(
+        value,
+        style: TextStyle(
+          color: context.colors.textHigh,
+          fontFamily: 'Lexend',
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _StatsEmptyState extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const _StatsEmptyState({required this.title, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(24, 96, 24, 96),
+      children: [
+        Icon(Icons.query_stats_rounded,
+            size: 46, color: context.colors.textMedium),
+        const SizedBox(height: 14),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: context.colors.textMedium,
+          ),
+        ),
+      ],
     );
   }
 }
