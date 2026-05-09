@@ -1081,12 +1081,18 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                 title: widget.match.homeTeam,
                 logoUrl: widget.match.homeLogo,
                 lineup: report.home,
+                substitutions: report.substitutions
+                    .where((item) => item.isHome == true)
+                    .toList(),
               ),
               const SizedBox(height: 12),
               _TeamLineupCard(
                 title: widget.match.awayTeam,
                 logoUrl: widget.match.awayLogo,
                 lineup: report.away,
+                substitutions: report.substitutions
+                    .where((item) => item.isHome == false)
+                    .toList(),
               ),
             ],
           );
@@ -1777,11 +1783,13 @@ class _TeamLineupCard extends StatelessWidget {
   final String title;
   final String logoUrl;
   final TeamLineup lineup;
+  final List<LineupSubstitution> substitutions;
 
   const _TeamLineupCard({
     required this.title,
     required this.logoUrl,
     required this.lineup,
+    required this.substitutions,
   });
 
   @override
@@ -1841,10 +1849,18 @@ class _TeamLineupCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _LineupSection(title: 'Ilk 11', players: lineup.starters),
+          _LineupSection(
+            title: 'Ilk 11',
+            players: lineup.starters,
+            substitutions: substitutions,
+          ),
           if (lineup.bench.isNotEmpty) ...[
             const SizedBox(height: 14),
-            _LineupSection(title: 'Yedekler', players: lineup.bench),
+            _LineupSection(
+              title: 'Yedekler',
+              players: lineup.bench,
+              substitutions: substitutions,
+            ),
           ],
         ],
       ),
@@ -1855,8 +1871,13 @@ class _TeamLineupCard extends StatelessWidget {
 class _LineupSection extends StatelessWidget {
   final String title;
   final List<LineupPlayer> players;
+  final List<LineupSubstitution> substitutions;
 
-  const _LineupSection({required this.title, required this.players});
+  const _LineupSection({
+    required this.title,
+    required this.players,
+    required this.substitutions,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1876,16 +1897,76 @@ class _LineupSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        ...players.map((player) => _LineupPlayerTile(player: player)),
+        ...players.map(
+          (player) => _LineupPlayerTile(
+            player: player,
+            substitution: _findSubstitutionForPlayer(player, substitutions),
+          ),
+        ),
       ],
     );
   }
 }
 
+class _LineupPlayerSubstitution {
+  final bool isIn;
+  final String minuteLabel;
+
+  const _LineupPlayerSubstitution({
+    required this.isIn,
+    required this.minuteLabel,
+  });
+
+  String get label {
+    final prefix = isIn ? 'IN' : 'OUT';
+    return minuteLabel.isEmpty ? prefix : '$prefix $minuteLabel';
+  }
+}
+
+_LineupPlayerSubstitution? _findSubstitutionForPlayer(
+  LineupPlayer player,
+  List<LineupSubstitution> substitutions,
+) {
+  for (final substitution in substitutions) {
+    if (_lineupPlayerMatches(
+        player, substitution.playerInId, substitution.playerInName)) {
+      return _LineupPlayerSubstitution(
+        isIn: true,
+        minuteLabel: substitution.minuteLabel,
+      );
+    }
+    if (_lineupPlayerMatches(
+        player, substitution.playerOutId, substitution.playerOutName)) {
+      return _LineupPlayerSubstitution(
+        isIn: false,
+        minuteLabel: substitution.minuteLabel,
+      );
+    }
+  }
+  return null;
+}
+
+bool _lineupPlayerMatches(LineupPlayer player, String? remoteId, String? name) {
+  if (remoteId != null &&
+      player.providerPlayerId != null &&
+      player.providerPlayerId == remoteId) {
+    return true;
+  }
+  final target = _normalizeLineupName(name);
+  if (target.isEmpty) return false;
+  return _normalizeLineupName(player.name) == target ||
+      _normalizeLineupName(player.shortName) == target;
+}
+
+String _normalizeLineupName(String? value) {
+  return (value ?? '').trim().toLowerCase();
+}
+
 class _LineupPlayerTile extends StatelessWidget {
   final LineupPlayer player;
+  final _LineupPlayerSubstitution? substitution;
 
-  const _LineupPlayerTile({required this.player});
+  const _LineupPlayerTile({required this.player, required this.substitution});
 
   @override
   Widget build(BuildContext context) {
@@ -1948,6 +2029,13 @@ class _LineupPlayerTile extends StatelessWidget {
           ),
           if (player.isCaptain)
             _LineupMiniBadge(label: 'C', color: context.colors.primary),
+          if (substitution != null)
+            _LineupMiniBadge(
+              label: substitution!.label,
+              color: substitution!.isIn
+                  ? context.colors.success
+                  : context.colors.error,
+            ),
           if (goals is num && goals > 0)
             _LineupMiniBadge(
                 label: '${goals.toInt()}G', color: context.colors.success),

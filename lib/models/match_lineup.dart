@@ -6,6 +6,7 @@ class MatchLineupReport {
   final DateTime? syncedAt;
   final TeamLineup home;
   final TeamLineup away;
+  final List<LineupSubstitution> substitutions;
   final Map<String, dynamic> summary;
 
   const MatchLineupReport({
@@ -16,6 +17,7 @@ class MatchLineupReport {
     required this.syncedAt,
     required this.home,
     required this.away,
+    required this.substitutions,
     required this.summary,
   });
 
@@ -30,7 +32,53 @@ class MatchLineupReport {
       syncedAt: _nullableDateTime(json['synced_at']),
       home: TeamLineup.fromJson(_asMap(json['home'])),
       away: TeamLineup.fromJson(_asMap(json['away'])),
+      substitutions: _asList(json['substitutions'])
+          .map((item) => LineupSubstitution.fromJson(_asMap(item)))
+          .toList(),
       summary: _asMap(json['summary']),
+    );
+  }
+}
+
+class LineupSubstitution {
+  final int? minute;
+  final int? addedTime;
+  final bool? isHome;
+  final String? teamName;
+  final String? playerInName;
+  final String? playerInId;
+  final String? playerOutName;
+  final String? playerOutId;
+
+  const LineupSubstitution({
+    required this.minute,
+    required this.addedTime,
+    required this.isHome,
+    required this.teamName,
+    required this.playerInName,
+    required this.playerInId,
+    required this.playerOutName,
+    required this.playerOutId,
+  });
+
+  String get minuteLabel {
+    if (minute == null) return '';
+    if (addedTime != null && addedTime! > 0) {
+      return "$minute+$addedTime'";
+    }
+    return "$minute'";
+  }
+
+  factory LineupSubstitution.fromJson(Map<String, dynamic> json) {
+    return LineupSubstitution(
+      minute: _nullableInt(json['minute']),
+      addedTime: _nullableInt(json['added_time']),
+      isHome: json['is_home'] is bool ? json['is_home'] as bool : null,
+      teamName: _nullableString(json['team_name']),
+      playerInName: _nullableString(json['player_in_name']),
+      playerInId: _nullableString(json['player_in_id']),
+      playerOutName: _nullableString(json['player_out_name']),
+      playerOutId: _nullableString(json['player_out_id']),
     );
   }
 }
@@ -141,6 +189,13 @@ int _asInt(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+int? _nullableInt(Object? value) {
+  if (value == null || value is bool) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString());
 }
 
 String? _nullableString(Object? value) {
