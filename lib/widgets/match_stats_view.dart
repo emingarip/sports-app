@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +22,8 @@ class _MatchStatsViewState extends ConsumerState<MatchStatsView>
   late Future<MatchStatsReport> _statsFuture;
   late AnimationController _animController;
   late Animation<double> _animation;
+  Timer? _retryTimer;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -33,24 +37,55 @@ class _MatchStatsViewState extends ConsumerState<MatchStatsView>
     _animation =
         CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic);
     _animController.forward();
+    _startLiveRetryTimer();
   }
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     _animController.dispose();
     super.dispose();
   }
 
-  Future<void> _refresh() async {
+  @override
+  void didUpdateWidget(covariant MatchStatsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.match.id != widget.match.id) {
+      _retryTimer?.cancel();
+      _statsFuture =
+          ref.read(aiSportAgentStatsProvider).fetchStats(widget.match.id);
+      _startLiveRetryTimer();
+    }
+  }
+
+  void _startLiveRetryTimer() {
+    _retryTimer?.cancel();
+    if (widget.match.status != model.MatchStatus.live) {
+      return;
+    }
+    _retryTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (!mounted || _isRefreshing) return;
+      _refresh(silent: true);
+    });
+  }
+
+  Future<void> _refresh({bool silent = false}) async {
+    _isRefreshing = true;
     final future =
         ref.read(aiSportAgentStatsProvider).fetchStats(widget.match.id);
     setState(() {
       _statsFuture = future;
     });
-    _animController
-      ..reset()
-      ..forward();
-    await future;
+    if (!silent) {
+      _animController
+        ..reset()
+        ..forward();
+    }
+    try {
+      await future;
+    } finally {
+      _isRefreshing = false;
+    }
   }
 
   @override
@@ -71,9 +106,13 @@ class _MatchStatsViewState extends ConsumerState<MatchStatsView>
           }
           final report = snapshot.data;
           if (report == null || !report.hasData) {
-            return const _StatsEmptyState(
-              title: 'Istatistik bekleniyor',
-              message: 'Canli mac verisi geldikce bu alan dolacak.',
+            return _StatsEmptyState(
+              title: widget.match.status == model.MatchStatus.live
+                  ? 'Istatistik bekleniyor'
+                  : 'Mac baslamadi',
+              message: widget.match.status == model.MatchStatus.live
+                  ? 'Canli mac verisi geldikce bu alan otomatik yenilenecek.'
+                  : 'Istatistikler mac basladiktan sonra gorunur.',
             );
           }
           return AnimatedBuilder(
