@@ -3,8 +3,10 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../data/providers/ai_sport_agent_lineup_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
+import '../models/match_lineup.dart';
 import '../services/chat_service.dart';
 import '../widgets/match_stats_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,6 +91,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
   final Random _random = Random();
   final FocusNode _focusNode = FocusNode();
   final String _sessionId = DateTime.now().millisecondsSinceEpoch.toString();
+  Future<MatchLineupReport>? _lineupFuture;
 
   final List<String> _quickReactions = ["🔥", "😱", "😡", "👏", "⚽", "🙌"];
 
@@ -150,7 +153,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
       });
     });
 
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
+    _lineupFuture =
+        ref.read(aiSportAgentLineupProvider).fetchLineups(widget.match.id);
     _tabController.addListener(() {
       if (!mounted) return;
       setState(() {});
@@ -185,7 +190,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
     });
 
     _tabController.addListener(() {
-      if (_tabController.index == 3) {
+      if (_tabController.index == 4) {
         if (_chatSubscription == null) _subscribeToChat();
       } else {
         _chatSubscription?.cancel();
@@ -684,7 +689,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 800),
                 // Smoothly fade out the glow when switching to other tabs
-                opacity: (_tabController.index == 3) ? (_hypeLevel * 0.4) : 0.0,
+                opacity: (_tabController.index == 4) ? (_hypeLevel * 0.4) : 0.0,
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: RadialGradient(
@@ -734,9 +739,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                     labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                     tabs: [
                       _buildDynamicTab(0, Icons.dashboard_rounded, "OVERVIEW"),
-                      _buildDynamicTab(1, Icons.bar_chart_rounded, "STATS"),
-                      _buildDynamicTab(2, Icons.headset_mic_rounded, "ROOMS"),
-                      _buildDynamicTab(3, Icons.forum_rounded, "LIVE CHAT"),
+                      _buildDynamicTab(1, Icons.groups_rounded, "LINEUP"),
+                      _buildDynamicTab(2, Icons.bar_chart_rounded, "STATS"),
+                      _buildDynamicTab(3, Icons.headset_mic_rounded, "ROOMS"),
+                      _buildDynamicTab(4, Icons.forum_rounded, "LIVE CHAT"),
                     ],
                   ),
                 ),
@@ -748,6 +754,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                   controller: _tabController,
                   children: [
                     _buildOverviewTab(),
+                    _buildLineupTab(),
                     _buildStatsTab(),
                     MatchVoiceRoomsTab(match: widget.match),
                     _buildChatTab(),
@@ -757,7 +764,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
             ],
           ),
 
-          if (_tabController.index == 3)
+          if (_tabController.index == 4)
             Positioned(
                 bottom: 0, left: 0, right: 0, child: _buildBottomInputArea()),
 
@@ -765,7 +772,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
             Positioned(
               left: 16,
               right: 16,
-              bottom: (_tabController.index == 3) ? 90 : 32,
+              bottom: (_tabController.index == 4) ? 90 : 32,
               child: _buildMiniGameBanner(),
             ),
 
@@ -1016,6 +1023,76 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
 
   Widget _buildStatsTab() {
     return MatchStatsView(match: widget.match);
+  }
+
+  Widget _buildLineupTab() {
+    final future = _lineupFuture ??=
+        ref.read(aiSportAgentLineupProvider).fetchLineups(widget.match.id);
+    return RefreshIndicator(
+      onRefresh: () async {
+        final nextFuture =
+            ref.read(aiSportAgentLineupProvider).fetchLineups(widget.match.id);
+        setState(() => _lineupFuture = nextFuture);
+        await nextFuture;
+      },
+      child: FutureBuilder<MatchLineupReport>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                _LineupEmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Kadro verisi yuklenemedi',
+                  message: 'Tekrar denemek icin asagi cek.',
+                ),
+              ],
+            );
+          }
+          final report = snapshot.data;
+          if (report == null || !report.hasLineups) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                _LineupEmptyState(
+                  icon: Icons.groups_outlined,
+                  title: 'Kadrolar henuz yok',
+                  message:
+                      'Bu mac icin ilk 11 ve yedek bilgisi aciklandiginda burada gorunecek.',
+                ),
+              ],
+            );
+          }
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            children: [
+              _LineupStatusCard(report: report),
+              const SizedBox(height: 12),
+              _TeamLineupCard(
+                title: widget.match.homeTeam,
+                logoUrl: widget.match.homeLogo,
+                lineup: report.home,
+              ),
+              const SizedBox(height: 12),
+              _TeamLineupCard(
+                title: widget.match.awayTeam,
+                logoUrl: widget.match.awayLogo,
+                lineup: report.away,
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildChatTab() {
@@ -1621,6 +1698,346 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
             },
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class _LineupStatusCard extends StatelessWidget {
+  final MatchLineupReport report;
+
+  const _LineupStatusCard({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final statusText = switch (report.status) {
+      'complete' => 'Kadrolar tamam',
+      'partial' => 'Kadro kismen hazir',
+      'failed' => 'Kadro alinamadi',
+      'unavailable' => 'Kadro yok',
+      _ => 'Kadro bekleniyor',
+    };
+    final confirmedText = report.confirmed ? 'Resmi' : 'Tahmini / bekleyen';
+    final updatedText = report.syncedAt == null
+        ? null
+        : '${report.syncedAt!.toLocal().hour.toString().padLeft(2, '0')}:${report.syncedAt!.toLocal().minute.toString().padLeft(2, '0')}';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: context.colors.primaryContainer.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.groups_rounded, color: context.colors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  statusText,
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  updatedText == null
+                      ? confirmedText
+                      : '$confirmedText · Guncelleme $updatedText',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: context.colors.textMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TeamLineupCard extends StatelessWidget {
+  final String title;
+  final String logoUrl;
+  final TeamLineup lineup;
+
+  const _TeamLineupCard({
+    required this.title,
+    required this.logoUrl,
+    required this.lineup,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipOval(
+                child: Image.network(
+                  logoUrl,
+                  width: 38,
+                  height: 38,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.shield, size: 38),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Lexend',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: context.colors.textHigh,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      lineup.formation == null
+                          ? '${lineup.starters.length} ilk 11'
+                          : '${lineup.formation} · ${lineup.starters.length} ilk 11',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: context.colors.textMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _LineupSection(title: 'Ilk 11', players: lineup.starters),
+          if (lineup.bench.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _LineupSection(title: 'Yedekler', players: lineup.bench),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LineupSection extends StatelessWidget {
+  final String title;
+  final List<LineupPlayer> players;
+
+  const _LineupSection({required this.title, required this.players});
+
+  @override
+  Widget build(BuildContext context) {
+    if (players.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...players.map((player) => _LineupPlayerTile(player: player)),
+      ],
+    );
+  }
+}
+
+class _LineupPlayerTile extends StatelessWidget {
+  final LineupPlayer player;
+
+  const _LineupPlayerTile({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final goals = player.statistics['goals'];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: context.colors.surfaceContainerHigh,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              player.shirtNumber ?? '-',
+              style: TextStyle(
+                fontFamily: 'Lexend',
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: context.colors.textHigh,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  player.shortName ?? player.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+                if (player.name != (player.shortName ?? player.name))
+                  Text(
+                    player.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.textMedium,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (player.isCaptain)
+            _LineupMiniBadge(label: 'C', color: context.colors.primary),
+          if (goals is num && goals > 0)
+            _LineupMiniBadge(
+                label: '${goals.toInt()}G', color: context.colors.success),
+          const SizedBox(width: 6),
+          Text(
+            player.position ?? '-',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LineupMiniBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _LineupMiniBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _LineupEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _LineupEmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 42, color: context.colors.textMedium),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.35,
+              color: context.colors.textMedium,
+            ),
+          ),
+        ],
       ),
     );
   }
