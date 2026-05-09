@@ -1849,11 +1849,12 @@ class _TeamLineupCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _LineupSection(
-            title: 'Ilk 11',
-            players: lineup.starters,
-            substitutions: substitutions,
-          ),
+          if (lineup.starters.isNotEmpty)
+            _LineupSection(
+              title: 'Ilk 11',
+              players: lineup.starters,
+              substitutions: substitutions,
+            ),
           if (lineup.bench.isNotEmpty) ...[
             const SizedBox(height: 14),
             _LineupSection(
@@ -1862,8 +1863,67 @@ class _TeamLineupCard extends StatelessWidget {
               substitutions: substitutions,
             ),
           ],
+          if (lineup.starters.isEmpty &&
+              lineup.bench.isEmpty &&
+              substitutions.isNotEmpty)
+            _SubstitutionSection(substitutions: substitutions),
         ],
       ),
+    );
+  }
+}
+
+class _SubstitutionSection extends StatelessWidget {
+  final List<LineupSubstitution> substitutions;
+
+  const _SubstitutionSection({required this.substitutions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Oyuncu degisiklikleri',
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...substitutions.map(
+          (item) => Container(
+            margin: const EdgeInsets.only(bottom: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                _LineupMiniBadge(
+                  label: item.minuteLabel.isEmpty ? 'SUB' : item.minuteLabel,
+                  color: context.colors.primary,
+                ),
+                Expanded(
+                  child: Text(
+                    '${item.playerInName ?? 'Giren oyuncu'}  /  ${item.playerOutName ?? 'Cikan oyuncu'}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: context.colors.textHigh,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

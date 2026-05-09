@@ -21,7 +21,10 @@ class MatchLineupReport {
     required this.summary,
   });
 
-  bool get hasLineups => home.starters.isNotEmpty || away.starters.isNotEmpty;
+  bool get hasLineups =>
+      home.starters.isNotEmpty ||
+      away.starters.isNotEmpty ||
+      substitutions.isNotEmpty;
 
   factory MatchLineupReport.fromJson(Map<String, dynamic> json) {
     return MatchLineupReport(
