@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../models/match_timeline.dart';
 
@@ -47,6 +48,38 @@ class AiSportAgentTimelineProvider {
       throw const FormatException('Olay akisi verisi gecersiz.');
     }
     return MatchTimelineReport.fromJson(Map<String, dynamic>.from(decoded));
+  }
+
+  WebSocketChannel connectTimeline(String matchId) {
+    return WebSocketChannel.connect(_webSocketUri(matchId));
+  }
+
+  MatchTimelineReport? timelineFromSocketMessage(dynamic message) {
+    final decoded = switch (message) {
+      final String text => jsonDecode(text),
+      final List<int> bytes => jsonDecode(utf8.decode(bytes)),
+      _ => null,
+    };
+    if (decoded is! Map) {
+      return null;
+    }
+    final payload = Map<String, dynamic>.from(decoded);
+    if (payload['type'] != 'timeline_updated') {
+      return null;
+    }
+    final rawTimeline = payload['timeline'];
+    if (rawTimeline is! Map) {
+      return null;
+    }
+    return MatchTimelineReport.fromJson(Map<String, dynamic>.from(rawTimeline));
+  }
+
+  Uri _webSocketUri(String matchId) {
+    final baseUri = Uri.parse(_baseUrl);
+    final scheme = baseUri.scheme == 'https' ? 'wss' : 'ws';
+    final path =
+        '${baseUri.path.replaceFirst(RegExp(r'/+$'), '')}/mobile/matches/$matchId/timeline/ws';
+    return baseUri.replace(scheme: scheme, path: path);
   }
 
   static String _normalizeBaseUrl(String value) {

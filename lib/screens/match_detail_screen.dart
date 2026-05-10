@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../data/providers/ai_sport_agent_lineup_provider.dart';
 import '../data/providers/ai_sport_agent_timeline_provider.dart';
 import '../theme/app_theme.dart';
@@ -96,7 +97,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
   final String _sessionId = DateTime.now().millisecondsSinceEpoch.toString();
   Future<MatchLineupReport>? _lineupFuture;
   Future<MatchTimelineReport>? _timelineFuture;
-  Timer? _timelineRefreshTimer;
+  MatchTimelineReport? _timelineReport;
+  WebSocketChannel? _timelineChannel;
+  StreamSubscription<dynamic>? _timelineSubscription;
+  Timer? _timelineReconnectTimer;
 
   final List<String> _quickReactions = ["🔥", "😱", "😡", "👏", "⚽", "🙌"];
 
@@ -163,7 +167,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
         ref.read(aiSportAgentLineupProvider).fetchLineups(widget.match.id);
     _timelineFuture =
         ref.read(aiSportAgentTimelineProvider).fetchTimeline(widget.match.id);
-    _startTimelineRefreshTimer();
+    _connectTimelineRealtime();
     _tabController.addListener(() {
       if (!mounted) return;
       setState(() {});
@@ -417,31 +421,71 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
     _presenceChannel?.unsubscribe();
     _gameChannel?.unsubscribe();
     _drivingModeTimer?.cancel();
-    _timelineRefreshTimer?.cancel();
+    _closeTimelineRealtime();
     _hypeTimer?.cancel();
     TtsService().stop();
     WidgetService().endLiveActivity();
     super.dispose();
   }
 
-  void _startTimelineRefreshTimer() {
-    _timelineRefreshTimer?.cancel();
+  void _connectTimelineRealtime() {
+    _closeTimelineRealtime();
     if (widget.match.status != model.MatchStatus.live) {
       return;
     }
-    _timelineRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (!mounted || _tabController.index != 0) return;
-      _refreshTimeline(silent: true);
+    try {
+      final provider = ref.read(aiSportAgentTimelineProvider);
+      final channel = provider.connectTimeline(widget.match.id);
+      _timelineChannel = channel;
+      _timelineSubscription = channel.stream.listen(
+        (message) {
+          final report = provider.timelineFromSocketMessage(message);
+          if (report == null || !mounted) return;
+          setState(() {
+            _timelineReport = report;
+            _timelineFuture = Future.value(report);
+          });
+        },
+        onError: (_) => _scheduleTimelineReconnect(),
+        onDone: _scheduleTimelineReconnect,
+        cancelOnError: true,
+      );
+    } catch (_) {
+      _scheduleTimelineReconnect();
+    }
+  }
+
+  void _scheduleTimelineReconnect() {
+    if (!mounted || widget.match.status != model.MatchStatus.live) {
+      return;
+    }
+    _timelineReconnectTimer?.cancel();
+    _timelineReconnectTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        _connectTimelineRealtime();
+      }
     });
   }
 
-  Future<void> _refreshTimeline({bool silent = false}) async {
+  void _closeTimelineRealtime() {
+    _timelineReconnectTimer?.cancel();
+    _timelineReconnectTimer = null;
+    _timelineSubscription?.cancel();
+    _timelineSubscription = null;
+    _timelineChannel?.sink.close();
+    _timelineChannel = null;
+  }
+
+  Future<void> _refreshTimeline() async {
     final nextFuture =
         ref.read(aiSportAgentTimelineProvider).fetchTimeline(widget.match.id);
     if (mounted) {
       setState(() => _timelineFuture = nextFuture);
     }
-    await nextFuture;
+    final report = await nextFuture;
+    if (mounted) {
+      setState(() => _timelineReport = report);
+    }
   }
 
   void _calculateHype() {
@@ -1067,6 +1111,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
             onRefresh: _refreshTimeline,
             child: FutureBuilder<MatchTimelineReport>(
               future: _timelineFuture,
+              initialData: _timelineReport,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
