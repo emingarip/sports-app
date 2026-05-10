@@ -2003,10 +2003,11 @@ class _TeamLineupCard extends StatelessWidget {
               substitutions: substitutions,
             ),
           ],
-          if (lineup.starters.isEmpty &&
-              lineup.bench.isEmpty &&
-              substitutions.isNotEmpty)
+          if (substitutions.isNotEmpty) ...[
+            if (lineup.starters.isNotEmpty || lineup.bench.isNotEmpty)
+              const SizedBox(height: 14),
             _SubstitutionSection(substitutions: substitutions),
+          ],
         ],
       ),
     );
