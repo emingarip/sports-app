@@ -1142,13 +1142,11 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   children: [
                     _TimelineSummaryCard(report: report, match: widget.match),
-                    const SizedBox(height: 14),
-                    ...report.events.reversed.map(
-                      (event) => _TimelineEventTile(
-                        event: event,
-                        homeTeam: widget.match.homeTeam,
-                        awayTeam: widget.match.awayTeam,
-                      ),
+                    const SizedBox(height: 18),
+                    _TimelineRail(
+                      events: report.events,
+                      homeTeam: widget.match.homeTeam,
+                      awayTeam: widget.match.awayTeam,
                     ),
                   ],
                 );
@@ -2424,70 +2422,251 @@ class _TimelineSummaryCard extends StatelessWidget {
         ? 'Canli akis'
         : 'Guncelleme ${report.syncedAt!.toLocal().hour.toString().padLeft(2, '0')}:${report.syncedAt!.toLocal().minute.toString().padLeft(2, '0')}';
     final minute = report.minute ?? _parseMinute(match.liveMinute);
+    final lastEvent = report.events.isEmpty ? null : report.events.last;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.colors.surfaceContainerHighest),
+        color: context.colors.navBackground,
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: context.colors.cardShadow.withValues(alpha: 0.08),
-            blurRadius: 16,
+            color: context.colors.cardShadow.withValues(alpha: 0.18),
+            blurRadius: 18,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: context.colors.primaryContainer.withValues(alpha: 0.28),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(Icons.timeline_rounded, color: context.colors.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            children: [
+              Expanded(
+                child: _ScoreTeamLabel(
+                  name: match.homeTeam,
+                  logoUrl: match.homeLogo,
+                  alignEnd: false,
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: context.colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
                   report.score.display,
                   style: TextStyle(
                     fontFamily: 'Lexend',
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: context.colors.textHigh,
+                    color: context.colors.onPrimaryContainer,
+                    letterSpacing: 0,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  minute == null ? updatedText : "$minute' • $updatedText",
+              ),
+              Expanded(
+                child: _ScoreTeamLabel(
+                  name: match.awayTeam,
+                  logoUrl: match.awayLogo,
+                  alignEnd: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: context.colors.liveAccent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  minute == null
+                      ? report.status.toUpperCase()
+                      : "$minute' LIVE",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.navInactive,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  lastEvent == null
+                      ? updatedText
+                      : 'Son olay: ${lastEvent.title} ${lastEvent.minuteLabel}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: context.colors.textMedium,
+                    color: context.colors.navInactive.withValues(alpha: 0.72),
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${report.events.length} olay',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: context.colors.navSelected,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScoreTeamLabel extends StatelessWidget {
+  final String name;
+  final String logoUrl;
+  final bool alignEnd;
+
+  const _ScoreTeamLabel({
+    required this.name,
+    required this.logoUrl,
+    required this.alignEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment:
+          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        if (!alignEnd) _TeamLogo(url: logoUrl),
+        if (!alignEnd) const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: context.colors.navInactive,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: context.colors.chipBackground,
-              borderRadius: BorderRadius.circular(999),
+        ),
+        if (alignEnd) const SizedBox(width: 8),
+        if (alignEnd) _TeamLogo(url: logoUrl),
+      ],
+    );
+  }
+}
+
+class _TeamLogo extends StatelessWidget {
+  final String url;
+
+  const _TeamLogo({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: 28,
+        height: 28,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: context.colors.surfaceContainerHighest,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.shield_outlined,
+              size: 16, color: context.colors.textMedium),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineRail extends StatelessWidget {
+  final List<MatchTimelineEvent> events;
+  final String homeTeam;
+  final String awayTeam;
+
+  const _TimelineRail({
+    required this.events,
+    required this.homeTeam,
+    required this.awayTeam,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[];
+    String? currentGroup;
+    for (final event in events) {
+      final group = _periodLabel(event);
+      if (group != currentGroup) {
+        currentGroup = group;
+        children.add(_TimelinePeriodHeader(label: group));
+      }
+      children.add(_TimelineEventTile(
+        event: event,
+        homeTeam: homeTeam,
+        awayTeam: awayTeam,
+        isLast: event == events.last,
+      ));
+    }
+    return Column(children: children);
+  }
+
+  String _periodLabel(MatchTimelineEvent event) {
+    final minute = event.minute ?? 0;
+    if (event.type == 'FULL_TIME') return 'MAC SONU';
+    if (minute > 45) return 'IKINCI YARI';
+    return 'ILK YARI';
+  }
+}
+
+class _TimelinePeriodHeader extends StatelessWidget {
+  final String label;
+
+  const _TimelinePeriodHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(54, 8, 0, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(
+              color: context.colors.surfaceContainerHighest,
+              thickness: 1,
             ),
-            child: Text(
-              '${report.events.length} olay',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                color: context.colors.textMedium,
-              ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textLow,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Divider(
+              color: context.colors.surfaceContainerHighest,
+              thickness: 1,
             ),
           ),
         ],
@@ -2500,11 +2679,13 @@ class _TimelineEventTile extends StatelessWidget {
   final MatchTimelineEvent event;
   final String homeTeam;
   final String awayTeam;
+  final bool isLast;
 
   const _TimelineEventTile({
     required this.event,
     required this.homeTeam,
     required this.awayTeam,
+    required this.isLast,
   });
 
   @override
@@ -2516,96 +2697,156 @@ class _TimelineEventTile extends StatelessWidget {
         : event.team == 'away'
             ? awayTeam
             : null;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: event.importance == 'high'
-              ? color.withValues(alpha: 0.42)
-              : context.colors.surfaceContainerHighest,
-        ),
-      ),
+    final isMajor = _isMajorEvent(event.type);
+    return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            width: 42,
-            child: Text(
-              event.minuteLabel,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Lexend',
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                color: context.colors.textHigh,
+            width: 44,
+            child: Column(
+              children: [
+                Text(
+                  event.minuteLabel,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isLast
+                        ? Colors.transparent
+                        : context.colors.surfaceContainerHighest,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 34,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Container(
+                width: isMajor ? 34 : 28,
+                height: isMajor ? 34 : 28,
+                decoration: BoxDecoration(
+                  color:
+                      isMajor ? color : context.colors.surfaceContainerLowest,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color, width: isMajor ? 0 : 2),
+                  boxShadow: isMajor
+                      ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.25),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  icon,
+                  color: isMajor ? context.colors.surface : color,
+                  size: isMajor ? 19 : 16,
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+              child: Container(
+                padding: EdgeInsets.all(isMajor ? 14 : 0),
+                decoration: BoxDecoration(
+                  color: isMajor
+                      ? color.withValues(alpha: 0.08)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(18),
+                  border: isMajor
+                      ? Border.all(color: color.withValues(alpha: 0.22))
+                      : null,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        event.title,
-                        style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: context.colors.textHigh,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            event.title,
+                            style: TextStyle(
+                              fontFamily: 'Lexend',
+                              fontSize: isMajor ? 15 : 14,
+                              fontWeight: FontWeight.w900,
+                              color: context.colors.textHigh,
+                            ),
+                          ),
                         ),
+                        if (event.score != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              event.score!,
+                              style: TextStyle(
+                                fontFamily: 'Lexend',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                color: color,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      event.description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        fontWeight: FontWeight.w700,
+                        color: context.colors.textMedium,
                       ),
                     ),
-                    if (event.score != null)
-                      Text(
-                        event.score!,
-                        style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                          color: color,
-                        ),
+                    if (teamName != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.shield_outlined,
+                            size: 13,
+                            color: context.colors.textLow,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              teamName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: context.colors.textLow,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  event.description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.35,
-                    fontWeight: FontWeight.w700,
-                    color: context.colors.textMedium,
-                  ),
-                ),
-                if (teamName != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    teamName,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: context.colors.textLow,
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
         ],
@@ -2650,6 +2891,16 @@ class _TimelineEventTile extends StatelessWidget {
       default:
         return context.colors.textMedium;
     }
+  }
+
+  bool _isMajorEvent(String type) {
+    return const {
+      'GOAL',
+      'PENALTY_GOAL',
+      'OWN_GOAL',
+      'RED_CARD',
+      'PENALTY_MISSED',
+    }.contains(type);
   }
 }
 
