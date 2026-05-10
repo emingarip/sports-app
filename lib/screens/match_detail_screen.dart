@@ -4,9 +4,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/providers/ai_sport_agent_lineup_provider.dart';
+import '../data/providers/ai_sport_agent_timeline_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/match.dart' as model;
 import '../models/match_lineup.dart';
+import '../models/match_timeline.dart';
 import '../services/chat_service.dart';
 import '../widgets/match_stats_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -93,6 +95,8 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
   final FocusNode _focusNode = FocusNode();
   final String _sessionId = DateTime.now().millisecondsSinceEpoch.toString();
   Future<MatchLineupReport>? _lineupFuture;
+  Future<MatchTimelineReport>? _timelineFuture;
+  Timer? _timelineRefreshTimer;
 
   final List<String> _quickReactions = ["🔥", "😱", "😡", "👏", "⚽", "🙌"];
 
@@ -157,6 +161,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
     _tabController = TabController(length: 5, vsync: this);
     _lineupFuture =
         ref.read(aiSportAgentLineupProvider).fetchLineups(widget.match.id);
+    _timelineFuture =
+        ref.read(aiSportAgentTimelineProvider).fetchTimeline(widget.match.id);
+    _startTimelineRefreshTimer();
     _tabController.addListener(() {
       if (!mounted) return;
       setState(() {});
@@ -410,10 +417,31 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
     _presenceChannel?.unsubscribe();
     _gameChannel?.unsubscribe();
     _drivingModeTimer?.cancel();
+    _timelineRefreshTimer?.cancel();
     _hypeTimer?.cancel();
     TtsService().stop();
     WidgetService().endLiveActivity();
     super.dispose();
+  }
+
+  void _startTimelineRefreshTimer() {
+    _timelineRefreshTimer?.cancel();
+    if (widget.match.status != model.MatchStatus.live) {
+      return;
+    }
+    _timelineRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (!mounted || _tabController.index != 0) return;
+      _refreshTimeline(silent: true);
+    });
+  }
+
+  Future<void> _refreshTimeline({bool silent = false}) async {
+    final nextFuture =
+        ref.read(aiSportAgentTimelineProvider).fetchTimeline(widget.match.id);
+    if (mounted) {
+      setState(() => _timelineFuture = nextFuture);
+    }
+    await nextFuture;
   }
 
   void _calculateHype() {
@@ -1035,27 +1063,48 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
 
         // SCROLLABLE TIMELINE
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(
-                top: 16.0, bottom: 64, left: 16, right: 16),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.sports_esports,
-                      size: 48, color: context.colors.surfaceContainerHigh),
-                  const SizedBox(height: 16),
-                  Text("Match Timeline",
-                      style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontSize: 18,
-                          color: context.colors.textHigh,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text("Events will appear here.",
-                      style: TextStyle(color: context.colors.textMedium)),
-                ],
-              ),
+          child: RefreshIndicator(
+            onRefresh: _refreshTimeline,
+            child: FutureBuilder<MatchTimelineReport>(
+              future: _timelineFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const _TimelineEmptyState(
+                    icon: Icons.error_outline_rounded,
+                    title: 'Olay akisi yuklenemedi',
+                    message: 'Tekrar denemek icin asagi cek.',
+                  );
+                }
+                final report = snapshot.data;
+                if (report == null || report.events.isEmpty) {
+                  return const _TimelineEmptyState(
+                    icon: Icons.sports_soccer_rounded,
+                    title: 'Olay bekleniyor',
+                    message:
+                        'Mac icindeki gol, kart ve degisiklikler burada gorunecek.',
+                  );
+                }
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  children: [
+                    _TimelineSummaryCard(report: report, match: widget.match),
+                    const SizedBox(height: 14),
+                    ...report.events.reversed.map(
+                      (event) => _TimelineEventTile(
+                        event: event,
+                        homeTeam: widget.match.homeTeam,
+                        awayTeam: widget.match.awayTeam,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -2313,6 +2362,297 @@ class _ReactionButtonState extends State<_ReactionButton>
           }),
     );
   }
+}
+
+class _TimelineSummaryCard extends StatelessWidget {
+  final MatchTimelineReport report;
+  final model.Match match;
+
+  const _TimelineSummaryCard({required this.report, required this.match});
+
+  @override
+  Widget build(BuildContext context) {
+    final updatedText = report.syncedAt == null
+        ? 'Canli akis'
+        : 'Guncelleme ${report.syncedAt!.toLocal().hour.toString().padLeft(2, '0')}:${report.syncedAt!.toLocal().minute.toString().padLeft(2, '0')}';
+    final minute = report.minute ?? _parseMinute(match.liveMinute);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+        boxShadow: [
+          BoxShadow(
+            color: context.colors.cardShadow.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: context.colors.primaryContainer.withValues(alpha: 0.28),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.timeline_rounded, color: context.colors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  report.score.display,
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  minute == null ? updatedText : "$minute' • $updatedText",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: context.colors.textMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: context.colors.chipBackground,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '${report.events.length} olay',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: context.colors.textMedium,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineEventTile extends StatelessWidget {
+  final MatchTimelineEvent event;
+  final String homeTeam;
+  final String awayTeam;
+
+  const _TimelineEventTile({
+    required this.event,
+    required this.homeTeam,
+    required this.awayTeam,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _eventColor(context, event.type);
+    final icon = _eventIcon(event.type);
+    final teamName = event.team == 'home'
+        ? homeTeam
+        : event.team == 'away'
+            ? awayTeam
+            : null;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: event.importance == 'high'
+              ? color.withValues(alpha: 0.42)
+              : context.colors.surfaceContainerHighest,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 42,
+            child: Text(
+              event.minuteLabel,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Lexend',
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: context.colors.textHigh,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        event.title,
+                        style: TextStyle(
+                          fontFamily: 'Lexend',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: context.colors.textHigh,
+                        ),
+                      ),
+                    ),
+                    if (event.score != null)
+                      Text(
+                        event.score!,
+                        style: TextStyle(
+                          fontFamily: 'Lexend',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: color,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  event.description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                    color: context.colors.textMedium,
+                  ),
+                ),
+                if (teamName != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    teamName,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: context.colors.textLow,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _eventIcon(String type) {
+    switch (type) {
+      case 'GOAL':
+      case 'PENALTY_GOAL':
+      case 'OWN_GOAL':
+        return Icons.sports_soccer_rounded;
+      case 'RED_CARD':
+      case 'YELLOW_CARD':
+        return Icons.style_rounded;
+      case 'SUBSTITUTION':
+        return Icons.swap_horiz_rounded;
+      case 'HALF_TIME':
+      case 'FULL_TIME':
+      case 'PERIOD':
+        return Icons.flag_rounded;
+      case 'INJURY_TIME':
+        return Icons.timer_rounded;
+      default:
+        return Icons.bolt_rounded;
+    }
+  }
+
+  Color _eventColor(BuildContext context, String type) {
+    switch (type) {
+      case 'GOAL':
+      case 'PENALTY_GOAL':
+        return context.colors.success;
+      case 'OWN_GOAL':
+      case 'RED_CARD':
+        return context.colors.error;
+      case 'YELLOW_CARD':
+        return context.colors.accent;
+      case 'SUBSTITUTION':
+        return context.colors.primary;
+      default:
+        return context.colors.textMedium;
+    }
+  }
+}
+
+class _TimelineEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _TimelineEmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(24, 96, 24, 96),
+      children: [
+        Icon(icon, size: 46, color: context.colors.textMedium),
+        const SizedBox(height: 14),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: context.colors.textMedium,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+int? _parseMinute(String? value) {
+  if (value == null) return null;
+  final match = RegExp(r'\d+').firstMatch(value);
+  return match == null ? null : int.tryParse(match.group(0)!);
 }
 
 class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
