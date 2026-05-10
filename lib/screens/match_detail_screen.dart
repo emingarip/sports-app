@@ -1007,27 +1007,27 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Sürüş Modu Banner - STRICTLY STICKY
+        // Sürüş modu kontrolü.
         Container(
           color: context.colors.background,
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
           child: GestureDetector(
             onTap: _toggleDrivingMode,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 gradient: LinearGradient(
                   colors: _isDrivingModeActive
                       ? [
                           context.colors.liveAccent,
                           context.colors.heroGradientStart
-                        ] // Kırmızı (Aktif)
+                        ]
                       : [
                           context.colors.navBackgroundOverlay,
                           context.colors.navBackground
-                        ], // Koyu Lacivert (Pasif)
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -1036,21 +1036,21 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                         BoxShadow(
                             color: context.colors.liveAccent
                                 .withValues(alpha: 0.4),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8))
+                            blurRadius: 12,
+                            offset: const Offset(0, 5))
                       ]
                     : [
                         BoxShadow(
                             color: context.colors.cardShadow
-                                .withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4))
+                                .withValues(alpha: 0.14),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3))
                       ],
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: context.colors.surface.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
@@ -1060,47 +1060,52 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                           ? Icons.directions_car
                           : Icons.directions_car_outlined,
                       color: context.colors.surface,
-                      size: 28,
+                      size: 18,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isDrivingModeActive
-                              ? "Sürüş Modu Aktif"
-                              : "Sürüş Modunu Aç",
-                          style: TextStyle(
-                            color: context.colors.surface,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _isDrivingModeActive
-                              ? "Maçın skoru her 60 saniyede bir sesli tam otomatik okunacak."
-                              : "Direksiyon başındayken maçın skorunu yapay zeka seslendirir.",
-                          style: TextStyle(
-                            color:
-                                context.colors.surface.withValues(alpha: 0.82),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      _isDrivingModeActive ? "Sürüş modu aktif" : "Sürüş modu",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.surface,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
-                    _isDrivingModeActive
-                        ? Icons.graphic_eq
-                        : Icons.play_arrow_rounded,
-                    color: context.colors.surface,
-                    size: 28,
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: context.colors.surface.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _isDrivingModeActive ? "Aktif" : "Aç",
+                          style: TextStyle(
+                            color: context.colors.surface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          _isDrivingModeActive
+                              ? Icons.graphic_eq
+                              : Icons.play_arrow_rounded,
+                          color: context.colors.surface,
+                          size: 16,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1139,10 +1144,8 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
                   physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
                   ),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                   children: [
-                    _TimelineSummaryCard(report: report, match: widget.match),
-                    const SizedBox(height: 18),
                     _TimelineRail(
                       events: report.events,
                       homeTeam: widget.match.homeTeam,
@@ -2410,192 +2413,6 @@ class _ReactionButtonState extends State<_ReactionButton>
   }
 }
 
-class _TimelineSummaryCard extends StatelessWidget {
-  final MatchTimelineReport report;
-  final model.Match match;
-
-  const _TimelineSummaryCard({required this.report, required this.match});
-
-  @override
-  Widget build(BuildContext context) {
-    final updatedText = report.syncedAt == null
-        ? 'Canli akis'
-        : 'Guncelleme ${report.syncedAt!.toLocal().hour.toString().padLeft(2, '0')}:${report.syncedAt!.toLocal().minute.toString().padLeft(2, '0')}';
-    final minute = report.minute ?? _parseMinute(match.liveMinute);
-    final lastEvent = report.events.isEmpty ? null : report.events.last;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: context.colors.navBackground,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: context.colors.cardShadow.withValues(alpha: 0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _ScoreTeamLabel(
-                  name: match.homeTeam,
-                  logoUrl: match.homeLogo,
-                  alignEnd: false,
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: context.colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  report.score.display,
-                  style: TextStyle(
-                    fontFamily: 'Lexend',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: context.colors.onPrimaryContainer,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _ScoreTeamLabel(
-                  name: match.awayTeam,
-                  logoUrl: match.awayLogo,
-                  alignEnd: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: context.colors.liveAccent.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  minute == null
-                      ? report.status.toUpperCase()
-                      : "$minute' LIVE",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    color: context.colors.navInactive,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  lastEvent == null
-                      ? updatedText
-                      : 'Son olay: ${lastEvent.title} ${lastEvent.minuteLabel}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: context.colors.navInactive.withValues(alpha: 0.72),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${report.events.length} olay',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  color: context.colors.navSelected,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreTeamLabel extends StatelessWidget {
-  final String name;
-  final String logoUrl;
-  final bool alignEnd;
-
-  const _ScoreTeamLabel({
-    required this.name,
-    required this.logoUrl,
-    required this.alignEnd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment:
-          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        if (!alignEnd) _TeamLogo(url: logoUrl),
-        if (!alignEnd) const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
-            style: TextStyle(
-              fontFamily: 'Lexend',
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: context.colors.navInactive,
-            ),
-          ),
-        ),
-        if (alignEnd) const SizedBox(width: 8),
-        if (alignEnd) _TeamLogo(url: logoUrl),
-      ],
-    );
-  }
-}
-
-class _TeamLogo extends StatelessWidget {
-  final String url;
-
-  const _TeamLogo({required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipOval(
-      child: Image.network(
-        url,
-        width: 28,
-        height: 28,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: context.colors.surfaceContainerHighest,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.shield_outlined,
-              size: 16, color: context.colors.textMedium),
-        ),
-      ),
-    );
-  }
-}
-
 class _TimelineRail extends StatelessWidget {
   final List<MatchTimelineEvent> events;
   final String homeTeam;
@@ -2946,12 +2763,6 @@ class _TimelineEmptyState extends StatelessWidget {
       ],
     );
   }
-}
-
-int? _parseMinute(String? value) {
-  if (value == null) return null;
-  final match = RegExp(r'\d+').firstMatch(value);
-  return match == null ? null : int.tryParse(match.group(0)!);
 }
 
 class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
