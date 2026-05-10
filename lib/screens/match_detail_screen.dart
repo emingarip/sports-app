@@ -2003,145 +2003,8 @@ class _TeamLineupCard extends StatelessWidget {
               substitutions: substitutions,
             ),
           ],
-          if (substitutions.isNotEmpty) ...[
-            if (lineup.starters.isNotEmpty || lineup.bench.isNotEmpty)
-              const SizedBox(height: 14),
-            _SubstitutionSection(substitutions: substitutions),
-          ],
         ],
       ),
-    );
-  }
-}
-
-class _SubstitutionSection extends StatelessWidget {
-  final List<LineupSubstitution> substitutions;
-
-  const _SubstitutionSection({required this.substitutions});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Oyuncu degisiklikleri',
-          style: TextStyle(
-            fontFamily: 'Lexend',
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-            color: context.colors.textHigh,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...substitutions.map(
-          (item) => _SubstitutionRow(item: item),
-        ),
-      ],
-    );
-  }
-}
-
-class _SubstitutionRow extends StatelessWidget {
-  final LineupSubstitution item;
-
-  const _SubstitutionRow({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final outName = item.playerOutName ?? 'Cikan oyuncu';
-    final inName = item.playerInName ?? 'Giren oyuncu';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 7),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: context.colors.outline.withValues(alpha: 0.08),
-        ),
-      ),
-      child: Row(
-        children: [
-          _LineupMiniBadge(
-            label: item.minuteLabel.isEmpty ? 'SUB' : item.minuteLabel,
-            color: context.colors.primary,
-          ),
-          Expanded(
-            child: _SubstitutionPlayerName(
-              name: outName,
-              color: context.colors.error,
-              icon: Icons.arrow_downward_rounded,
-              alignEnd: true,
-            ),
-          ),
-          Container(
-            width: 28,
-            height: 28,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: context.colors.surfaceContainerHigh,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.swap_horiz_rounded,
-              size: 17,
-              color: context.colors.textMedium,
-            ),
-          ),
-          Expanded(
-            child: _SubstitutionPlayerName(
-              name: inName,
-              color: context.colors.success,
-              icon: Icons.arrow_upward_rounded,
-              alignEnd: false,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SubstitutionPlayerName extends StatelessWidget {
-  final String name;
-  final Color color;
-  final IconData icon;
-  final bool alignEnd;
-
-  const _SubstitutionPlayerName({
-    required this.name,
-    required this.color,
-    required this.icon,
-    required this.alignEnd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Text(
-      name,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: alignEnd ? TextAlign.right : TextAlign.left,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w900,
-        color: color,
-      ),
-    );
-    final iconWidget = Icon(icon, size: 14, color: color);
-
-    return Row(
-      mainAxisAlignment:
-          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        if (!alignEnd) iconWidget,
-        if (!alignEnd) const SizedBox(width: 4),
-        Flexible(child: text),
-        if (alignEnd) const SizedBox(width: 4),
-        if (alignEnd) iconWidget,
-      ],
     );
   }
 }
@@ -2196,8 +2059,7 @@ class _LineupPlayerSubstitution {
   });
 
   String get label {
-    final prefix = isIn ? 'IN' : 'OUT';
-    return minuteLabel.isEmpty ? prefix : '$prefix $minuteLabel';
+    return minuteLabel.isEmpty ? 'SUB' : minuteLabel;
   }
 }
 
@@ -2308,12 +2170,7 @@ class _LineupPlayerTile extends StatelessWidget {
           if (player.isCaptain)
             _LineupMiniBadge(label: 'C', color: context.colors.primary),
           if (substitution != null)
-            _LineupMiniBadge(
-              label: substitution!.label,
-              color: substitution!.isIn
-                  ? context.colors.success
-                  : context.colors.error,
-            ),
+            _LineupSubstitutionBadge(substitution: substitution!),
           if (goals is num && goals > 0)
             _LineupMiniBadge(
                 label: '${goals.toInt()}G', color: context.colors.success),
@@ -2354,6 +2211,46 @@ class _LineupMiniBadge extends StatelessWidget {
           fontWeight: FontWeight.w900,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+class _LineupSubstitutionBadge extends StatelessWidget {
+  final _LineupPlayerSubstitution substitution;
+
+  const _LineupSubstitutionBadge({required this.substitution});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        substitution.isIn ? context.colors.success : context.colors.error;
+    final icon = substitution.isIn
+        ? Icons.arrow_upward_rounded
+        : Icons.arrow_downward_rounded;
+
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 3),
+          Text(
+            substitution.label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
