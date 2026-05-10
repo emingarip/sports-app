@@ -50,8 +50,8 @@ class AiSportAgentTimelineProvider {
     return MatchTimelineReport.fromJson(Map<String, dynamic>.from(decoded));
   }
 
-  WebSocketChannel connectTimeline(String matchId) {
-    return WebSocketChannel.connect(_webSocketUri(matchId));
+  WebSocketChannel connectTimeline(String matchId, {required DateTime date}) {
+    return WebSocketChannel.connect(_webSocketUri(matchId, date: date));
   }
 
   MatchTimelineReport? timelineFromSocketMessage(dynamic message) {
@@ -74,12 +74,20 @@ class AiSportAgentTimelineProvider {
     return MatchTimelineReport.fromJson(Map<String, dynamic>.from(rawTimeline));
   }
 
-  Uri _webSocketUri(String matchId) {
+  Uri _webSocketUri(String matchId, {required DateTime date}) {
     final baseUri = Uri.parse(_baseUrl);
     final scheme = baseUri.scheme == 'https' ? 'wss' : 'ws';
     final path =
-        '${baseUri.path.replaceFirst(RegExp(r'/+$'), '')}/mobile/matches/$matchId/timeline/ws';
-    return baseUri.replace(scheme: scheme, path: path);
+        '${baseUri.path.replaceFirst(RegExp(r'/+$'), '')}/mobile/matches/ws';
+    return baseUri.replace(
+      scheme: scheme,
+      path: path,
+      queryParameters: {
+        'date': _formatDate(date),
+        'tz': 'Europe/Istanbul',
+        'timelineMatchId': matchId,
+      },
+    );
   }
 
   static String _normalizeBaseUrl(String value) {
@@ -88,5 +96,12 @@ class AiSportAgentTimelineProvider {
       return normalized;
     }
     return '$normalized/api/v1';
+  }
+
+  static String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day';
   }
 }

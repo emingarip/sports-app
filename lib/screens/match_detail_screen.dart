@@ -435,7 +435,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
     }
     try {
       final provider = ref.read(aiSportAgentTimelineProvider);
-      final channel = provider.connectTimeline(widget.match.id);
+      final channel = provider.connectTimeline(
+        widget.match.id,
+        date: widget.match.startTime,
+      );
       _timelineChannel = channel;
       _timelineSubscription = channel.stream.listen(
         (message) {
