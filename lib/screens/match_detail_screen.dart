@@ -1994,6 +1994,7 @@ class _TeamLineupCard extends StatelessWidget {
               title: 'Ilk 11',
               players: lineup.starters,
               substitutions: substitutions,
+              hidePlayersIn: false,
             ),
           if (lineup.bench.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -2001,6 +2002,7 @@ class _TeamLineupCard extends StatelessWidget {
               title: 'Yedekler',
               players: lineup.bench,
               substitutions: substitutions,
+              hidePlayersIn: true,
             ),
           ],
         ],
@@ -2013,16 +2015,27 @@ class _LineupSection extends StatelessWidget {
   final String title;
   final List<LineupPlayer> players;
   final List<LineupSubstitution> substitutions;
+  final bool hidePlayersIn;
 
   const _LineupSection({
     required this.title,
     required this.players,
     required this.substitutions,
+    required this.hidePlayersIn,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (players.isEmpty) {
+    final visiblePlayers = hidePlayersIn
+        ? players
+            .where(
+              (player) =>
+                  _findSubstitutionByInPlayer(player, substitutions) == null,
+            )
+            .toList()
+        : players;
+
+    if (visiblePlayers.isEmpty) {
       return const SizedBox.shrink();
     }
     return Column(
@@ -2038,49 +2051,45 @@ class _LineupSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        ...players.map(
-          (player) => _LineupPlayerTile(
-            player: player,
-            substitution: _findSubstitutionForPlayer(player, substitutions),
-          ),
+        ...visiblePlayers.map(
+          (player) {
+            final outSubstitution =
+                _findSubstitutionByOutPlayer(player, substitutions);
+            if (outSubstitution != null) {
+              return _LineupSubstitutionTile(
+                playerOut: player,
+                substitution: outSubstitution,
+              );
+            }
+            return _LineupPlayerTile(player: player);
+          },
         ),
       ],
     );
   }
 }
 
-class _LineupPlayerSubstitution {
-  final bool isIn;
-  final String minuteLabel;
-
-  const _LineupPlayerSubstitution({
-    required this.isIn,
-    required this.minuteLabel,
-  });
-
-  String get label {
-    return minuteLabel.isEmpty ? 'SUB' : minuteLabel;
+LineupSubstitution? _findSubstitutionByOutPlayer(
+  LineupPlayer player,
+  List<LineupSubstitution> substitutions,
+) {
+  for (final substitution in substitutions) {
+    if (_lineupPlayerMatches(
+        player, substitution.playerOutId, substitution.playerOutName)) {
+      return substitution;
+    }
   }
+  return null;
 }
 
-_LineupPlayerSubstitution? _findSubstitutionForPlayer(
+LineupSubstitution? _findSubstitutionByInPlayer(
   LineupPlayer player,
   List<LineupSubstitution> substitutions,
 ) {
   for (final substitution in substitutions) {
     if (_lineupPlayerMatches(
         player, substitution.playerInId, substitution.playerInName)) {
-      return _LineupPlayerSubstitution(
-        isIn: true,
-        minuteLabel: substitution.minuteLabel,
-      );
-    }
-    if (_lineupPlayerMatches(
-        player, substitution.playerOutId, substitution.playerOutName)) {
-      return _LineupPlayerSubstitution(
-        isIn: false,
-        minuteLabel: substitution.minuteLabel,
-      );
+      return substitution;
     }
   }
   return null;
@@ -2104,9 +2113,8 @@ String _normalizeLineupName(String? value) {
 
 class _LineupPlayerTile extends StatelessWidget {
   final LineupPlayer player;
-  final _LineupPlayerSubstitution? substitution;
 
-  const _LineupPlayerTile({required this.player, required this.substitution});
+  const _LineupPlayerTile({required this.player});
 
   @override
   Widget build(BuildContext context) {
@@ -2169,8 +2177,6 @@ class _LineupPlayerTile extends StatelessWidget {
           ),
           if (player.isCaptain)
             _LineupMiniBadge(label: 'C', color: context.colors.primary),
-          if (substitution != null)
-            _LineupSubstitutionBadge(substitution: substitution!),
           if (goals is num && goals > 0)
             _LineupMiniBadge(
                 label: '${goals.toInt()}G', color: context.colors.success),
@@ -2183,6 +2189,131 @@ class _LineupPlayerTile extends StatelessWidget {
               color: context.colors.textMedium,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LineupSubstitutionTile extends StatelessWidget {
+  final LineupPlayer playerOut;
+  final LineupSubstitution substitution;
+
+  const _LineupSubstitutionTile({
+    required this.playerOut,
+    required this.substitution,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final minute = substitution.minuteLabel.isEmpty
+        ? 'SUB'
+        : '${substitution.minuteLabel} dk';
+    final outName = playerOut.shortName ?? playerOut.name;
+    final inName = substitution.playerInName ?? 'Giren oyuncu';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: context.colors.outline.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Row(
+        children: [
+          _SubstitutionSide(
+            name: outName,
+            meta: '$minute cikti',
+            color: context.colors.error,
+            icon: Icons.arrow_upward_rounded,
+            alignEnd: false,
+          ),
+          Container(
+            width: 30,
+            height: 30,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceContainerHigh,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.swap_horiz_rounded,
+              size: 18,
+              color: context.colors.textMedium,
+            ),
+          ),
+          _SubstitutionSide(
+            name: inName,
+            meta: '$minute girdi',
+            color: context.colors.success,
+            icon: Icons.arrow_downward_rounded,
+            alignEnd: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubstitutionSide extends StatelessWidget {
+  final String name;
+  final String meta;
+  final Color color;
+  final IconData icon;
+  final bool alignEnd;
+
+  const _SubstitutionSide({
+    required this.name,
+    required this.meta,
+    required this.color,
+    required this.icon,
+    required this.alignEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Row(
+        mainAxisAlignment:
+            alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!alignEnd) Icon(icon, size: 15, color: color),
+          if (!alignEnd) const SizedBox(width: 5),
+          Flexible(
+            child: Column(
+              crossAxisAlignment:
+                  alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  meta,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: color.withValues(alpha: 0.78),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (alignEnd) const SizedBox(width: 5),
+          if (alignEnd) Icon(icon, size: 15, color: color),
         ],
       ),
     );
@@ -2211,46 +2342,6 @@ class _LineupMiniBadge extends StatelessWidget {
           fontWeight: FontWeight.w900,
           color: color,
         ),
-      ),
-    );
-  }
-}
-
-class _LineupSubstitutionBadge extends StatelessWidget {
-  final _LineupPlayerSubstitution substitution;
-
-  const _LineupSubstitutionBadge({required this.substitution});
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        substitution.isIn ? context.colors.success : context.colors.error;
-    final icon = substitution.isIn
-        ? Icons.arrow_upward_rounded
-        : Icons.arrow_downward_rounded;
-
-    return Container(
-      margin: const EdgeInsets.only(right: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 3),
-          Text(
-            substitution.label,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-              color: color,
-            ),
-          ),
-        ],
       ),
     );
   }
