@@ -83,6 +83,7 @@ class MatchDetailScreen extends ConsumerStatefulWidget {
 
 class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
     with TickerProviderStateMixin {
+  static const double _detailShellMaxWidth = 600;
   late TabController _tabController;
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController(); // Outer scroll
@@ -705,75 +706,101 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
               ),
             ),
 
-          Column(
-            children: [
-              // 1) Match Pulse Header (Static 190px + SafeTop)
-              SizedBox(
-                height: safeTop + 190.0,
-                child: MatchDetailHeaderDelegate(
-                  match: widget.match,
-                  pulseController: _pulseController,
-                  bgPulseController: _bgPulseController,
-                  topPadding: safeTop,
-                ).build(context, 0.0, false),
-              ),
-
-              Material(
-                color: context.colors.background,
-                elevation: 6,
-                shadowColor: Colors.black.withValues(alpha: 0.4),
-                child: Container(
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.center,
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    dividerColor: Colors.transparent,
-                    indicator: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      color: context.colors.primaryContainer
-                          .withValues(alpha: 0.2),
-                    ),
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    tabs: [
-                      _buildDynamicTab(0, Icons.dashboard_rounded, "OVERVIEW"),
-                      _buildDynamicTab(1, Icons.groups_rounded, "LINEUP"),
-                      _buildDynamicTab(2, Icons.bar_chart_rounded, "STATS"),
-                      _buildDynamicTab(3, Icons.headset_mic_rounded, "ROOMS"),
-                      _buildDynamicTab(4, Icons.forum_rounded, "LIVE CHAT"),
-                    ],
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _detailShellMaxWidth),
+              child: Column(
+                children: [
+                  // 1) Match Pulse Header (Static 190px + SafeTop)
+                  SizedBox(
+                    height: safeTop + 190.0,
+                    child: MatchDetailHeaderDelegate(
+                      match: widget.match,
+                      pulseController: _pulseController,
+                      bgPulseController: _bgPulseController,
+                      topPadding: safeTop,
+                    ).build(context, 0.0, false),
                   ),
-                ),
-              ),
 
-              // 3) Tab Content (Expanded fills the rest of the screen)
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildOverviewTab(),
-                    _buildLineupTab(),
-                    _buildStatsTab(),
-                    MatchVoiceRoomsTab(match: widget.match),
-                    _buildChatTab(),
-                  ],
-                ),
+                  Material(
+                    color: context.colors.background,
+                    elevation: 6,
+                    shadowColor: Colors.black.withValues(alpha: 0.4),
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.center,
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        dividerColor: Colors.transparent,
+                        indicator: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          color: context.colors.primaryContainer
+                              .withValues(alpha: 0.2),
+                        ),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        tabs: [
+                          _buildDynamicTab(
+                              0, Icons.dashboard_rounded, "OVERVIEW"),
+                          _buildDynamicTab(1, Icons.groups_rounded, "LINEUP"),
+                          _buildDynamicTab(2, Icons.bar_chart_rounded, "STATS"),
+                          _buildDynamicTab(
+                              3, Icons.headset_mic_rounded, "ROOMS"),
+                          _buildDynamicTab(4, Icons.forum_rounded, "LIVE CHAT"),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 3) Tab Content (Expanded fills the rest of the screen)
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildOverviewTab(),
+                        _buildLineupTab(),
+                        _buildStatsTab(),
+                        MatchVoiceRoomsTab(match: widget.match),
+                        _buildChatTab(),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
 
           if (_tabController.index == 4)
             Positioned(
-                bottom: 0, left: 0, right: 0, child: _buildBottomInputArea()),
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(maxWidth: _detailShellMaxWidth),
+                  child: _buildBottomInputArea(),
+                ),
+              ),
+            ),
 
           if (_activeMiniGameId != null)
             Positioned(
-              left: 16,
-              right: 16,
+              left: 0,
+              right: 0,
               bottom: (_tabController.index == 4) ? 90 : 32,
-              child: _buildMiniGameBanner(),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(maxWidth: _detailShellMaxWidth),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildMiniGameBanner(),
+                  ),
+                ),
+              ),
             ),
 
           if (_activeReactions.isNotEmpty)
@@ -785,8 +812,23 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
             Positioned(
               top: safeTop +
                   140, // Puts it perfectly right below/on the bottom edge of the team box
-              right: 24,
-              child: SafeArea(child: _buildHypeBadge()),
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(maxWidth: _detailShellMaxWidth),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 24),
+                        child: _buildHypeBadge(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
         ],
       ),
