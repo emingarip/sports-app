@@ -1912,7 +1912,7 @@ class _LineupStatusCard extends StatelessWidget {
   }
 }
 
-class _LineupPitchExperience extends StatefulWidget {
+class _LineupPitchExperience extends StatelessWidget {
   final MatchLineupReport report;
   final String homeTitle;
   final String awayTitle;
@@ -1928,164 +1928,77 @@ class _LineupPitchExperience extends StatefulWidget {
   });
 
   @override
-  State<_LineupPitchExperience> createState() => _LineupPitchExperienceState();
-}
-
-class _LineupPitchExperienceState extends State<_LineupPitchExperience> {
-  bool _showHome = true;
-
-  @override
   Widget build(BuildContext context) {
-    final lineup = _showHome ? widget.report.home : widget.report.away;
-    final title = _showHome ? widget.homeTitle : widget.awayTitle;
-    final logoUrl = _showHome ? widget.homeLogo : widget.awayLogo;
-    final substitutions = widget.report.substitutions
-        .where((item) => item.isHome == _showHome)
-        .toList();
+    final homeSubs =
+        report.substitutions.where((item) => item.isHome == true).toList();
+    final awaySubs =
+        report.substitutions.where((item) => item.isHome == false).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _LineupStatusCard(report: widget.report),
+        _LineupStatusCard(report: report),
         const SizedBox(height: 10),
-        _LineupTeamSelector(
-          homeTitle: widget.homeTitle,
-          awayTitle: widget.awayTitle,
-          showHome: _showHome,
-          onChanged: (value) => setState(() => _showHome = value),
+        _DualLineupInsightStrip(
+          report: report,
+          homeTitle: homeTitle,
+          awayTitle: awayTitle,
+          homeSubstitutions: homeSubs,
+          awaySubstitutions: awaySubs,
         ),
         const SizedBox(height: 10),
-        _LineupInsightStrip(
-          title: title,
-          lineup: lineup,
-          substitutions: substitutions,
-          confirmed: widget.report.confirmed,
+        _DualLineupPitchCard(
+          report: report,
+          homeTitle: homeTitle,
+          awayTitle: awayTitle,
+          homeLogo: homeLogo,
+          awayLogo: awayLogo,
+          homeSubstitutions: homeSubs,
+          awaySubstitutions: awaySubs,
         ),
+        if (report.substitutions.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _LineupChangePanel(substitutions: report.substitutions),
+        ],
         const SizedBox(height: 10),
-        _LineupPitchCard(
-          title: title,
-          logoUrl: logoUrl,
-          lineup: lineup,
-          substitutions: substitutions,
-        ),
-        const SizedBox(height: 10),
-        if (substitutions.isNotEmpty)
-          _LineupChangePanel(substitutions: substitutions),
-        if (substitutions.isNotEmpty) const SizedBox(height: 10),
-        _BenchPanel(
-          players: lineup.bench,
-          substitutions: substitutions,
+        _DualBenchPanel(
+          homeTitle: homeTitle,
+          awayTitle: awayTitle,
+          homePlayers: report.home.bench,
+          awayPlayers: report.away.bench,
+          homeSubstitutions: homeSubs,
+          awaySubstitutions: awaySubs,
         ),
       ],
     );
   }
 }
 
-class _LineupTeamSelector extends StatelessWidget {
+class _DualLineupInsightStrip extends StatelessWidget {
+  final MatchLineupReport report;
   final String homeTitle;
   final String awayTitle;
-  final bool showHome;
-  final ValueChanged<bool> onChanged;
+  final List<LineupSubstitution> homeSubstitutions;
+  final List<LineupSubstitution> awaySubstitutions;
 
-  const _LineupTeamSelector({
+  const _DualLineupInsightStrip({
+    required this.report,
     required this.homeTitle,
     required this.awayTitle,
-    required this.showHome,
-    required this.onChanged,
+    required this.homeSubstitutions,
+    required this.awaySubstitutions,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _LineupTeamSelectorButton(
-              label: homeTitle,
-              selected: showHome,
-              onTap: () => onChanged(true),
-            ),
-          ),
-          Expanded(
-            child: _LineupTeamSelectorButton(
-              label: awayTitle,
-              selected: !showHome,
-              onTap: () => onChanged(false),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LineupTeamSelectorButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _LineupTeamSelectorButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color:
-          selected ? context.colors.surfaceContainerLowest : Colors.transparent,
-      borderRadius: BorderRadius.circular(11),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(11),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Lexend',
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: selected
-                  ? context.colors.textHigh
-                  : context.colors.textMedium,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LineupInsightStrip extends StatelessWidget {
-  final String title;
-  final TeamLineup lineup;
-  final List<LineupSubstitution> substitutions;
-  final bool confirmed;
-
-  const _LineupInsightStrip({
-    required this.title,
-    required this.lineup,
-    required this.substitutions,
-    required this.confirmed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final formation = lineup.formation ?? _inferShapeLabel(lineup.starters);
-    final changeCount = substitutions.length;
-    final text = changeCount == 0
-        ? '$title $formation duzeniyle basladi. Kadro sahada kompakt okunabilir.'
-        : '$title $formation duzeniyle basladi; $changeCount degisiklik sahadaki rozetlerle isaretli.';
+    final homeShape =
+        report.home.formation ?? _inferShapeLabel(report.home.starters);
+    final awayShape =
+        report.away.formation ?? _inferShapeLabel(report.away.starters);
+    final totalChanges = homeSubstitutions.length + awaySubstitutions.length;
+    final text = totalChanges == 0
+        ? '$homeTitle $homeShape, $awayTitle $awayShape dizilisiyle sahada. Iki takim ayni ekranda karsilastirilabilir.'
+        : '$homeTitle $homeShape, $awayTitle $awayShape. $totalChanges degisiklik sahadaki oyuncu rozetlerinde isaretli.';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2096,8 +2009,12 @@ class _LineupInsightStrip extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            confirmed ? Icons.verified_rounded : Icons.manage_search_rounded,
-            color: confirmed ? context.colors.success : context.colors.primary,
+            report.confirmed
+                ? Icons.verified_rounded
+                : Icons.manage_search_rounded,
+            color: report.confirmed
+                ? context.colors.success
+                : context.colors.primary,
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -2118,22 +2035,32 @@ class _LineupInsightStrip extends StatelessWidget {
   }
 }
 
-class _LineupPitchCard extends StatelessWidget {
-  final String title;
-  final String logoUrl;
-  final TeamLineup lineup;
-  final List<LineupSubstitution> substitutions;
+class _DualLineupPitchCard extends StatelessWidget {
+  final MatchLineupReport report;
+  final String homeTitle;
+  final String awayTitle;
+  final String homeLogo;
+  final String awayLogo;
+  final List<LineupSubstitution> homeSubstitutions;
+  final List<LineupSubstitution> awaySubstitutions;
 
-  const _LineupPitchCard({
-    required this.title,
-    required this.logoUrl,
-    required this.lineup,
-    required this.substitutions,
+  const _DualLineupPitchCard({
+    required this.report,
+    required this.homeTitle,
+    required this.awayTitle,
+    required this.homeLogo,
+    required this.awayLogo,
+    required this.homeSubstitutions,
+    required this.awaySubstitutions,
   });
 
   @override
   Widget build(BuildContext context) {
-    final rows = _buildPitchRows(lineup);
+    final homeRows = _buildPitchRows(report.home, isHome: true);
+    final awayRows = _buildPitchRows(report.away, isHome: false);
+    const markerWidth = 58.0;
+    const markerHeight = 40.0;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2145,49 +2072,30 @@ class _LineupPitchCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              ClipOval(
-                child: Image.network(
-                  logoUrl,
-                  width: 34,
-                  height: 34,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.shield, size: 34),
+              Expanded(
+                child: _PitchTeamHeader(
+                  label: homeTitle,
+                  logoUrl: homeLogo,
+                  formation: report.home.formation ??
+                      _inferShapeLabel(report.home.starters),
+                  alignEnd: false,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Lexend',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        color: context.colors.textHigh,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      lineup.formation ?? _inferShapeLabel(lineup.starters),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        color: context.colors.textMedium,
-                      ),
-                    ),
-                  ],
+                child: _PitchTeamHeader(
+                  label: awayTitle,
+                  logoUrl: awayLogo,
+                  formation: report.away.formation ??
+                      _inferShapeLabel(report.away.starters),
+                  alignEnd: true,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           AspectRatio(
-            aspectRatio: 0.68,
+            aspectRatio: 0.63,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Stack(
@@ -2197,30 +2105,62 @@ class _LineupPitchCard extends StatelessWidget {
                     builder: (context, constraints) {
                       return Stack(
                         children: [
-                          for (final item in rows)
+                          for (final item in awayRows)
                             Positioned(
                               left: max(
                                 6,
                                 min(
-                                  constraints.maxWidth - 80,
-                                  constraints.maxWidth * item.dx - 37,
+                                  constraints.maxWidth - markerWidth - 6,
+                                  constraints.maxWidth * item.dx -
+                                      markerWidth / 2,
                                 ),
                               ),
                               top: max(
                                 8,
                                 min(
-                                  constraints.maxHeight - 56,
-                                  constraints.maxHeight * item.dy - 24,
+                                  constraints.maxHeight - markerHeight - 8,
+                                  constraints.maxHeight * item.dy -
+                                      markerHeight / 2,
                                 ),
                               ),
-                              width: 74,
-                              height: 48,
+                              width: markerWidth,
+                              height: markerHeight,
                               child: _PitchPlayerMarker(
                                 player: item.player,
                                 substitution: _findSubstitutionByOutPlayer(
                                   item.player,
-                                  substitutions,
+                                  awaySubstitutions,
                                 ),
+                                isHome: false,
+                              ),
+                            ),
+                          for (final item in homeRows)
+                            Positioned(
+                              left: max(
+                                6,
+                                min(
+                                  constraints.maxWidth - markerWidth - 6,
+                                  constraints.maxWidth * item.dx -
+                                      markerWidth / 2,
+                                ),
+                              ),
+                              top: max(
+                                8,
+                                min(
+                                  constraints.maxHeight - markerHeight - 8,
+                                  constraints.maxHeight * item.dy -
+                                      markerHeight / 2,
+                                ),
+                              ),
+                              width: markerWidth,
+                              height: markerHeight,
+                              child: _PitchPlayerMarker(
+                                player: item.player,
+                                substitution: _findSubstitutionByOutPlayer(
+                                  item.player,
+                                  homeSubstitutions,
+                                ),
+                                isHome: true,
                               ),
                             ),
                         ],
@@ -2237,13 +2177,79 @@ class _LineupPitchCard extends StatelessWidget {
   }
 }
 
+class _PitchTeamHeader extends StatelessWidget {
+  final String label;
+  final String logoUrl;
+  final String formation;
+  final bool alignEnd;
+
+  const _PitchTeamHeader({
+    required this.label,
+    required this.logoUrl,
+    required this.formation,
+    required this.alignEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = ClipOval(
+      child: Image.network(
+        logoUrl,
+        width: 34,
+        height: 34,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.shield, size: 34),
+      ),
+    );
+    final text = Expanded(
+      child: Column(
+        crossAxisAlignment:
+            alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            formation,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+    return Row(
+      children: alignEnd
+          ? [text, const SizedBox(width: 8), logo]
+          : [logo, const SizedBox(width: 8), text],
+    );
+  }
+}
+
 class _PitchPlayerMarker extends StatelessWidget {
   final LineupPlayer player;
   final LineupSubstitution? substitution;
+  final bool isHome;
 
   const _PitchPlayerMarker({
     required this.player,
     required this.substitution,
+    required this.isHome,
   });
 
   @override
@@ -2251,15 +2257,16 @@ class _PitchPlayerMarker extends StatelessWidget {
     final hasChange = substitution != null;
     final goals = player.statistics['goals'];
     final name = player.shortName ?? player.name;
+    final accent = isHome ? context.colors.primary : context.colors.textHigh;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: hasChange
               ? context.colors.error.withValues(alpha: 0.55)
-              : Colors.white.withValues(alpha: 0.2),
+              : accent.withValues(alpha: 0.24),
         ),
         boxShadow: [
           BoxShadow(
@@ -2282,7 +2289,7 @@ class _PitchPlayerMarker extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: hasChange
                       ? context.colors.error.withValues(alpha: 0.12)
-                      : context.colors.primary.withValues(alpha: 0.13),
+                      : accent.withValues(alpha: 0.13),
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -2290,9 +2297,7 @@ class _PitchPlayerMarker extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
-                    color: hasChange
-                        ? context.colors.error
-                        : context.colors.primary,
+                    color: hasChange ? context.colors.error : accent,
                   ),
                 ),
               ),
@@ -2333,6 +2338,108 @@ class _PitchPlayerMarker extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DualBenchPanel extends StatelessWidget {
+  final String homeTitle;
+  final String awayTitle;
+  final List<LineupPlayer> homePlayers;
+  final List<LineupPlayer> awayPlayers;
+  final List<LineupSubstitution> homeSubstitutions;
+  final List<LineupSubstitution> awaySubstitutions;
+
+  const _DualBenchPanel({
+    required this.homeTitle,
+    required this.awayTitle,
+    required this.homePlayers,
+    required this.awayPlayers,
+    required this.homeSubstitutions,
+    required this.awaySubstitutions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final homeVisible = homePlayers
+        .where((player) =>
+            _findSubstitutionByInPlayer(player, homeSubstitutions) == null)
+        .toList();
+    final awayVisible = awayPlayers
+        .where((player) =>
+            _findSubstitutionByInPlayer(player, awaySubstitutions) == null)
+        .toList();
+    if (homeVisible.isEmpty && awayVisible.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        children: [
+          _BenchTeamRow(title: homeTitle, players: homeVisible),
+          if (homeVisible.isNotEmpty && awayVisible.isNotEmpty)
+            const SizedBox(height: 12),
+          _BenchTeamRow(title: awayTitle, players: awayVisible),
+        ],
+      ),
+    );
+  }
+}
+
+class _BenchTeamRow extends StatelessWidget {
+  final String title;
+  final List<LineupPlayer> players;
+
+  const _BenchTeamRow({
+    required this.title,
+    required this.players,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (players.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$title yedekler',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: 'Lexend',
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: players.map((player) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+              decoration: BoxDecoration(
+                color: context.colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${player.shirtNumber ?? '-'} ${player.shortName ?? player.name}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: context.colors.textMedium,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }
@@ -2427,6 +2534,7 @@ class _CompactSubstitutionRow extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _BenchPanel extends StatelessWidget {
   final List<LineupPlayer> players;
   final List<LineupSubstitution> substitutions;
@@ -2556,7 +2664,10 @@ class _PitchPlayerPosition {
   });
 }
 
-List<_PitchPlayerPosition> _buildPitchRows(TeamLineup lineup) {
+List<_PitchPlayerPosition> _buildPitchRows(
+  TeamLineup lineup, {
+  required bool isHome,
+}) {
   final starters = [...lineup.starters]
     ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
   if (starters.isEmpty) return const [];
@@ -2578,9 +2689,9 @@ List<_PitchPlayerPosition> _buildPitchRows(TeamLineup lineup) {
   for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     final row = rows[rowIndex];
     if (row.isEmpty) continue;
-    final dy = rows.length == 1
-        ? 0.5
-        : 0.90 - (rowIndex * (0.76 / max(1, rows.length - 1)));
+    final progress =
+        rows.length == 1 ? 0.5 : rowIndex / max(1, rows.length - 1);
+    final dy = isHome ? 0.93 - (progress * 0.35) : 0.07 + (progress * 0.35);
     for (var playerIndex = 0; playerIndex < row.length; playerIndex++) {
       final dx = (playerIndex + 1) / (row.length + 1);
       result
