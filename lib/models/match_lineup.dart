@@ -9,6 +9,7 @@ class MatchLineupReport {
   final List<LineupSubstitution> substitutions;
   final Map<String, dynamic> summary;
   final LineupFormationAnalysis? formationAnalysis;
+  final TacticalBalance? tacticalBalance;
 
   const MatchLineupReport({
     required this.matchId,
@@ -21,6 +22,7 @@ class MatchLineupReport {
     required this.substitutions,
     required this.summary,
     required this.formationAnalysis,
+    required this.tacticalBalance,
   });
 
   bool get hasLineups =>
@@ -43,6 +45,63 @@ class MatchLineupReport {
       summary: _asMap(json['summary']),
       formationAnalysis:
           LineupFormationAnalysis.fromJsonOrNull(json['formation_analysis']),
+      tacticalBalance: TacticalBalance.fromJsonOrNull(json['tactical_balance']),
+    );
+  }
+}
+
+class TacticalBalance {
+  final TacticalBalanceSide home;
+  final TacticalBalanceSide away;
+  final int sampleSize;
+  final double confidence;
+  final String? confidenceLabel;
+  final String? explanation;
+
+  const TacticalBalance({
+    required this.home,
+    required this.away,
+    required this.sampleSize,
+    required this.confidence,
+    required this.confidenceLabel,
+    required this.explanation,
+  });
+
+  static TacticalBalance? fromJsonOrNull(Object? value) {
+    final json = _asMap(value);
+    if (json.isEmpty) return null;
+    final home = TacticalBalanceSide.fromJsonOrNull(json['home']);
+    final away = TacticalBalanceSide.fromJsonOrNull(json['away']);
+    if (home == null || away == null) return null;
+    return TacticalBalance(
+      home: home,
+      away: away,
+      sampleSize: _asInt(json['sample_size']),
+      confidence: _asDouble(json['confidence']),
+      confidenceLabel: _nullableString(json['confidence_label']),
+      explanation: _nullableString(json['explanation']),
+    );
+  }
+}
+
+class TacticalBalanceSide {
+  final String? formation;
+  final double score;
+  final String label;
+
+  const TacticalBalanceSide({
+    required this.formation,
+    required this.score,
+    required this.label,
+  });
+
+  static TacticalBalanceSide? fromJsonOrNull(Object? value) {
+    final json = _asMap(value);
+    if (json.isEmpty) return null;
+    return TacticalBalanceSide(
+      formation: _nullableString(json['formation']),
+      score: _asDouble(json['score']),
+      label: _nullableString(json['label']) ?? 'veri yok',
     );
   }
 }
@@ -259,6 +318,12 @@ int _asInt(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+double _asDouble(Object? value) {
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '') ?? 0;
 }
 
 int? _nullableInt(Object? value) {

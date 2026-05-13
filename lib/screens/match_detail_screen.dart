@@ -2133,7 +2133,142 @@ class _DualLineupInsightStrip extends StatelessWidget {
                 _LineupComparisonBlock(
                   text: llmAnalysis?.comparison ?? comparison,
                 ),
+                if (report.tacticalBalance != null) ...[
+                  const SizedBox(height: 8),
+                  _TacticalBalanceBlock(
+                    balance: report.tacticalBalance!,
+                    homeTitle: homeTitle,
+                    awayTitle: awayTitle,
+                  ),
+                ],
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TacticalBalanceBlock extends StatelessWidget {
+  final TacticalBalance balance;
+  final String homeTitle;
+  final String awayTitle;
+
+  const _TacticalBalanceBlock({
+    required this.balance,
+    required this.homeTitle,
+    required this.awayTitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final confidence = (balance.confidence * 100).round().clamp(0, 100);
+    final explanation = balance.explanation ??
+        '${balance.sampleSize} benzer eslesme | guven $confidence%';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Taktik denge',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _TacticalBalanceSideChip(
+                  title: homeTitle,
+                  side: balance.home,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _TacticalBalanceSideChip(
+                  title: awayTitle,
+                  side: balance.away,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            explanation,
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.25,
+              fontWeight: FontWeight.w700,
+              color: context.colors.textLow,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TacticalBalanceSideChip extends StatelessWidget {
+  final String title;
+  final TacticalBalanceSide side;
+
+  const _TacticalBalanceSideChip({
+    required this.title,
+    required this.side,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _tacticalBalanceColor(context, side.score);
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _signedTacticalScore(side.score),
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            side.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: context.colors.textMedium,
             ),
           ),
         ],
@@ -2236,6 +2371,18 @@ class _InsightMiniLine extends StatelessWidget {
       ),
     );
   }
+}
+
+String _signedTacticalScore(double score) {
+  if (score > 0) return '+${score.toStringAsFixed(2)}';
+  if (score == 0) return '0.00';
+  return score.toStringAsFixed(2);
+}
+
+Color _tacticalBalanceColor(BuildContext context, double score) {
+  if (score >= 0.15) return context.colors.success;
+  if (score <= -0.15) return context.colors.error;
+  return context.colors.primary;
 }
 
 class _DualLineupPitchCard extends StatelessWidget {
