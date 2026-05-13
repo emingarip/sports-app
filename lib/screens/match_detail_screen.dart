@@ -2075,6 +2075,7 @@ class _DualLineupInsightStrip extends StatelessWidget {
         report.away.formation ?? _inferShapeLabel(report.away.starters);
     final homeProfile = _formationProfile(homeShape);
     final awayProfile = _formationProfile(awayShape);
+    final llmAnalysis = report.formationAnalysis;
     final comparison = _formationComparison(
       homeTitle: homeTitle,
       awayTitle: awayTitle,
@@ -2117,16 +2118,20 @@ class _DualLineupInsightStrip extends StatelessWidget {
                 const SizedBox(height: 6),
                 _LineupFormationBlock(
                   label: '$homeTitle $homeShape',
-                  profile: homeProfile,
+                  purpose: llmAnalysis?.home.purpose ?? homeProfile.purpose,
+                  plan: llmAnalysis?.home.plan ?? homeProfile.plan,
+                  risk: llmAnalysis?.home.risk ?? homeProfile.risk,
                 ),
                 const SizedBox(height: 8),
                 _LineupFormationBlock(
                   label: '$awayTitle $awayShape',
-                  profile: awayProfile,
+                  purpose: llmAnalysis?.away.purpose ?? awayProfile.purpose,
+                  plan: llmAnalysis?.away.plan ?? awayProfile.plan,
+                  risk: llmAnalysis?.away.risk ?? awayProfile.risk,
                 ),
                 const SizedBox(height: 9),
                 _LineupComparisonBlock(
-                  text: comparison,
+                  text: llmAnalysis?.comparison ?? comparison,
                 ),
               ],
             ),
@@ -2139,11 +2144,15 @@ class _DualLineupInsightStrip extends StatelessWidget {
 
 class _LineupFormationBlock extends StatelessWidget {
   final String label;
-  final _FormationProfile profile;
+  final String purpose;
+  final String plan;
+  final String risk;
 
   const _LineupFormationBlock({
     required this.label,
-    required this.profile,
+    required this.purpose,
+    required this.plan,
+    required this.risk,
   });
 
   @override
@@ -2162,9 +2171,9 @@ class _LineupFormationBlock extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        _InsightMiniLine(title: 'Yapi', text: profile.structure),
-        _InsightMiniLine(title: 'Guclu', text: profile.strength),
-        _InsightMiniLine(title: 'Risk', text: profile.risk),
+        _InsightMiniLine(title: 'Amac', text: purpose),
+        _InsightMiniLine(title: 'Plan', text: plan),
+        _InsightMiniLine(title: 'Risk', text: risk),
       ],
     );
   }
@@ -2934,8 +2943,8 @@ String _inferShapeLabel(List<LineupPlayer> starters) {
 }
 
 class _FormationProfile {
-  final String structure;
-  final String strength;
+  final String purpose;
+  final String plan;
   final String risk;
   final int width;
   final int midfield;
@@ -2944,8 +2953,8 @@ class _FormationProfile {
   final int forwards;
 
   const _FormationProfile({
-    required this.structure,
-    required this.strength,
+    required this.purpose,
+    required this.plan,
     required this.risk,
     required this.width,
     required this.midfield,
@@ -2963,9 +2972,9 @@ _FormationProfile _formationProfile(String formation) {
   final lines = _parseFormation(normalized);
   if (lines.isEmpty) {
     return const _FormationProfile(
-      structure:
-          'dizilis verisi sinirli. Oyuncu yerlesimi ana referans olmali.',
-      strength: 'saha uzerindeki oyuncu noktalarindan genel denge okunabilir.',
+      purpose:
+          'dizilis verisi sinirli oldugu icin teknik niyet temkinli okunmali.',
+      plan: 'saha uzerindeki oyuncu noktalarindan genel denge okunabilir.',
       risk: 'formasyon kaydi net olmadigi icin yorum temkinli okunmali.',
       width: 2,
       midfield: 2,
@@ -2983,9 +2992,9 @@ _FormationProfile _formationProfile(String formation) {
           ? lines[1]
           : 0;
   return _profile(
-    structure:
+    purpose:
         '$defenders savunmaci, $midfielders orta saha ve $forwards hucumcu ile dengelenir.',
-    strength: midfielders >= 4
+    plan: midfielders >= 4
         ? 'orta sahada daha fazla oyuncu bulundurur ve alan kapatmayi kolaylastirir.'
         : 'hatlar arasi mesafe dogru kurulursa sade ve okunabilir bir denge verir.',
     risk: forwards >= 3
@@ -3010,9 +3019,9 @@ _FormationProfile _formationProfile(String formation) {
 _FormationProfile? _knownFormationProfile(String value) {
   return switch (value) {
     '4-3-3' => _profile(
-        structure:
+        purpose:
             'uclu orta saha ve iki kanat oyuncusuyla sahaya genis yayilir.',
-        strength:
+        plan:
             'kanatlardan hucum kurmak ve topu rakip yari alanda tutmak kolaylasir.',
         risk: 'bekler one ciktiginda savunmanin kenarlarinda bosluk kalabilir.',
         width: 5,
@@ -3022,9 +3031,9 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '4-2-3-1' => _profile(
-        structure:
+        purpose:
             'savunma onunde iki oyuncu, forvet arkasinda uc destek oyuncusu vardir.',
-        strength:
+        plan:
             'orta alan dengeli kalir ve top kaybindan sonra savunmaya donmek kolaylasir.',
         risk: 'tek forvet yeterince destek alamazsa hucumda yalniz kalabilir.',
         width: 4,
@@ -3034,8 +3043,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '4-4-2' => _profile(
-        structure: 'iki forvet ve iki duz orta saha hatti kullanir.',
-        strength:
+        purpose: 'iki forvet ve iki duz orta saha hatti kullanir.',
+        plan:
             'ceza sahasina iki oyuncu sokar ve takim savunmada kolay sekil alir.',
         risk:
             'orta sahada uc oyunculu rakiplere karsi merkezde eksik kalabilir.',
@@ -3046,9 +3055,9 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '4-1-4-1' => _profile(
-        structure:
+        purpose:
             'savunma onunde tek oyuncu, onun onunde dortlu orta saha vardir.',
-        strength: 'orta alani kalabalik tutar ve savunma onunu korur.',
+        plan: 'orta alani kalabalik tutar ve savunma onunu korur.',
         risk: 'tek forvet desteksiz kalirsa hucum baslatmak zorlasabilir.',
         width: 4,
         midfield: 5,
@@ -3057,10 +3066,9 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '4-5-1' => _profile(
-        structure:
+        purpose:
             'dort savunmaci, bes orta saha ve tek forvetle daha kontrollu durur.',
-        strength:
-            'orta sahayi kalabalik tutar ve rakibin pas alanlarini daraltir.',
+        plan: 'orta sahayi kalabalik tutar ve rakibin pas alanlarini daraltir.',
         risk: 'forvet yalniz kalabilir ve hucum destegi gec gelebilir.',
         width: 4,
         midfield: 5,
@@ -3069,8 +3077,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '4-2-4' => _profile(
-        structure: 'dort hucumcuya yakin bir on hat kullanir.',
-        strength:
+        purpose: 'dort hucumcuya yakin bir on hat kullanir.',
+        plan:
             'son bolgede cok oyuncu bulundurur ve baski kurmayi kolaylastirir.',
         risk: 'orta saha iki oyuncuya kaldigi icin merkezde bosluk verebilir.',
         width: 5,
@@ -3080,8 +3088,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '4-1-2-1-2' => _profile(
-        structure: 'elmas orta saha ve iki forvet kullanir.',
-        strength:
+        purpose: 'elmas orta saha ve iki forvet kullanir.',
+        plan:
             'merkezi kalabalik tutar ve iki forvetle ceza sahasina erken iner.',
         risk: 'kanat genisligi beklerden gelmezse oyun daralabilir.',
         width: 2,
@@ -3091,9 +3099,9 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '4-3-1-2' => _profile(
-        structure:
+        purpose:
             'iki forvetin arkasinda bir destek oyuncusu ve uclu orta saha vardir.',
-        strength: 'merkezden hucum kurar ve forvetleri birbirine yakin tutar.',
+        plan: 'merkezden hucum kurar ve forvetleri birbirine yakin tutar.',
         risk:
             'kanatlarda dogal oyuncu az oldugu icin genislik sinirli kalabilir.',
         width: 2,
@@ -3103,8 +3111,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '4-3-2-1' => _profile(
-        structure: 'tek forvetin arkasinda iki destek oyuncusu kullanir.',
-        strength:
+        purpose: 'tek forvetin arkasinda iki destek oyuncusu kullanir.',
+        plan:
             'merkezden pas baglantisi kurar ve hucum oyuncularini birbirine yakin tutar.',
         risk: 'kanat genisligi az kalirsa rakip savunmayi acmak zorlasabilir.',
         width: 2,
@@ -3114,9 +3122,9 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '4-2-2-2' => _profile(
-        structure:
+        purpose:
             'iki savunma onu oyuncusu, iki destek oyuncusu ve iki forvet vardir.',
-        strength:
+        plan:
             'merkezde guvenlik saglar ve iki forvetle hucum tehdidi olusturur.',
         risk: 'kanatlar bos kalabilir ve hucum genisligi sinirlanabilir.',
         width: 2,
@@ -3126,8 +3134,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '3-5-2' => _profile(
-        structure: 'uc savunmaci, kalabalik orta saha ve iki forvet kullanir.',
-        strength:
+        purpose: 'uc savunmaci, kalabalik orta saha ve iki forvet kullanir.',
+        plan:
             'orta sahada sayi ustunlugu ve iki forvetle ceza sahasi varligi verir.',
         risk: 'kenar oyunculari geri donmezse kanatlarda bosluk olusabilir.',
         width: 4,
@@ -3137,8 +3145,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '3-4-3' => _profile(
-        structure: 'uc savunmaci, dort orta saha ve uc hucumcu vardir.',
-        strength: 'onde uc oyuncuyla baski ve kanat hucumu kurmaya uygundur.',
+        purpose: 'uc savunmaci, dort orta saha ve uc hucumcu vardir.',
+        plan: 'onde uc oyuncuyla baski ve kanat hucumu kurmaya uygundur.',
         risk: 'orta saha gecilirse uc savunmaci genis alanda yakalanabilir.',
         width: 5,
         midfield: 4,
@@ -3147,10 +3155,9 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '3-4-2-1' => _profile(
-        structure:
+        purpose:
             'tek forvetin arkasinda iki destek oyuncusu ve uc savunmaci vardir.',
-        strength:
-            'merkezde baglanti kurar ve hucum destegini forvete yakin tutar.',
+        plan: 'merkezde baglanti kurar ve hucum destegini forvete yakin tutar.',
         risk: 'kenar oyuncularinin hem hucum hem savunma yuku artar.',
         width: 4,
         midfield: 4,
@@ -3159,9 +3166,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '3-4-1-2' => _profile(
-        structure: 'iki forvetin arkasinda bir destek oyuncusu kullanir.',
-        strength:
-            'merkezden hucum kurar ve iki forvetle savunmayi mesgul eder.',
+        purpose: 'iki forvetin arkasinda bir destek oyuncusu kullanir.',
+        plan: 'merkezden hucum kurar ve iki forvetle savunmayi mesgul eder.',
         risk: 'kanat savunmasi kenar oyuncularinin temposuna bagli kalir.',
         width: 3,
         midfield: 4,
@@ -3170,9 +3176,9 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '3-1-4-2' => _profile(
-        structure:
+        purpose:
             'savunma onunde tek oyuncu, onde dortlu orta saha ve iki forvet vardir.',
-        strength: 'iki forvetle hucum ederken orta alanda kalabalik kalabilir.',
+        plan: 'iki forvetle hucum ederken orta alanda kalabalik kalabilir.',
         risk: 'savunma onundeki tek oyuncu yalniz kalirsa merkez acilabilir.',
         width: 4,
         midfield: 5,
@@ -3181,8 +3187,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '5-4-1' => _profile(
-        structure: 'bes savunmaci, dort orta saha ve tek forvet kullanir.',
-        strength:
+        purpose: 'bes savunmaci, dort orta saha ve tek forvet kullanir.',
+        plan:
             'savunma hattini kalabalik tutar ve alan kapatmayi kolaylastirir.',
         risk: 'hucumda tek forvet yalniz kalabilir ve cikislar gecikebilir.',
         width: 4,
@@ -3192,9 +3198,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 1,
       ),
     '5-3-2' => _profile(
-        structure: 'bes savunmaci ve iki forvet kullanir.',
-        strength:
-            'savunma guveni yuksektir ve iki forvetle hizli cikis yapabilir.',
+        purpose: 'bes savunmaci ve iki forvet kullanir.',
+        plan: 'savunma guveni yuksektir ve iki forvetle hizli cikis yapabilir.',
         risk: 'orta saha uclusu genis alani kapatmakta zorlanabilir.',
         width: 3,
         midfield: 3,
@@ -3203,8 +3208,8 @@ _FormationProfile? _knownFormationProfile(String value) {
         forwards: 2,
       ),
     '5-2-3' => _profile(
-        structure: 'bes savunmaci ile baslar, onde uc hucumcu kullanir.',
-        strength: 'savunma guveni ile hizli hucum tehdidini birlikte verir.',
+        purpose: 'bes savunmaci ile baslar, onde uc hucumcu kullanir.',
+        plan: 'savunma guveni ile hizli hucum tehdidini birlikte verir.',
         risk: 'orta saha iki oyuncuya kalirsa top rakipte daha cok kalabilir.',
         width: 5,
         midfield: 2,
@@ -3217,8 +3222,8 @@ _FormationProfile? _knownFormationProfile(String value) {
 }
 
 _FormationProfile _profile({
-  required String structure,
-  required String strength,
+  required String purpose,
+  required String plan,
   required String risk,
   required int width,
   required int midfield,
@@ -3227,8 +3232,8 @@ _FormationProfile _profile({
   required int forwards,
 }) {
   return _FormationProfile(
-    structure: structure,
-    strength: strength,
+    purpose: purpose,
+    plan: plan,
     risk: risk,
     width: width,
     midfield: midfield,

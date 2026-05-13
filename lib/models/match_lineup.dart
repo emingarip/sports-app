@@ -8,6 +8,7 @@ class MatchLineupReport {
   final TeamLineup away;
   final List<LineupSubstitution> substitutions;
   final Map<String, dynamic> summary;
+  final LineupFormationAnalysis? formationAnalysis;
 
   const MatchLineupReport({
     required this.matchId,
@@ -19,6 +20,7 @@ class MatchLineupReport {
     required this.away,
     required this.substitutions,
     required this.summary,
+    required this.formationAnalysis,
   });
 
   bool get hasLineups =>
@@ -39,6 +41,71 @@ class MatchLineupReport {
           .map((item) => LineupSubstitution.fromJson(_asMap(item)))
           .toList(),
       summary: _asMap(json['summary']),
+      formationAnalysis:
+          LineupFormationAnalysis.fromJsonOrNull(json['formation_analysis']),
+    );
+  }
+}
+
+class LineupFormationAnalysis {
+  final String status;
+  final String? engine;
+  final String? promptVersion;
+  final DateTime? generatedAt;
+  final LineupFormationTeamAnalysis home;
+  final LineupFormationTeamAnalysis away;
+  final String comparison;
+
+  const LineupFormationAnalysis({
+    required this.status,
+    required this.engine,
+    required this.promptVersion,
+    required this.generatedAt,
+    required this.home,
+    required this.away,
+    required this.comparison,
+  });
+
+  static LineupFormationAnalysis? fromJsonOrNull(Object? value) {
+    final json = _asMap(value);
+    if (json.isEmpty) return null;
+    final home = LineupFormationTeamAnalysis.fromJsonOrNull(json['home']);
+    final away = LineupFormationTeamAnalysis.fromJsonOrNull(json['away']);
+    final comparison = _nullableString(json['comparison']);
+    if (home == null || away == null || comparison == null) return null;
+    return LineupFormationAnalysis(
+      status: json['status']?.toString() ?? 'sent',
+      engine: _nullableString(json['engine']),
+      promptVersion: _nullableString(json['prompt_version']),
+      generatedAt: _nullableDateTime(json['generated_at']),
+      home: home,
+      away: away,
+      comparison: comparison,
+    );
+  }
+}
+
+class LineupFormationTeamAnalysis {
+  final String purpose;
+  final String plan;
+  final String risk;
+
+  const LineupFormationTeamAnalysis({
+    required this.purpose,
+    required this.plan,
+    required this.risk,
+  });
+
+  static LineupFormationTeamAnalysis? fromJsonOrNull(Object? value) {
+    final json = _asMap(value);
+    final purpose = _nullableString(json['purpose']);
+    final plan = _nullableString(json['plan']);
+    final risk = _nullableString(json['risk']);
+    if (purpose == null || plan == null || risk == null) return null;
+    return LineupFormationTeamAnalysis(
+      purpose: purpose,
+      plan: plan,
+      risk: risk,
     );
   }
 }
