@@ -2073,8 +2073,14 @@ class _DualLineupInsightStrip extends StatelessWidget {
         report.home.formation ?? _inferShapeLabel(report.home.starters);
     final awayShape =
         report.away.formation ?? _inferShapeLabel(report.away.starters);
-    final homeText = _formationMeaning(homeShape);
-    final awayText = _formationMeaning(awayShape);
+    final homeProfile = _formationProfile(homeShape);
+    final awayProfile = _formationProfile(awayShape);
+    final comparison = _formationComparison(
+      homeTitle: homeTitle,
+      awayTitle: awayTitle,
+      home: homeProfile,
+      away: awayProfile,
+    );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2109,14 +2115,18 @@ class _DualLineupInsightStrip extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                _LineupInsightLine(
+                _LineupFormationBlock(
                   label: '$homeTitle $homeShape',
-                  text: homeText,
+                  profile: homeProfile,
                 ),
-                const SizedBox(height: 5),
-                _LineupInsightLine(
+                const SizedBox(height: 8),
+                _LineupFormationBlock(
                   label: '$awayTitle $awayShape',
-                  text: awayText,
+                  profile: awayProfile,
+                ),
+                const SizedBox(height: 9),
+                _LineupComparisonBlock(
+                  text: comparison,
                 ),
               ],
             ),
@@ -2127,35 +2137,93 @@ class _DualLineupInsightStrip extends StatelessWidget {
   }
 }
 
-class _LineupInsightLine extends StatelessWidget {
+class _LineupFormationBlock extends StatelessWidget {
   final String label;
+  final _FormationProfile profile;
+
+  const _LineupFormationBlock({
+    required this.label,
+    required this.profile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        const SizedBox(height: 3),
+        _InsightMiniLine(title: 'Yapi', text: profile.structure),
+        _InsightMiniLine(title: 'Guclu', text: profile.strength),
+        _InsightMiniLine(title: 'Risk', text: profile.risk),
+      ],
+    );
+  }
+}
+
+class _LineupComparisonBlock extends StatelessWidget {
   final String text;
 
-  const _LineupInsightLine({
-    required this.label,
+  const _LineupComparisonBlock({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: _InsightMiniLine(
+        title: 'Karsilastirma',
+        text: text,
+      ),
+    );
+  }
+}
+
+class _InsightMiniLine extends StatelessWidget {
+  final String title;
+  final String text;
+
+  const _InsightMiniLine({
+    required this.title,
     required this.text,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: '$label: ',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: context.colors.textHigh,
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$title: ',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: context.colors.textHigh,
+              ),
             ),
-          ),
-          TextSpan(text: text),
-        ],
-      ),
-      style: TextStyle(
-        fontSize: 11,
-        height: 1.35,
-        fontWeight: FontWeight.w700,
-        color: context.colors.textMedium,
+            TextSpan(text: text),
+          ],
+        ),
+        style: TextStyle(
+          fontSize: 11,
+          height: 1.32,
+          fontWeight: FontWeight.w700,
+          color: context.colors.textMedium,
+        ),
       ),
     );
   }
@@ -2865,6 +2933,350 @@ String _inferShapeLabel(List<LineupPlayer> starters) {
   return 'Dizilis bekleniyor';
 }
 
+class _FormationProfile {
+  final String structure;
+  final String strength;
+  final String risk;
+  final int width;
+  final int midfield;
+  final int attack;
+  final int defense;
+  final int forwards;
+
+  const _FormationProfile({
+    required this.structure,
+    required this.strength,
+    required this.risk,
+    required this.width,
+    required this.midfield,
+    required this.attack,
+    required this.defense,
+    required this.forwards,
+  });
+}
+
+_FormationProfile _formationProfile(String formation) {
+  final normalized = formation.trim().toLowerCase();
+  final known = _knownFormationProfile(normalized);
+  if (known != null) return known;
+
+  final lines = _parseFormation(normalized);
+  if (lines.isEmpty) {
+    return const _FormationProfile(
+      structure:
+          'dizilis verisi sinirli. Oyuncu yerlesimi ana referans olmali.',
+      strength: 'saha uzerindeki oyuncu noktalarindan genel denge okunabilir.',
+      risk: 'formasyon kaydi net olmadigi icin yorum temkinli okunmali.',
+      width: 2,
+      midfield: 2,
+      attack: 2,
+      defense: 2,
+      forwards: 1,
+    );
+  }
+
+  final defenders = lines.first;
+  final forwards = lines.last;
+  final midfielders = lines.length > 2
+      ? lines.sublist(1, lines.length - 1).fold<int>(0, (a, b) => a + b)
+      : lines.length > 1
+          ? lines[1]
+          : 0;
+  return _profile(
+    structure:
+        '$defenders savunmaci, $midfielders orta saha ve $forwards hucumcu ile dengelenir.',
+    strength: midfielders >= 4
+        ? 'orta sahada daha fazla oyuncu bulundurur ve alan kapatmayi kolaylastirir.'
+        : 'hatlar arasi mesafe dogru kurulursa sade ve okunabilir bir denge verir.',
+    risk: forwards >= 3
+        ? 'onde fazla oyuncu kaldiginda orta saha destegi azalabilir.'
+        : 'hucum destegi gec gelirse ondeki oyuncular yalniz kalabilir.',
+    width: lines.length >= 4 || midfielders >= 4 ? 4 : 3,
+    midfield: midfielders.clamp(1, 5),
+    attack: forwards >= 3
+        ? 5
+        : forwards == 2
+            ? 4
+            : 3,
+    defense: defenders >= 5
+        ? 5
+        : defenders == 4
+            ? 4
+            : 3,
+    forwards: forwards,
+  );
+}
+
+_FormationProfile? _knownFormationProfile(String value) {
+  return switch (value) {
+    '4-3-3' => _profile(
+        structure:
+            'uclu orta saha ve iki kanat oyuncusuyla sahaya genis yayilir.',
+        strength:
+            'kanatlardan hucum kurmak ve topu rakip yari alanda tutmak kolaylasir.',
+        risk: 'bekler one ciktiginda savunmanin kenarlarinda bosluk kalabilir.',
+        width: 5,
+        midfield: 3,
+        attack: 5,
+        defense: 3,
+        forwards: 1,
+      ),
+    '4-2-3-1' => _profile(
+        structure:
+            'savunma onunde iki oyuncu, forvet arkasinda uc destek oyuncusu vardir.',
+        strength:
+            'orta alan dengeli kalir ve top kaybindan sonra savunmaya donmek kolaylasir.',
+        risk: 'tek forvet yeterince destek alamazsa hucumda yalniz kalabilir.',
+        width: 4,
+        midfield: 5,
+        attack: 3,
+        defense: 4,
+        forwards: 1,
+      ),
+    '4-4-2' => _profile(
+        structure: 'iki forvet ve iki duz orta saha hatti kullanir.',
+        strength:
+            'ceza sahasina iki oyuncu sokar ve takim savunmada kolay sekil alir.',
+        risk:
+            'orta sahada uc oyunculu rakiplere karsi merkezde eksik kalabilir.',
+        width: 4,
+        midfield: 3,
+        attack: 4,
+        defense: 3,
+        forwards: 2,
+      ),
+    '4-1-4-1' => _profile(
+        structure:
+            'savunma onunde tek oyuncu, onun onunde dortlu orta saha vardir.',
+        strength: 'orta alani kalabalik tutar ve savunma onunu korur.',
+        risk: 'tek forvet desteksiz kalirsa hucum baslatmak zorlasabilir.',
+        width: 4,
+        midfield: 5,
+        attack: 2,
+        defense: 4,
+        forwards: 1,
+      ),
+    '4-5-1' => _profile(
+        structure:
+            'dort savunmaci, bes orta saha ve tek forvetle daha kontrollu durur.',
+        strength:
+            'orta sahayi kalabalik tutar ve rakibin pas alanlarini daraltir.',
+        risk: 'forvet yalniz kalabilir ve hucum destegi gec gelebilir.',
+        width: 4,
+        midfield: 5,
+        attack: 2,
+        defense: 5,
+        forwards: 1,
+      ),
+    '4-2-4' => _profile(
+        structure: 'dort hucumcuya yakin bir on hat kullanir.',
+        strength:
+            'son bolgede cok oyuncu bulundurur ve baski kurmayi kolaylastirir.',
+        risk: 'orta saha iki oyuncuya kaldigi icin merkezde bosluk verebilir.',
+        width: 5,
+        midfield: 2,
+        attack: 5,
+        defense: 2,
+        forwards: 2,
+      ),
+    '4-1-2-1-2' => _profile(
+        structure: 'elmas orta saha ve iki forvet kullanir.',
+        strength:
+            'merkezi kalabalik tutar ve iki forvetle ceza sahasina erken iner.',
+        risk: 'kanat genisligi beklerden gelmezse oyun daralabilir.',
+        width: 2,
+        midfield: 5,
+        attack: 4,
+        defense: 3,
+        forwards: 2,
+      ),
+    '4-3-1-2' => _profile(
+        structure:
+            'iki forvetin arkasinda bir destek oyuncusu ve uclu orta saha vardir.',
+        strength: 'merkezden hucum kurar ve forvetleri birbirine yakin tutar.',
+        risk:
+            'kanatlarda dogal oyuncu az oldugu icin genislik sinirli kalabilir.',
+        width: 2,
+        midfield: 4,
+        attack: 4,
+        defense: 3,
+        forwards: 2,
+      ),
+    '4-3-2-1' => _profile(
+        structure: 'tek forvetin arkasinda iki destek oyuncusu kullanir.',
+        strength:
+            'merkezden pas baglantisi kurar ve hucum oyuncularini birbirine yakin tutar.',
+        risk: 'kanat genisligi az kalirsa rakip savunmayi acmak zorlasabilir.',
+        width: 2,
+        midfield: 4,
+        attack: 3,
+        defense: 3,
+        forwards: 1,
+      ),
+    '4-2-2-2' => _profile(
+        structure:
+            'iki savunma onu oyuncusu, iki destek oyuncusu ve iki forvet vardir.',
+        strength:
+            'merkezde guvenlik saglar ve iki forvetle hucum tehdidi olusturur.',
+        risk: 'kanatlar bos kalabilir ve hucum genisligi sinirlanabilir.',
+        width: 2,
+        midfield: 4,
+        attack: 4,
+        defense: 4,
+        forwards: 2,
+      ),
+    '3-5-2' => _profile(
+        structure: 'uc savunmaci, kalabalik orta saha ve iki forvet kullanir.',
+        strength:
+            'orta sahada sayi ustunlugu ve iki forvetle ceza sahasi varligi verir.',
+        risk: 'kenar oyunculari geri donmezse kanatlarda bosluk olusabilir.',
+        width: 4,
+        midfield: 5,
+        attack: 4,
+        defense: 4,
+        forwards: 2,
+      ),
+    '3-4-3' => _profile(
+        structure: 'uc savunmaci, dort orta saha ve uc hucumcu vardir.',
+        strength: 'onde uc oyuncuyla baski ve kanat hucumu kurmaya uygundur.',
+        risk: 'orta saha gecilirse uc savunmaci genis alanda yakalanabilir.',
+        width: 5,
+        midfield: 4,
+        attack: 5,
+        defense: 3,
+        forwards: 1,
+      ),
+    '3-4-2-1' => _profile(
+        structure:
+            'tek forvetin arkasinda iki destek oyuncusu ve uc savunmaci vardir.',
+        strength:
+            'merkezde baglanti kurar ve hucum destegini forvete yakin tutar.',
+        risk: 'kenar oyuncularinin hem hucum hem savunma yuku artar.',
+        width: 4,
+        midfield: 4,
+        attack: 4,
+        defense: 4,
+        forwards: 1,
+      ),
+    '3-4-1-2' => _profile(
+        structure: 'iki forvetin arkasinda bir destek oyuncusu kullanir.',
+        strength:
+            'merkezden hucum kurar ve iki forvetle savunmayi mesgul eder.',
+        risk: 'kanat savunmasi kenar oyuncularinin temposuna bagli kalir.',
+        width: 3,
+        midfield: 4,
+        attack: 4,
+        defense: 4,
+        forwards: 2,
+      ),
+    '3-1-4-2' => _profile(
+        structure:
+            'savunma onunde tek oyuncu, onde dortlu orta saha ve iki forvet vardir.',
+        strength: 'iki forvetle hucum ederken orta alanda kalabalik kalabilir.',
+        risk: 'savunma onundeki tek oyuncu yalniz kalirsa merkez acilabilir.',
+        width: 4,
+        midfield: 5,
+        attack: 4,
+        defense: 3,
+        forwards: 2,
+      ),
+    '5-4-1' => _profile(
+        structure: 'bes savunmaci, dort orta saha ve tek forvet kullanir.',
+        strength:
+            'savunma hattini kalabalik tutar ve alan kapatmayi kolaylastirir.',
+        risk: 'hucumda tek forvet yalniz kalabilir ve cikislar gecikebilir.',
+        width: 4,
+        midfield: 4,
+        attack: 1,
+        defense: 5,
+        forwards: 1,
+      ),
+    '5-3-2' => _profile(
+        structure: 'bes savunmaci ve iki forvet kullanir.',
+        strength:
+            'savunma guveni yuksektir ve iki forvetle hizli cikis yapabilir.',
+        risk: 'orta saha uclusu genis alani kapatmakta zorlanabilir.',
+        width: 3,
+        midfield: 3,
+        attack: 3,
+        defense: 5,
+        forwards: 2,
+      ),
+    '5-2-3' => _profile(
+        structure: 'bes savunmaci ile baslar, onde uc hucumcu kullanir.',
+        strength: 'savunma guveni ile hizli hucum tehdidini birlikte verir.',
+        risk: 'orta saha iki oyuncuya kalirsa top rakipte daha cok kalabilir.',
+        width: 5,
+        midfield: 2,
+        attack: 4,
+        defense: 5,
+        forwards: 1,
+      ),
+    _ => null,
+  };
+}
+
+_FormationProfile _profile({
+  required String structure,
+  required String strength,
+  required String risk,
+  required int width,
+  required int midfield,
+  required int attack,
+  required int defense,
+  required int forwards,
+}) {
+  return _FormationProfile(
+    structure: structure,
+    strength: strength,
+    risk: risk,
+    width: width,
+    midfield: midfield,
+    attack: attack,
+    defense: defense,
+    forwards: forwards,
+  );
+}
+
+String _formationComparison({
+  required String homeTitle,
+  required String awayTitle,
+  required _FormationProfile home,
+  required _FormationProfile away,
+}) {
+  final parts = <String>[];
+  if ((home.width - away.width).abs() >= 2) {
+    parts.add(home.width > away.width
+        ? '$homeTitle daha genis oynamaya uygun.'
+        : '$awayTitle daha genis oynamaya uygun.');
+  }
+  if ((home.midfield - away.midfield).abs() >= 2) {
+    parts.add(home.midfield > away.midfield
+        ? '$homeTitle orta alani daha kalabalik tutabilir.'
+        : '$awayTitle orta alani daha kalabalik tutabilir.');
+  }
+  if ((home.defense - away.defense).abs() >= 2) {
+    parts.add(home.defense > away.defense
+        ? '$homeTitle savunma guvenligini daha onde tutuyor.'
+        : '$awayTitle savunma guvenligini daha onde tutuyor.');
+  }
+  if ((home.attack - away.attack).abs() >= 2) {
+    parts.add(home.attack > away.attack
+        ? '$homeTitle hucum hattinda daha fazla oyuncu kullanabilir.'
+        : '$awayTitle hucum hattinda daha fazla oyuncu kullanabilir.');
+  }
+  if (home.forwards != away.forwards) {
+    parts.add(home.forwards > away.forwards
+        ? '$homeTitle onde daha fazla forvetle basliyor.'
+        : '$awayTitle onde daha fazla forvetle basliyor.');
+  }
+  if (parts.isEmpty) {
+    return 'Iki dizilis birbirine yakin denge veriyor. Fark daha cok oyuncu rolleri ve saha ici yerlesimden okunmali.';
+  }
+  return parts.take(3).join(' ');
+}
+
+// ignore: unused_element
 String _formationMeaning(String formation) {
   final normalized = formation.trim().toLowerCase();
   return switch (normalized) {
