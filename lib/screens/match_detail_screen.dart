@@ -2886,23 +2886,106 @@ String _inferShapeLabel(List<LineupPlayer> starters) {
 String _formationMeaning(String formation) {
   final normalized = formation.trim().toLowerCase();
   return switch (normalized) {
+    '4-2-4' =>
+      'dort hucumcuya yakin bir yapi kurar. Atak gucu artar, orta saha daha bos kalabilir.',
     '4-3-3' =>
       'kanat oyuncularini ve uclu orta sahayi one cikarir. Takim sahaya genis yayilir.',
+    '4-3-2-1' =>
+      'iki destek oyuncusu forvetin arkasinda oynar. Merkezden hucum kurmaya uygundur.',
+    '4-3-1-2' =>
+      'iki forvet ve arkalarinda bir oyun kurucu kullanir. Kanatlardan cok merkeze dayanir.',
+    '4-1-2-3' =>
+      'savunma onunde bir oyuncu, onde uc hucumcu kullanir. Kanatlar aktif kalir.',
+    '4-2-1-3' =>
+      'iki oyuncu savunma onunu korur, onde uc hucumcu vardir. Denge ve hucum birlikte aranir.',
     '4-2-3-1' =>
       'savunma onunu iki oyuncuyla korur. Orta alan daha dengeli kalir.',
+    '4-2-2-2' =>
+      'iki forvet ve iki destek oyuncusu kullanir. Merkez kalabalik, kanat genisligi daha sinirli olabilir.',
+    '4-1-3-2' =>
+      'iki forveti destekleyen uclu orta saha kurar. Savunma onundeki tek oyuncuya yuk biner.',
+    '4-3-2' =>
+      'bir oyuncu eksik gorunen dizilis. Genelde savunma ve orta saha dengesi korunmaya calisilir.',
+    '4-3-1' =>
+      'birden fazla oyuncu eksik gorunen dizilis. Saha yerlesimi mevcut oyunculara gore okunmali.',
     '4-4-2' =>
       'iki forvetle oynar. Orta saha cizgisi daha duzenli ve basit kurulur.',
+    '4-4-1-1' =>
+      'tek forvetin arkasinda destek oyuncusu kullanir. 4-4-2 kadar dengeli, hucumda daha baglantili durur.',
     '4-1-4-1' =>
       'savunma onunde tek oyuncu kullanir. Orta saha kalabalik ve kontrolludur.',
+    '4-1-3-1-1' =>
+      'savunma onunde tek oyuncu ve onde iki destek katmani kullanir. Merkez rolleri parcali dagilir.',
     '4-5-1' => 'orta sahayi kalabalik tutar. Forvet daha yalniz kalabilir.',
+    '4-1-2-1-2' =>
+      'elmas orta saha kullanir. Merkez kalabaliktir, kanat genisligi beklerden gelebilir.',
+    '4-3-1-1' =>
+      'eksik oyunculu veya ozel rol dagilimli gorunur. Tek forvetin arkasinda destek vardir.',
+    '4-2-3' =>
+      'eksik oyunculu bir yapi gorunur. Savunma onu iki oyuncuyla korunur, hucum sayisi sinirlidir.',
+    '4-4-1' =>
+      'eksik oyunculu savunma agirlikli yapi. Tek forvetle daha kontrollu kalir.',
+    '4-2-2-1' =>
+      'eksik oyunculu dengeli yapi. Iki savunma on oyuncusu ve iki destek oyuncusu vardir.',
+    '3-6-1' =>
+      'uc savunmaci ve cok kalabalik orta saha kullanir. Topun orta alanda kalmasi hedeflenir.',
     '3-5-2' =>
       'uc savunmaci ve kalabalik orta saha kullanir. Kenar oyuncularinin rolu artar.',
+    '3-5-1-1' =>
+      'uc savunmaci ve kalabalik orta saha kurar. Tek forvetin arkasinda destek oyuncusu vardir.',
+    '3-4-1-2' =>
+      'iki forvetin arkasinda bir destek oyuncusu kullanir. Merkezden hucuma cikmaya uygundur.',
+    '3-4-2-1' =>
+      'tek forvetin arkasinda iki destek oyuncusu vardir. Hucum merkezde daha baglantili kurulur.',
     '3-4-3' =>
       'uc savunmaci ile baslar, on tarafta uc oyuncu kullanir. Daha atak bir yapi olabilir.',
+    '3-3-4' =>
+      'uc savunmaci ve dort hucumcuya yakin yapi kurar. Atak riskini artirir.',
+    '3-3-3-1' =>
+      'hatlar esit dagilir ve tek forvet kullanilir. Takim bloklar halinde yerlesir.',
+    '3-1-4-2' =>
+      'savunma onunde tek oyuncu ve iki forvet vardir. Merkez koruma ile hucum sayisi birlikte aranir.',
+    '3-2-4-1' =>
+      'iki oyuncu savunma onunu korur, onde kalabalik destek hattı vardir. Hucumda cok oyuncu kullanir.',
+    '3-2-2-3' =>
+      'iki merkez oyuncu ve onde uc hucumcu kullanir. Saha yerlesimi modern ve parcali gorunur.',
+    '3-4-1-1' =>
+      'eksik oyunculu uc savunmali yapi. Tek forvetin arkasinda destek oyuncusu vardir.',
+    '3-4-2' =>
+      'eksik oyunculu uc savunmali yapi. Orta saha genis, hucum sayisi sinirlidir.',
+    '3-5-1' =>
+      'eksik oyunculu kalabalik orta saha yapisi. Tek forvetle kontrollu kalir.',
+    '3-3-3' => 'eksik oyunculu dengeli yapi. Uc hat birbirine yakin durur.',
+    '5-2-3' =>
+      'besli savunma ile baslar, onde uc hucumcu kullanir. Savunma guveni ve hizli hucum birlikte aranir.',
     '5-3-2' =>
       'savunma hattini kalabalik tutar. Iki forvetle hizli cikisa uygundur.',
+    '5-2-1-2' =>
+      'besli savunma, iki merkez ve iki forvet kullanir. Merkez destek oyuncusu hucumu baglar.',
+    '5-2-2-1' =>
+      'besli savunma ve tek forvet vardir. Iki destek oyuncusu hucuma baglanti saglar.',
+    '5-3-1-1' =>
+      'besli savunma, tek forvet ve arkasinda destek oyuncusu kullanir. Daha kontrollu bir yapidir.',
     '5-4-1' =>
       'savunma agirlikli bir yapi kurar. Forvet destegi sinirli kalabilir.',
+    '5-1-3-1' =>
+      'savunma onunde tek oyuncu ve kalabalik destek hattı vardir. Savunma guveni one cikar.',
+    '5-2-2' =>
+      'eksik oyunculu besli savunma yapisi. Savunma kalabalik, hucum sayisi sinirlidir.',
+    '5-3-1' =>
+      'eksik oyunculu kontrollu yapi. Besli savunma ve tek forvet gorunur.',
+    '5-4' =>
+      'eksik oyunculu savunma agirlikli yapi. Forvet hattı verisi eksik olabilir.',
+    '2-3-5' =>
+      'cok hucumcu gorunen eski tip yapi. Savunma sayisi az, hucum sayisi fazladir.',
+    '2-5-3' =>
+      'orta saha ve hucum kalabalik gorunur. Savunma sayisi az oldugu icin riskli olabilir.',
+    '2-4-4' =>
+      'dort hucumcuya yakin ve savunma sayisi az yapi. Hucum agirligi fazladir.',
+    '1-4-4-1' =>
+      'eksik veya ozel kayitli yapi. Orta saha kalabalik, savunma sayisi sinirli gorunur.',
+    '1-3-4-2' =>
+      'eksik veya ozel kayitli yapi. Orta saha ve hucum sayisi savunmadan fazladir.',
     _ when RegExp(r'^\d-\d-\d$').hasMatch(normalized) =>
       'uc hatli klasik bir dizilis. Oyuncu yerlesimi takim dengesini gosterir.',
     _ when RegExp(r'^\d-\d-\d-\d$').hasMatch(normalized) =>
