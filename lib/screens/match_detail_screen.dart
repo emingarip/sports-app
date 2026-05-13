@@ -2073,10 +2073,14 @@ class _DualLineupInsightStrip extends StatelessWidget {
         report.home.formation ?? _inferShapeLabel(report.home.starters);
     final awayShape =
         report.away.formation ?? _inferShapeLabel(report.away.starters);
-    final totalChanges = homeSubstitutions.length + awaySubstitutions.length;
-    final text = totalChanges == 0
-        ? '$homeTitle $homeShape, $awayTitle $awayShape dizilisiyle sahada. Iki takim ayni ekranda karsilastirilabilir.'
-        : '$homeTitle $homeShape, $awayTitle $awayShape. $totalChanges degisiklik sahadaki oyuncu rozetlerinde isaretli.';
+    final homeText = _formationMeaning(homeShape);
+    final awayText = _formationMeaning(awayShape);
+    final changeText = _substitutionMeaning(
+      homeCount: homeSubstitutions.length,
+      awayCount: awaySubstitutions.length,
+      homeTitle: homeTitle,
+      awayTitle: awayTitle,
+    );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2085,6 +2089,7 @@ class _DualLineupInsightStrip extends StatelessWidget {
         border: Border.all(color: context.colors.surfaceContainerHighest),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             report.confirmed
@@ -2097,17 +2102,78 @@ class _DualLineupInsightStrip extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.35,
-                fontWeight: FontWeight.w700,
-                color: context.colors.textMedium,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Dizilis ozeti',
+                  style: TextStyle(
+                    fontFamily: 'Lexend',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.textHigh,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                _LineupInsightLine(
+                  label: '$homeTitle $homeShape',
+                  text: homeText,
+                ),
+                const SizedBox(height: 5),
+                _LineupInsightLine(
+                  label: '$awayTitle $awayShape',
+                  text: awayText,
+                ),
+                if (changeText.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  Text(
+                    changeText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.35,
+                      fontWeight: FontWeight.w800,
+                      color: context.colors.textMedium,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LineupInsightLine extends StatelessWidget {
+  final String label;
+  final String text;
+
+  const _LineupInsightLine({
+    required this.label,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          TextSpan(text: text),
+        ],
+      ),
+      style: TextStyle(
+        fontSize: 11,
+        height: 1.35,
+        fontWeight: FontWeight.w700,
+        color: context.colors.textMedium,
       ),
     );
   }
@@ -2815,6 +2881,57 @@ String _inferShapeLabel(List<LineupPlayer> starters) {
   if (starters.length >= 11) return 'Dizilis mevcut';
   if (starters.isNotEmpty) return '${starters.length} oyuncu';
   return 'Dizilis bekleniyor';
+}
+
+String _formationMeaning(String formation) {
+  final normalized = formation.trim().toLowerCase();
+  return switch (normalized) {
+    '4-3-3' =>
+      'kanat oyuncularini ve uclu orta sahayi one cikarir. Takim sahaya genis yayilir.',
+    '4-2-3-1' =>
+      'savunma onunu iki oyuncuyla korur. Orta alan daha dengeli kalir.',
+    '4-4-2' =>
+      'iki forvetle oynar. Orta saha cizgisi daha duzenli ve basit kurulur.',
+    '4-1-4-1' =>
+      'savunma onunde tek oyuncu kullanir. Orta saha kalabalik ve kontrolludur.',
+    '4-5-1' => 'orta sahayi kalabalik tutar. Forvet daha yalniz kalabilir.',
+    '3-5-2' =>
+      'uc savunmaci ve kalabalik orta saha kullanir. Kenar oyuncularinin rolu artar.',
+    '3-4-3' =>
+      'uc savunmaci ile baslar, on tarafta uc oyuncu kullanir. Daha atak bir yapi olabilir.',
+    '5-3-2' =>
+      'savunma hattini kalabalik tutar. Iki forvetle hizli cikisa uygundur.',
+    '5-4-1' =>
+      'savunma agirlikli bir yapi kurar. Forvet destegi sinirli kalabilir.',
+    _ when RegExp(r'^\d-\d-\d$').hasMatch(normalized) =>
+      'uc hatli klasik bir dizilis. Oyuncu yerlesimi takim dengesini gosterir.',
+    _ when RegExp(r'^\d-\d-\d-\d$').hasMatch(normalized) =>
+      'dort hatli daha detayli bir dizilis. Orta alan rolleri daha belirgin ayrilir.',
+    _ =>
+      'dizilis verisi sinirli. Oyuncularin sahadaki yerlesimi ana referans olmali.',
+  };
+}
+
+String _substitutionMeaning({
+  required int homeCount,
+  required int awayCount,
+  required String homeTitle,
+  required String awayTitle,
+}) {
+  final total = homeCount + awayCount;
+  if (total == 0) {
+    return 'Degisiklik yok; saha dizilimi baslangic kadrosuna yakin gorunuyor.';
+  }
+  if (total >= 8) {
+    return '$total degisiklik var. Saha yapisi baslangic dizilisinden ciddi sekilde uzaklasmis olabilir.';
+  }
+  if (homeCount > awayCount) {
+    return '$homeTitle $homeCount degisiklik yapti; sahadaki denge en cok bu tarafta degismis olabilir.';
+  }
+  if (awayCount > homeCount) {
+    return '$awayTitle $awayCount degisiklik yapti; sahadaki denge en cok bu tarafta degismis olabilir.';
+  }
+  return 'Iki takim da $homeCount degisiklik yapti; sahadaki enerji ve roller iki tarafta da yenilenmis.';
 }
 
 // ignore: unused_element
