@@ -1842,6 +1842,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
   }
 }
 
+// ignore: unused_element
 class _LineupStatusCard extends StatelessWidget {
   final MatchLineupReport report;
 
@@ -1861,24 +1862,28 @@ class _LineupStatusCard extends StatelessWidget {
         ? null
         : '${report.syncedAt!.toLocal().hour.toString().padLeft(2, '0')}:${report.syncedAt!.toLocal().minute.toString().padLeft(2, '0')}';
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: context.colors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.colors.surfaceContainerHighest),
       ),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
               color: context.colors.primaryContainer.withValues(alpha: 0.18),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.groups_rounded, color: context.colors.primary),
+            child: Icon(
+              Icons.groups_rounded,
+              color: context.colors.primary,
+              size: 17,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1912,6 +1917,79 @@ class _LineupStatusCard extends StatelessWidget {
   }
 }
 
+class _CompactLineupStatusPill extends StatelessWidget {
+  final MatchLineupReport report;
+
+  const _CompactLineupStatusPill({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final statusText = switch (report.status) {
+      'complete' => 'Kadrolar tamam',
+      'partial' => 'Kadro kismen hazir',
+      'failed' => 'Kadro alinamadi',
+      'unavailable' => 'Kadro yok',
+      _ => 'Kadro bekleniyor',
+    };
+    final confirmedText = report.confirmed ? 'Resmi' : 'Bekleyen';
+    final updatedText = report.syncedAt == null
+        ? null
+        : '${report.syncedAt!.toLocal().hour.toString().padLeft(2, '0')}:${report.syncedAt!.toLocal().minute.toString().padLeft(2, '0')}';
+    final metaText =
+        updatedText == null ? confirmedText : '$confirmedText · $updatedText';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: context.colors.primaryContainer.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.groups_rounded,
+              color: context.colors.primary,
+              size: 17,
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              statusText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Lexend',
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: context.colors.textHigh,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            metaText,
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: context.colors.textMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LineupPitchExperience extends StatelessWidget {
   final MatchLineupReport report;
   final String homeTitle;
@@ -1937,7 +2015,7 @@ class _LineupPitchExperience extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _LineupStatusCard(report: report),
+        _CompactLineupStatusPill(report: report),
         const SizedBox(height: 10),
         _DualLineupInsightStrip(
           report: report,
