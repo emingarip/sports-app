@@ -1213,26 +1213,19 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen>
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
             children: [
-              _LineupStatusCard(report: report),
-              const SizedBox(height: 12),
-              _TeamLineupCard(
-                title: widget.match.homeTeam,
-                logoUrl: widget.match.homeLogo,
-                lineup: report.home,
-                substitutions: report.substitutions
-                    .where((item) => item.isHome == true)
-                    .toList(),
-              ),
-              const SizedBox(height: 12),
-              _TeamLineupCard(
-                title: widget.match.awayTeam,
-                logoUrl: widget.match.awayLogo,
-                lineup: report.away,
-                substitutions: report.substitutions
-                    .where((item) => item.isHome == false)
-                    .toList(),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: _LineupPitchExperience(
+                    report: report,
+                    homeTitle: widget.match.homeTeam,
+                    awayTitle: widget.match.awayTeam,
+                    homeLogo: widget.match.homeLogo,
+                    awayLogo: widget.match.awayLogo,
+                  ),
+                ),
               ),
             ],
           );
@@ -1919,6 +1912,723 @@ class _LineupStatusCard extends StatelessWidget {
   }
 }
 
+class _LineupPitchExperience extends StatefulWidget {
+  final MatchLineupReport report;
+  final String homeTitle;
+  final String awayTitle;
+  final String homeLogo;
+  final String awayLogo;
+
+  const _LineupPitchExperience({
+    required this.report,
+    required this.homeTitle,
+    required this.awayTitle,
+    required this.homeLogo,
+    required this.awayLogo,
+  });
+
+  @override
+  State<_LineupPitchExperience> createState() => _LineupPitchExperienceState();
+}
+
+class _LineupPitchExperienceState extends State<_LineupPitchExperience> {
+  bool _showHome = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final lineup = _showHome ? widget.report.home : widget.report.away;
+    final title = _showHome ? widget.homeTitle : widget.awayTitle;
+    final logoUrl = _showHome ? widget.homeLogo : widget.awayLogo;
+    final substitutions = widget.report.substitutions
+        .where((item) => item.isHome == _showHome)
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _LineupStatusCard(report: widget.report),
+        const SizedBox(height: 10),
+        _LineupTeamSelector(
+          homeTitle: widget.homeTitle,
+          awayTitle: widget.awayTitle,
+          showHome: _showHome,
+          onChanged: (value) => setState(() => _showHome = value),
+        ),
+        const SizedBox(height: 10),
+        _LineupInsightStrip(
+          title: title,
+          lineup: lineup,
+          substitutions: substitutions,
+          confirmed: widget.report.confirmed,
+        ),
+        const SizedBox(height: 10),
+        _LineupPitchCard(
+          title: title,
+          logoUrl: logoUrl,
+          lineup: lineup,
+          substitutions: substitutions,
+        ),
+        const SizedBox(height: 10),
+        if (substitutions.isNotEmpty)
+          _LineupChangePanel(substitutions: substitutions),
+        if (substitutions.isNotEmpty) const SizedBox(height: 10),
+        _BenchPanel(
+          players: lineup.bench,
+          substitutions: substitutions,
+        ),
+      ],
+    );
+  }
+}
+
+class _LineupTeamSelector extends StatelessWidget {
+  final String homeTitle;
+  final String awayTitle;
+  final bool showHome;
+  final ValueChanged<bool> onChanged;
+
+  const _LineupTeamSelector({
+    required this.homeTitle,
+    required this.awayTitle,
+    required this.showHome,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _LineupTeamSelectorButton(
+              label: homeTitle,
+              selected: showHome,
+              onTap: () => onChanged(true),
+            ),
+          ),
+          Expanded(
+            child: _LineupTeamSelectorButton(
+              label: awayTitle,
+              selected: !showHome,
+              onTap: () => onChanged(false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LineupTeamSelectorButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LineupTeamSelectorButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color:
+          selected ? context.colors.surfaceContainerLowest : Colors.transparent,
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(11),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: selected
+                  ? context.colors.textHigh
+                  : context.colors.textMedium,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LineupInsightStrip extends StatelessWidget {
+  final String title;
+  final TeamLineup lineup;
+  final List<LineupSubstitution> substitutions;
+  final bool confirmed;
+
+  const _LineupInsightStrip({
+    required this.title,
+    required this.lineup,
+    required this.substitutions,
+    required this.confirmed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final formation = lineup.formation ?? _inferShapeLabel(lineup.starters);
+    final changeCount = substitutions.length;
+    final text = changeCount == 0
+        ? '$title $formation duzeniyle basladi. Kadro sahada kompakt okunabilir.'
+        : '$title $formation duzeniyle basladi; $changeCount degisiklik sahadaki rozetlerle isaretli.';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            confirmed ? Icons.verified_rounded : Icons.manage_search_rounded,
+            color: confirmed ? context.colors.success : context.colors.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+                color: context.colors.textMedium,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LineupPitchCard extends StatelessWidget {
+  final String title;
+  final String logoUrl;
+  final TeamLineup lineup;
+  final List<LineupSubstitution> substitutions;
+
+  const _LineupPitchCard({
+    required this.title,
+    required this.logoUrl,
+    required this.lineup,
+    required this.substitutions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = _buildPitchRows(lineup);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ClipOval(
+                child: Image.network(
+                  logoUrl,
+                  width: 34,
+                  height: 34,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.shield, size: 34),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Lexend',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: context.colors.textHigh,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      lineup.formation ?? _inferShapeLabel(lineup.starters),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: context.colors.textMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          AspectRatio(
+            aspectRatio: 0.68,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Stack(
+                        children: [
+                          for (final item in rows)
+                            Positioned(
+                              left: max(
+                                6,
+                                min(
+                                  constraints.maxWidth - 80,
+                                  constraints.maxWidth * item.dx - 37,
+                                ),
+                              ),
+                              top: max(
+                                8,
+                                min(
+                                  constraints.maxHeight - 56,
+                                  constraints.maxHeight * item.dy - 24,
+                                ),
+                              ),
+                              width: 74,
+                              height: 48,
+                              child: _PitchPlayerMarker(
+                                player: item.player,
+                                substitution: _findSubstitutionByOutPlayer(
+                                  item.player,
+                                  substitutions,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PitchPlayerMarker extends StatelessWidget {
+  final LineupPlayer player;
+  final LineupSubstitution? substitution;
+
+  const _PitchPlayerMarker({
+    required this.player,
+    required this.substitution,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasChange = substitution != null;
+    final goals = player.statistics['goals'];
+    final name = player.shortName ?? player.name;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(
+          color: hasChange
+              ? context.colors.error.withValues(alpha: 0.55)
+              : Colors.white.withValues(alpha: 0.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: hasChange
+                      ? context.colors.error.withValues(alpha: 0.12)
+                      : context.colors.primary.withValues(alpha: 0.13),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  player.shirtNumber ?? '-',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: hasChange
+                        ? context.colors.error
+                        : context.colors.primary,
+                  ),
+                ),
+              ),
+              if (player.isCaptain) ...[
+                const SizedBox(width: 3),
+                Text(
+                  'C',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.primary,
+                  ),
+                ),
+              ],
+              if (goals is num && goals > 0) ...[
+                const SizedBox(width: 3),
+                Icon(Icons.sports_soccer,
+                    size: 10, color: context.colors.success),
+              ],
+              if (hasChange) ...[
+                const SizedBox(width: 3),
+                Icon(Icons.arrow_upward_rounded,
+                    size: 11, color: context.colors.error),
+              ],
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LineupChangePanel extends StatelessWidget {
+  final List<LineupSubstitution> substitutions;
+
+  const _LineupChangePanel({required this.substitutions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Degisimler',
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...substitutions.map((item) => _CompactSubstitutionRow(item: item)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactSubstitutionRow extends StatelessWidget {
+  final LineupSubstitution item;
+
+  const _CompactSubstitutionRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final minute = item.minuteLabel.isEmpty ? 'SUB' : item.minuteLabel;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 42,
+            child: Text(
+              minute,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: context.colors.textMedium,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              item.playerOutName ?? 'Cikan oyuncu',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: context.colors.error,
+              ),
+            ),
+          ),
+          Icon(Icons.swap_horiz_rounded,
+              size: 18, color: context.colors.textMedium),
+          Expanded(
+            child: Text(
+              item.playerInName ?? 'Giren oyuncu',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: context.colors.success,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BenchPanel extends StatelessWidget {
+  final List<LineupPlayer> players;
+  final List<LineupSubstitution> substitutions;
+
+  const _BenchPanel({
+    required this.players,
+    required this.substitutions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visiblePlayers = players
+        .where((player) =>
+            _findSubstitutionByInPlayer(player, substitutions) == null)
+        .toList();
+    if (visiblePlayers.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Yedekler',
+            style: TextStyle(
+              fontFamily: 'Lexend',
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: visiblePlayers.map((player) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                decoration: BoxDecoration(
+                  color: context.colors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${player.shirtNumber ?? '-'} ${player.shortName ?? player.name}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: context.colors.textMedium,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PitchPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final grass = Paint()..color = const Color(0xFF2F8E5C);
+    canvas.drawRect(Offset.zero & size, grass);
+
+    final stripe = Paint()..color = Colors.white.withValues(alpha: 0.045);
+    for (var i = 0; i < 7; i++) {
+      if (i.isEven) {
+        canvas.drawRect(
+          Rect.fromLTWH(0, size.height / 7 * i, size.width, size.height / 7),
+          stripe,
+        );
+      }
+    }
+
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: 0.48)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final border = Rect.fromLTWH(10, 10, size.width - 20, size.height - 20);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(border, const Radius.circular(12)),
+      line,
+    );
+    canvas.drawLine(
+      Offset(10, size.height / 2),
+      Offset(size.width - 10, size.height / 2),
+      line,
+    );
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 34, line);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 2, line);
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, 10),
+        width: size.width * 0.46,
+        height: 54,
+      ),
+      line,
+    );
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height - 10),
+        width: size.width * 0.46,
+        height: 54,
+      ),
+      line,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _PitchPlayerPosition {
+  final LineupPlayer player;
+  final double dx;
+  final double dy;
+
+  const _PitchPlayerPosition({
+    required this.player,
+    required this.dx,
+    required this.dy,
+  });
+}
+
+List<_PitchPlayerPosition> _buildPitchRows(TeamLineup lineup) {
+  final starters = [...lineup.starters]
+    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+  if (starters.isEmpty) return const [];
+  final formationRows = _parseFormation(lineup.formation);
+  final rows = <List<LineupPlayer>>[];
+  if (formationRows.fold<int>(0, (sum, item) => sum + item) ==
+      starters.length - 1) {
+    rows.add([starters.first]);
+    var cursor = 1;
+    for (final count in formationRows) {
+      rows.add(starters.skip(cursor).take(count).toList());
+      cursor += count;
+    }
+  } else {
+    rows.addAll(_fallbackRows(starters));
+  }
+
+  final result = <_PitchPlayerPosition>[];
+  for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    final row = rows[rowIndex];
+    if (row.isEmpty) continue;
+    final dy = rows.length == 1
+        ? 0.5
+        : 0.90 - (rowIndex * (0.76 / max(1, rows.length - 1)));
+    for (var playerIndex = 0; playerIndex < row.length; playerIndex++) {
+      final dx = (playerIndex + 1) / (row.length + 1);
+      result
+          .add(_PitchPlayerPosition(player: row[playerIndex], dx: dx, dy: dy));
+    }
+  }
+  return result;
+}
+
+List<int> _parseFormation(String? value) {
+  if (value == null || value.trim().isEmpty) return const [];
+  return value
+      .split(RegExp(r'[-\s]+'))
+      .map((part) => int.tryParse(part.trim()))
+      .whereType<int>()
+      .where((item) => item > 0)
+      .toList();
+}
+
+List<List<LineupPlayer>> _fallbackRows(List<LineupPlayer> starters) {
+  final gk =
+      starters.where((p) => (p.position ?? '').toUpperCase() == 'G').toList();
+  final defenders =
+      starters.where((p) => (p.position ?? '').toUpperCase() == 'D').toList();
+  final mids =
+      starters.where((p) => (p.position ?? '').toUpperCase() == 'M').toList();
+  final forwards =
+      starters.where((p) => (p.position ?? '').toUpperCase() == 'F').toList();
+  final used = {...gk, ...defenders, ...mids, ...forwards};
+  final rest = starters.where((p) => !used.contains(p)).toList();
+  return [
+    if (gk.isNotEmpty) gk.take(1).toList() else starters.take(1).toList(),
+    if (defenders.isNotEmpty) defenders else starters.skip(1).take(4).toList(),
+    if (mids.isNotEmpty) mids else starters.skip(5).take(4).toList(),
+    if (forwards.isNotEmpty)
+      forwards
+    else
+      [...starters.skip(9), ...rest].take(2).toList(),
+  ];
+}
+
+String _inferShapeLabel(List<LineupPlayer> starters) {
+  if (starters.length >= 11) return 'Dizilis mevcut';
+  if (starters.isNotEmpty) return '${starters.length} oyuncu';
+  return 'Dizilis bekleniyor';
+}
+
+// ignore: unused_element
 class _TeamLineupCard extends StatelessWidget {
   final String title;
   final String logoUrl;
