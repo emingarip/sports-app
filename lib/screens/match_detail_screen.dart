@@ -2075,12 +2075,6 @@ class _DualLineupInsightStrip extends StatelessWidget {
         report.away.formation ?? _inferShapeLabel(report.away.starters);
     final homeText = _formationMeaning(homeShape);
     final awayText = _formationMeaning(awayShape);
-    final changeText = _substitutionMeaning(
-      homeCount: homeSubstitutions.length,
-      awayCount: awaySubstitutions.length,
-      homeTitle: homeTitle,
-      awayTitle: awayTitle,
-    );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2124,18 +2118,6 @@ class _DualLineupInsightStrip extends StatelessWidget {
                   label: '$awayTitle $awayShape',
                   text: awayText,
                 ),
-                if (changeText.isNotEmpty) ...[
-                  const SizedBox(height: 7),
-                  Text(
-                    changeText,
-                    style: TextStyle(
-                      fontSize: 11,
-                      height: 1.35,
-                      fontWeight: FontWeight.w800,
-                      color: context.colors.textMedium,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -2993,28 +2975,6 @@ String _formationMeaning(String formation) {
     _ =>
       'dizilis verisi sinirli. Oyuncularin sahadaki yerlesimi ana referans olmali.',
   };
-}
-
-String _substitutionMeaning({
-  required int homeCount,
-  required int awayCount,
-  required String homeTitle,
-  required String awayTitle,
-}) {
-  final total = homeCount + awayCount;
-  if (total == 0) {
-    return 'Degisiklik yok; saha dizilimi baslangic kadrosuna yakin gorunuyor.';
-  }
-  if (total >= 8) {
-    return '$total degisiklik var. Saha yapisi baslangic dizilisinden ciddi sekilde uzaklasmis olabilir.';
-  }
-  if (homeCount > awayCount) {
-    return '$homeTitle $homeCount degisiklik yapti; sahadaki denge en cok bu tarafta degismis olabilir.';
-  }
-  if (awayCount > homeCount) {
-    return '$awayTitle $awayCount degisiklik yapti; sahadaki denge en cok bu tarafta degismis olabilir.';
-  }
-  return 'Iki takim da $homeCount degisiklik yapti; sahadaki enerji ve roller iki tarafta da yenilenmis.';
 }
 
 // ignore: unused_element
