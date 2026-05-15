@@ -10,6 +10,7 @@ class MatchLineupReport {
   final Map<String, dynamic> summary;
   final LineupFormationAnalysis? formationAnalysis;
   final TacticalBalance? tacticalBalance;
+  final FormationPairStatistics? formationStatistics;
 
   const MatchLineupReport({
     required this.matchId,
@@ -23,6 +24,7 @@ class MatchLineupReport {
     required this.summary,
     required this.formationAnalysis,
     required this.tacticalBalance,
+    required this.formationStatistics,
   });
 
   bool get hasLineups =>
@@ -46,6 +48,114 @@ class MatchLineupReport {
       formationAnalysis:
           LineupFormationAnalysis.fromJsonOrNull(json['formation_analysis']),
       tacticalBalance: TacticalBalance.fromJsonOrNull(json['tactical_balance']),
+      formationStatistics:
+          FormationPairStatistics.fromJsonOrNull(json['formation_statistics']),
+    );
+  }
+}
+
+class FormationPairStatistics {
+  final String homeFormation;
+  final String awayFormation;
+  final int sampleSize;
+  final int minReliableSampleSize;
+  final double avgTotalGoals;
+  final double over25Rate;
+  final double bttsRate;
+  final FormationResultStatistics result;
+  final FormationPeriodStatistics? firstHalf;
+  final FormationPeriodStatistics? secondHalf;
+
+  const FormationPairStatistics({
+    required this.homeFormation,
+    required this.awayFormation,
+    required this.sampleSize,
+    required this.minReliableSampleSize,
+    required this.avgTotalGoals,
+    required this.over25Rate,
+    required this.bttsRate,
+    required this.result,
+    required this.firstHalf,
+    required this.secondHalf,
+  });
+
+  bool get hasReliableSample => sampleSize >= minReliableSampleSize;
+
+  static FormationPairStatistics? fromJsonOrNull(Object? value) {
+    final json = _asMap(value);
+    if (json.isEmpty) return null;
+    final result = FormationResultStatistics.fromJsonOrNull(json['result']);
+    if (result == null) return null;
+    return FormationPairStatistics(
+      homeFormation: _nullableString(json['home_formation']) ?? '',
+      awayFormation: _nullableString(json['away_formation']) ?? '',
+      sampleSize: _asInt(json['sample_size']),
+      minReliableSampleSize: _asInt(json['min_reliable_sample_size']),
+      avgTotalGoals: _asDouble(json['avg_total_goals']),
+      over25Rate: _asDouble(json['over_25_rate']),
+      bttsRate: _asDouble(json['btts_rate']),
+      result: result,
+      firstHalf: FormationPeriodStatistics.fromJsonOrNull(json['first_half']),
+      secondHalf: FormationPeriodStatistics.fromJsonOrNull(json['second_half']),
+    );
+  }
+}
+
+class FormationResultStatistics {
+  final double homeWinRate;
+  final double drawRate;
+  final double awayWinRate;
+  final double homeAvgGoals;
+  final double awayAvgGoals;
+  final double avgGoalDiff;
+
+  const FormationResultStatistics({
+    required this.homeWinRate,
+    required this.drawRate,
+    required this.awayWinRate,
+    required this.homeAvgGoals,
+    required this.awayAvgGoals,
+    required this.avgGoalDiff,
+  });
+
+  static FormationResultStatistics? fromJsonOrNull(Object? value) {
+    final json = _asMap(value);
+    if (json.isEmpty) return null;
+    return FormationResultStatistics(
+      homeWinRate: _asDouble(json['home_win_rate']),
+      drawRate: _asDouble(json['draw_rate']),
+      awayWinRate: _asDouble(json['away_win_rate']),
+      homeAvgGoals: _asDouble(json['home_avg_goals']),
+      awayAvgGoals: _asDouble(json['away_avg_goals']),
+      avgGoalDiff: _asDouble(json['avg_goal_diff']),
+    );
+  }
+}
+
+class FormationPeriodStatistics {
+  final double avgGoals;
+  final double over05Rate;
+  final double over15Rate;
+  final double homeAvgGoals;
+  final double awayAvgGoals;
+
+  const FormationPeriodStatistics({
+    required this.avgGoals,
+    required this.over05Rate,
+    required this.over15Rate,
+    required this.homeAvgGoals,
+    required this.awayAvgGoals,
+  });
+
+  static FormationPeriodStatistics? fromJsonOrNull(Object? value) {
+    final json = _asMap(value);
+    if (json.isEmpty) return null;
+    return FormationPeriodStatistics(
+      avgGoals: _asDouble(json['avg_goals']),
+      over05Rate: _asDouble(json['over_05_rate']),
+      over15Rate: _asDouble(json['over_15_rate']),
+      homeAvgGoals: _asDouble(json['home_avg_goals']),
+      awayAvgGoals: _asDouble(json['away_avg_goals']),
     );
   }
 }

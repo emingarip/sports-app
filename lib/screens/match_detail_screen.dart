@@ -2073,15 +2073,7 @@ class _DualLineupInsightStrip extends StatelessWidget {
         report.home.formation ?? _inferShapeLabel(report.home.starters);
     final awayShape =
         report.away.formation ?? _inferShapeLabel(report.away.starters);
-    final homeProfile = _formationProfile(homeShape);
-    final awayProfile = _formationProfile(awayShape);
-    final llmAnalysis = report.formationAnalysis;
-    final comparison = _formationComparison(
-      homeTitle: homeTitle,
-      awayTitle: awayTitle,
-      home: homeProfile,
-      away: awayProfile,
-    );
+    final stats = report.formationStatistics;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2116,22 +2108,10 @@ class _DualLineupInsightStrip extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                _LineupFormationBlock(
-                  label: '$homeTitle $homeShape',
-                  purpose: llmAnalysis?.home.purpose ?? homeProfile.purpose,
-                  plan: llmAnalysis?.home.plan ?? homeProfile.plan,
-                  risk: llmAnalysis?.home.risk ?? homeProfile.risk,
-                ),
-                const SizedBox(height: 8),
-                _LineupFormationBlock(
-                  label: '$awayTitle $awayShape',
-                  purpose: llmAnalysis?.away.purpose ?? awayProfile.purpose,
-                  plan: llmAnalysis?.away.plan ?? awayProfile.plan,
-                  risk: llmAnalysis?.away.risk ?? awayProfile.risk,
-                ),
-                const SizedBox(height: 9),
-                _LineupComparisonBlock(
-                  text: llmAnalysis?.comparison ?? comparison,
+                _FormationStatisticsPanel(
+                  homeLabel: '$homeTitle $homeShape',
+                  awayLabel: '$awayTitle $awayShape',
+                  statistics: stats,
                 ),
               ],
             ),
@@ -2142,47 +2122,103 @@ class _DualLineupInsightStrip extends StatelessWidget {
   }
 }
 
-class _LineupFormationBlock extends StatelessWidget {
-  final String label;
-  final String purpose;
-  final String plan;
-  final String risk;
+class _FormationStatisticsPanel extends StatelessWidget {
+  final String homeLabel;
+  final String awayLabel;
+  final FormationPairStatistics? statistics;
 
-  const _LineupFormationBlock({
-    required this.label,
-    required this.purpose,
-    required this.plan,
-    required this.risk,
+  const _FormationStatisticsPanel({
+    required this.homeLabel,
+    required this.awayLabel,
+    required this.statistics,
   });
 
   @override
   Widget build(BuildContext context) {
+    final stats = statistics;
+    if (stats == null || stats.sampleSize == 0) {
+      return _FormationStatsEmpty(
+        homeLabel: homeLabel,
+        awayLabel: awayLabel,
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            color: context.colors.textHigh,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$homeLabel  vs  $awayLabel',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: context.colors.textHigh,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _LineupMiniBadge(
+              label: '${stats.sampleSize}',
+              color: stats.hasReliableSample
+                  ? context.colors.success
+                  : context.colors.accent,
+            ),
+          ],
         ),
-        const SizedBox(height: 3),
-        _InsightMiniLine(title: 'Amac', text: purpose),
-        _InsightMiniLine(title: 'Plan', text: plan),
-        _InsightMiniLine(title: 'Risk', text: risk),
+        const SizedBox(height: 10),
+        _FormationStatsGrid(
+          items: [
+            _FormationStatItem('Ev', _percent(stats.result.homeWinRate)),
+            _FormationStatItem('Ber', _percent(stats.result.drawRate)),
+            _FormationStatItem('Dep', _percent(stats.result.awayWinRate)),
+            _FormationStatItem('KG Var', _percent(stats.bttsRate)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _FormationStatsGrid(
+          items: [
+            _FormationStatItem(
+                '1Y 0.5 Ust', _percent(stats.firstHalf?.over05Rate ?? 0)),
+            _FormationStatItem(
+                '1Y 1.5 Ust', _percent(stats.firstHalf?.over15Rate ?? 0)),
+            _FormationStatItem(
+                '2Y 0.5 Ust', _percent(stats.secondHalf?.over05Rate ?? 0)),
+            _FormationStatItem(
+                '2Y 1.5 Ust', _percent(stats.secondHalf?.over15Rate ?? 0)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _FormationStatsGrid(
+          items: [
+            _FormationStatItem('2.5 Ust', _percent(stats.over25Rate)),
+            _FormationStatItem(
+                'Gol Ort.', stats.avgTotalGoals.toStringAsFixed(2)),
+            _FormationStatItem(
+              homeLabel,
+              stats.result.homeAvgGoals.toStringAsFixed(2),
+            ),
+            _FormationStatItem(
+              awayLabel,
+              stats.result.awayAvgGoals.toStringAsFixed(2),
+            ),
+          ],
+        ),
       ],
     );
   }
 }
 
-class _LineupComparisonBlock extends StatelessWidget {
-  final String text;
+class _FormationStatsEmpty extends StatelessWidget {
+  final String homeLabel;
+  final String awayLabel;
 
-  const _LineupComparisonBlock({required this.text});
+  const _FormationStatsEmpty({
+    required this.homeLabel,
+    required this.awayLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2193,46 +2229,93 @@ class _LineupComparisonBlock extends StatelessWidget {
         color: context.colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: _InsightMiniLine(
-        title: 'Karsilastirma',
-        text: text,
+      child: Text(
+        '$homeLabel vs $awayLabel için geçmiş istatistik bulunamadı.',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: context.colors.textMedium,
+        ),
       ),
     );
   }
 }
 
-class _InsightMiniLine extends StatelessWidget {
-  final String title;
-  final String text;
+class _FormationStatsGrid extends StatelessWidget {
+  final List<_FormationStatItem> items;
 
-  const _InsightMiniLine({
-    required this.title,
-    required this.text,
-  });
+  const _FormationStatsGrid({required this.items});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: '$title: ',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: context.colors.textHigh,
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 6) / 2;
+        return Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: items
+              .map(
+                (item) => SizedBox(
+                  width: itemWidth,
+                  child: _FormationStatTile(item: item),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _FormationStatItem {
+  final String label;
+  final String value;
+
+  const _FormationStatItem(this.label, this.value);
+}
+
+class _FormationStatTile extends StatelessWidget {
+  final _FormationStatItem item;
+
+  const _FormationStatTile({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            item.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: context.colors.textMedium,
             ),
-            TextSpan(text: text),
-          ],
-        ),
-        style: TextStyle(
-          fontSize: 11,
-          height: 1.32,
-          fontWeight: FontWeight.w700,
-          color: context.colors.textMedium,
-        ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            item.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2942,343 +3025,8 @@ String _inferShapeLabel(List<LineupPlayer> starters) {
   return 'Dizilis bekleniyor';
 }
 
-class _FormationProfile {
-  final String purpose;
-  final String plan;
-  final String risk;
-  final int width;
-  final int midfield;
-  final int attack;
-  final int defense;
-  final int forwards;
-
-  const _FormationProfile({
-    required this.purpose,
-    required this.plan,
-    required this.risk,
-    required this.width,
-    required this.midfield,
-    required this.attack,
-    required this.defense,
-    required this.forwards,
-  });
-}
-
-_FormationProfile _formationProfile(String formation) {
-  final normalized = formation.trim().toLowerCase();
-  final known = _knownFormationProfile(normalized);
-  if (known != null) return known;
-
-  final lines = _parseFormation(normalized);
-  if (lines.isEmpty) {
-    return const _FormationProfile(
-      purpose:
-          'dizilis verisi sinirli oldugu icin teknik niyet temkinli okunmali.',
-      plan: 'saha uzerindeki oyuncu noktalarindan genel denge okunabilir.',
-      risk: 'formasyon kaydi net olmadigi icin yorum temkinli okunmali.',
-      width: 2,
-      midfield: 2,
-      attack: 2,
-      defense: 2,
-      forwards: 1,
-    );
-  }
-
-  final defenders = lines.first;
-  final forwards = lines.last;
-  final midfielders = lines.length > 2
-      ? lines.sublist(1, lines.length - 1).fold<int>(0, (a, b) => a + b)
-      : lines.length > 1
-          ? lines[1]
-          : 0;
-  return _profile(
-    purpose:
-        '$defenders savunmaci, $midfielders orta saha ve $forwards hucumcu ile dengelenir.',
-    plan: midfielders >= 4
-        ? 'orta sahada daha fazla oyuncu bulundurur ve alan kapatmayi kolaylastirir.'
-        : 'hatlar arasi mesafe dogru kurulursa sade ve okunabilir bir denge verir.',
-    risk: forwards >= 3
-        ? 'onde fazla oyuncu kaldiginda orta saha destegi azalabilir.'
-        : 'hucum destegi gec gelirse ondeki oyuncular yalniz kalabilir.',
-    width: lines.length >= 4 || midfielders >= 4 ? 4 : 3,
-    midfield: midfielders.clamp(1, 5),
-    attack: forwards >= 3
-        ? 5
-        : forwards == 2
-            ? 4
-            : 3,
-    defense: defenders >= 5
-        ? 5
-        : defenders == 4
-            ? 4
-            : 3,
-    forwards: forwards,
-  );
-}
-
-_FormationProfile? _knownFormationProfile(String value) {
-  return switch (value) {
-    '4-3-3' => _profile(
-        purpose:
-            'uclu orta saha ve iki kanat oyuncusuyla sahaya genis yayilir.',
-        plan:
-            'kanatlardan hucum kurmak ve topu rakip yari alanda tutmak kolaylasir.',
-        risk: 'bekler one ciktiginda savunmanin kenarlarinda bosluk kalabilir.',
-        width: 5,
-        midfield: 3,
-        attack: 5,
-        defense: 3,
-        forwards: 1,
-      ),
-    '4-2-3-1' => _profile(
-        purpose:
-            'savunma onunde iki oyuncu, forvet arkasinda uc destek oyuncusu vardir.',
-        plan:
-            'orta alan dengeli kalir ve top kaybindan sonra savunmaya donmek kolaylasir.',
-        risk: 'tek forvet yeterince destek alamazsa hucumda yalniz kalabilir.',
-        width: 4,
-        midfield: 5,
-        attack: 3,
-        defense: 4,
-        forwards: 1,
-      ),
-    '4-4-2' => _profile(
-        purpose: 'iki forvet ve iki duz orta saha hatti kullanir.',
-        plan:
-            'ceza sahasina iki oyuncu sokar ve takim savunmada kolay sekil alir.',
-        risk:
-            'orta sahada uc oyunculu rakiplere karsi merkezde eksik kalabilir.',
-        width: 4,
-        midfield: 3,
-        attack: 4,
-        defense: 3,
-        forwards: 2,
-      ),
-    '4-1-4-1' => _profile(
-        purpose:
-            'savunma onunde tek oyuncu, onun onunde dortlu orta saha vardir.',
-        plan: 'orta alani kalabalik tutar ve savunma onunu korur.',
-        risk: 'tek forvet desteksiz kalirsa hucum baslatmak zorlasabilir.',
-        width: 4,
-        midfield: 5,
-        attack: 2,
-        defense: 4,
-        forwards: 1,
-      ),
-    '4-5-1' => _profile(
-        purpose:
-            'dort savunmaci, bes orta saha ve tek forvetle daha kontrollu durur.',
-        plan: 'orta sahayi kalabalik tutar ve rakibin pas alanlarini daraltir.',
-        risk: 'forvet yalniz kalabilir ve hucum destegi gec gelebilir.',
-        width: 4,
-        midfield: 5,
-        attack: 2,
-        defense: 5,
-        forwards: 1,
-      ),
-    '4-2-4' => _profile(
-        purpose: 'dort hucumcuya yakin bir on hat kullanir.',
-        plan:
-            'son bolgede cok oyuncu bulundurur ve baski kurmayi kolaylastirir.',
-        risk: 'orta saha iki oyuncuya kaldigi icin merkezde bosluk verebilir.',
-        width: 5,
-        midfield: 2,
-        attack: 5,
-        defense: 2,
-        forwards: 2,
-      ),
-    '4-1-2-1-2' => _profile(
-        purpose: 'elmas orta saha ve iki forvet kullanir.',
-        plan:
-            'merkezi kalabalik tutar ve iki forvetle ceza sahasina erken iner.',
-        risk: 'kanat genisligi beklerden gelmezse oyun daralabilir.',
-        width: 2,
-        midfield: 5,
-        attack: 4,
-        defense: 3,
-        forwards: 2,
-      ),
-    '4-3-1-2' => _profile(
-        purpose:
-            'iki forvetin arkasinda bir destek oyuncusu ve uclu orta saha vardir.',
-        plan: 'merkezden hucum kurar ve forvetleri birbirine yakin tutar.',
-        risk:
-            'kanatlarda dogal oyuncu az oldugu icin genislik sinirli kalabilir.',
-        width: 2,
-        midfield: 4,
-        attack: 4,
-        defense: 3,
-        forwards: 2,
-      ),
-    '4-3-2-1' => _profile(
-        purpose: 'tek forvetin arkasinda iki destek oyuncusu kullanir.',
-        plan:
-            'merkezden pas baglantisi kurar ve hucum oyuncularini birbirine yakin tutar.',
-        risk: 'kanat genisligi az kalirsa rakip savunmayi acmak zorlasabilir.',
-        width: 2,
-        midfield: 4,
-        attack: 3,
-        defense: 3,
-        forwards: 1,
-      ),
-    '4-2-2-2' => _profile(
-        purpose:
-            'iki savunma onu oyuncusu, iki destek oyuncusu ve iki forvet vardir.',
-        plan:
-            'merkezde guvenlik saglar ve iki forvetle hucum tehdidi olusturur.',
-        risk: 'kanatlar bos kalabilir ve hucum genisligi sinirlanabilir.',
-        width: 2,
-        midfield: 4,
-        attack: 4,
-        defense: 4,
-        forwards: 2,
-      ),
-    '3-5-2' => _profile(
-        purpose: 'uc savunmaci, kalabalik orta saha ve iki forvet kullanir.',
-        plan:
-            'orta sahada sayi ustunlugu ve iki forvetle ceza sahasi varligi verir.',
-        risk: 'kenar oyunculari geri donmezse kanatlarda bosluk olusabilir.',
-        width: 4,
-        midfield: 5,
-        attack: 4,
-        defense: 4,
-        forwards: 2,
-      ),
-    '3-4-3' => _profile(
-        purpose: 'uc savunmaci, dort orta saha ve uc hucumcu vardir.',
-        plan: 'onde uc oyuncuyla baski ve kanat hucumu kurmaya uygundur.',
-        risk: 'orta saha gecilirse uc savunmaci genis alanda yakalanabilir.',
-        width: 5,
-        midfield: 4,
-        attack: 5,
-        defense: 3,
-        forwards: 1,
-      ),
-    '3-4-2-1' => _profile(
-        purpose:
-            'tek forvetin arkasinda iki destek oyuncusu ve uc savunmaci vardir.',
-        plan: 'merkezde baglanti kurar ve hucum destegini forvete yakin tutar.',
-        risk: 'kenar oyuncularinin hem hucum hem savunma yuku artar.',
-        width: 4,
-        midfield: 4,
-        attack: 4,
-        defense: 4,
-        forwards: 1,
-      ),
-    '3-4-1-2' => _profile(
-        purpose: 'iki forvetin arkasinda bir destek oyuncusu kullanir.',
-        plan: 'merkezden hucum kurar ve iki forvetle savunmayi mesgul eder.',
-        risk: 'kanat savunmasi kenar oyuncularinin temposuna bagli kalir.',
-        width: 3,
-        midfield: 4,
-        attack: 4,
-        defense: 4,
-        forwards: 2,
-      ),
-    '3-1-4-2' => _profile(
-        purpose:
-            'savunma onunde tek oyuncu, onde dortlu orta saha ve iki forvet vardir.',
-        plan: 'iki forvetle hucum ederken orta alanda kalabalik kalabilir.',
-        risk: 'savunma onundeki tek oyuncu yalniz kalirsa merkez acilabilir.',
-        width: 4,
-        midfield: 5,
-        attack: 4,
-        defense: 3,
-        forwards: 2,
-      ),
-    '5-4-1' => _profile(
-        purpose: 'bes savunmaci, dort orta saha ve tek forvet kullanir.',
-        plan:
-            'savunma hattini kalabalik tutar ve alan kapatmayi kolaylastirir.',
-        risk: 'hucumda tek forvet yalniz kalabilir ve cikislar gecikebilir.',
-        width: 4,
-        midfield: 4,
-        attack: 1,
-        defense: 5,
-        forwards: 1,
-      ),
-    '5-3-2' => _profile(
-        purpose: 'bes savunmaci ve iki forvet kullanir.',
-        plan: 'savunma guveni yuksektir ve iki forvetle hizli cikis yapabilir.',
-        risk: 'orta saha uclusu genis alani kapatmakta zorlanabilir.',
-        width: 3,
-        midfield: 3,
-        attack: 3,
-        defense: 5,
-        forwards: 2,
-      ),
-    '5-2-3' => _profile(
-        purpose: 'bes savunmaci ile baslar, onde uc hucumcu kullanir.',
-        plan: 'savunma guveni ile hizli hucum tehdidini birlikte verir.',
-        risk: 'orta saha iki oyuncuya kalirsa top rakipte daha cok kalabilir.',
-        width: 5,
-        midfield: 2,
-        attack: 4,
-        defense: 5,
-        forwards: 1,
-      ),
-    _ => null,
-  };
-}
-
-_FormationProfile _profile({
-  required String purpose,
-  required String plan,
-  required String risk,
-  required int width,
-  required int midfield,
-  required int attack,
-  required int defense,
-  required int forwards,
-}) {
-  return _FormationProfile(
-    purpose: purpose,
-    plan: plan,
-    risk: risk,
-    width: width,
-    midfield: midfield,
-    attack: attack,
-    defense: defense,
-    forwards: forwards,
-  );
-}
-
-String _formationComparison({
-  required String homeTitle,
-  required String awayTitle,
-  required _FormationProfile home,
-  required _FormationProfile away,
-}) {
-  final parts = <String>[];
-  if ((home.width - away.width).abs() >= 2) {
-    parts.add(home.width > away.width
-        ? '$homeTitle daha genis oynamaya uygun.'
-        : '$awayTitle daha genis oynamaya uygun.');
-  }
-  if ((home.midfield - away.midfield).abs() >= 2) {
-    parts.add(home.midfield > away.midfield
-        ? '$homeTitle orta alani daha kalabalik tutabilir.'
-        : '$awayTitle orta alani daha kalabalik tutabilir.');
-  }
-  if ((home.defense - away.defense).abs() >= 2) {
-    parts.add(home.defense > away.defense
-        ? '$homeTitle savunma guvenligini daha onde tutuyor.'
-        : '$awayTitle savunma guvenligini daha onde tutuyor.');
-  }
-  if ((home.attack - away.attack).abs() >= 2) {
-    parts.add(home.attack > away.attack
-        ? '$homeTitle hucum hattinda daha fazla oyuncu kullanabilir.'
-        : '$awayTitle hucum hattinda daha fazla oyuncu kullanabilir.');
-  }
-  if (home.forwards != away.forwards) {
-    parts.add(home.forwards > away.forwards
-        ? '$homeTitle onde daha fazla forvetle basliyor.'
-        : '$awayTitle onde daha fazla forvetle basliyor.');
-  }
-  if (parts.isEmpty) {
-    return 'Iki dizilis birbirine yakin denge veriyor. Fark daha cok oyuncu rolleri ve saha ici yerlesimden okunmali.';
-  }
-  return parts.take(3).join(' ');
+String _percent(double value) {
+  return '%${(value * 100).round()}';
 }
 
 // ignore: unused_element

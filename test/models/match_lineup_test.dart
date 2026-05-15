@@ -66,5 +66,57 @@ void main() {
 
       expect(report.tacticalBalance, isNull);
     });
+
+    test('parses formation pair statistics from API response', () {
+      final report = MatchLineupReport.fromJson({
+        'match_id': 'match-1',
+        'status': 'available',
+        'home': {'team': {}, 'starters': [], 'bench': []},
+        'away': {'team': {}, 'starters': [], 'bench': []},
+        'substitutions': [],
+        'summary': {},
+        'formation_statistics': {
+          'home_formation': '4-2-3-1',
+          'away_formation': '4-5-1',
+          'sample_size': 336,
+          'min_reliable_sample_size': 30,
+          'avg_total_goals': 2.955,
+          'over_25_rate': 0.557,
+          'btts_rate': 0.497,
+          'result': {
+            'home_win_rate': 0.557,
+            'draw_rate': 0.183,
+            'away_win_rate': 0.260,
+            'home_avg_goals': 1.813,
+            'away_avg_goals': 1.077,
+            'avg_goal_diff': 0.737,
+          },
+          'first_half': {
+            'avg_goals': 1.280,
+            'over_05_rate': 0.735,
+            'over_15_rate': 0.360,
+            'home_avg_goals': 0.839,
+            'away_avg_goals': 0.440,
+          },
+          'second_half': {
+            'avg_goals': 1.676,
+            'over_05_rate': 0.833,
+            'over_15_rate': 0.500,
+            'home_avg_goals': 1.009,
+            'away_avg_goals': 0.667,
+          },
+        },
+      });
+
+      final stats = report.formationStatistics;
+      expect(stats, isNotNull);
+      expect(stats!.homeFormation, '4-2-3-1');
+      expect(stats.awayFormation, '4-5-1');
+      expect(stats.sampleSize, 336);
+      expect(stats.hasReliableSample, isTrue);
+      expect(stats.result.homeWinRate, 0.557);
+      expect(stats.firstHalf!.over05Rate, 0.735);
+      expect(stats.secondHalf!.over15Rate, 0.5);
+    });
   });
 }
