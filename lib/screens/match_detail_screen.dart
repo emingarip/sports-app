@@ -2099,7 +2099,7 @@ class _DualLineupInsightStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Dizilis ozeti',
+                  'Formasyon eslesmesi',
                   style: TextStyle(
                     fontFamily: 'Lexend',
                     fontSize: 13,
@@ -2142,14 +2142,16 @@ class _FormationStatisticsPanel extends StatelessWidget {
         awayLabel: awayLabel,
       );
     }
+    final matchupLabel = '$homeLabel vs $awayLabel';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Text(
-                '$homeLabel  vs  $awayLabel',
+                matchupLabel,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -2160,8 +2162,9 @@ class _FormationStatisticsPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            _LineupMiniBadge(
-              label: '${stats.sampleSize}',
+            _FormationSampleBadge(
+              sampleSize: stats.sampleSize,
+              confidenceLabel: _formationSampleLabel(stats),
               color: stats.hasReliableSample
                   ? context.colors.success
                   : context.colors.accent,
@@ -2169,44 +2172,544 @@ class _FormationStatisticsPanel extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        _FormationStatsGrid(
-          items: [
-            _FormationStatItem('Ev', _percent(stats.result.homeWinRate)),
-            _FormationStatItem('Ber', _percent(stats.result.drawRate)),
-            _FormationStatItem('Dep', _percent(stats.result.awayWinRate)),
-            _FormationStatItem('KG Var', _percent(stats.bttsRate)),
-          ],
+        _FormationResultSummary(
+          stats: stats,
+          homeColor: context.colors.primary,
+          drawColor: context.colors.accent,
+          awayColor: context.colors.success,
         ),
-        const SizedBox(height: 8),
-        _FormationStatsGrid(
-          items: [
-            _FormationStatItem(
-                '1Y 0.5 Ust', _percent(stats.firstHalf?.over05Rate ?? 0)),
-            _FormationStatItem(
-                '1Y 1.5 Ust', _percent(stats.firstHalf?.over15Rate ?? 0)),
-            _FormationStatItem(
-                '2Y 0.5 Ust', _percent(stats.secondHalf?.over05Rate ?? 0)),
-            _FormationStatItem(
-                '2Y 1.5 Ust', _percent(stats.secondHalf?.over15Rate ?? 0)),
-          ],
+        const SizedBox(height: 10),
+        _FormationInlineSection(
+          title: 'Gol egilimi',
+          child: _FormationMetricBand(
+            items: [
+              _FormationStatItem('2.5 ust', _percent(stats.over25Rate)),
+              _FormationStatItem('Karsilikli gol', _percent(stats.bttsRate)),
+              _FormationStatItem(
+                'Gol ortalamasi',
+                stats.avgTotalGoals.toStringAsFixed(2),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
-        _FormationStatsGrid(
-          items: [
-            _FormationStatItem('2.5 Ust', _percent(stats.over25Rate)),
-            _FormationStatItem(
-                'Gol Ort.', stats.avgTotalGoals.toStringAsFixed(2)),
-            _FormationStatItem(
-              homeLabel,
-              stats.result.homeAvgGoals.toStringAsFixed(2),
+        const SizedBox(height: 10),
+        _TeamGoalComparison(
+          homeLabel: homeLabel,
+          awayLabel: awayLabel,
+          homeGoals: stats.result.homeAvgGoals,
+          awayGoals: stats.result.awayAvgGoals,
+        ),
+        const SizedBox(height: 2),
+        _FormationHalfDetails(stats: stats),
+      ],
+    );
+  }
+}
+
+class _FormationSampleBadge extends StatelessWidget {
+  final int sampleSize;
+  final String confidenceLabel;
+  final Color color;
+
+  const _FormationSampleBadge({
+    required this.sampleSize,
+    required this.confidenceLabel,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 104),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$sampleSize mac',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: color,
             ),
-            _FormationStatItem(
-              awayLabel,
-              stats.result.awayAvgGoals.toStringAsFixed(2),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            confidenceLabel,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 8,
+              height: 1.15,
+              fontWeight: FontWeight.w800,
+              color: context.colors.textMedium,
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FormationResultSummary extends StatelessWidget {
+  final FormationPairStatistics stats;
+  final Color homeColor;
+  final Color drawColor;
+  final Color awayColor;
+
+  const _FormationResultSummary({
+    required this.stats,
+    required this.homeColor,
+    required this.drawColor,
+    required this.awayColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLow.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.colors.surfaceContainerHighest),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _resultTrendText(stats),
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.25,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textHigh,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _FormationProbabilityBar(
+            homeRate: stats.result.homeWinRate,
+            drawRate: stats.result.drawRate,
+            awayRate: stats.result.awayWinRate,
+            homeColor: homeColor,
+            drawColor: drawColor,
+            awayColor: awayColor,
+          ),
+          const SizedBox(height: 8),
+          _FormationProbabilityLegend(
+            homeRate: stats.result.homeWinRate,
+            drawRate: stats.result.drawRate,
+            awayRate: stats.result.awayWinRate,
+            homeColor: homeColor,
+            drawColor: drawColor,
+            awayColor: awayColor,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FormationProbabilityBar extends StatelessWidget {
+  final double homeRate;
+  final double drawRate;
+  final double awayRate;
+  final Color homeColor;
+  final Color drawColor;
+  final Color awayColor;
+
+  const _FormationProbabilityBar({
+    required this.homeRate,
+    required this.drawRate,
+    required this.awayRate,
+    required this.homeColor,
+    required this.drawColor,
+    required this.awayColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final segments = <({double value, Color color})>[
+      (value: homeRate, color: homeColor),
+      (value: drawRate, color: drawColor),
+      (value: awayRate, color: awayColor),
+    ].where((segment) => segment.value > 0).toList();
+    if (segments.isEmpty) {
+      return Container(
+        height: 10,
+        decoration: BoxDecoration(
+          color: context.colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(999),
+        ),
+      );
+    }
+    final total = segments.fold<double>(0, (sum, item) => sum + item.value);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        height: 10,
+        child: Row(
+          children: segments
+              .map(
+                (segment) => Expanded(
+                  flex: max(1, ((segment.value / total) * 1000).round()),
+                  child: Container(color: segment.color),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _FormationProbabilityLegend extends StatelessWidget {
+  final double homeRate;
+  final double drawRate;
+  final double awayRate;
+  final Color homeColor;
+  final Color drawColor;
+  final Color awayColor;
+
+  const _FormationProbabilityLegend({
+    required this.homeRate,
+    required this.drawRate,
+    required this.awayRate,
+    required this.homeColor,
+    required this.drawColor,
+    required this.awayColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 5,
+      children: [
+        _FormationLegendItem(
+          color: homeColor,
+          label: 'Ev sahibi',
+          value: _percent(homeRate),
+        ),
+        _FormationLegendItem(
+          color: drawColor,
+          label: 'Beraberlik',
+          value: _percent(drawRate),
+        ),
+        _FormationLegendItem(
+          color: awayColor,
+          label: 'Deplasman',
+          value: _percent(awayRate),
         ),
       ],
+    );
+  }
+}
+
+class _FormationLegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String value;
+
+  const _FormationLegendItem({
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$label $value',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: context.colors.textMedium,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FormationInlineSection extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _FormationInlineSection({
+    required this.title,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        const SizedBox(height: 4),
+        child,
+      ],
+    );
+  }
+}
+
+class _TeamGoalComparison extends StatelessWidget {
+  final String homeLabel;
+  final String awayLabel;
+  final double homeGoals;
+  final double awayGoals;
+
+  const _TeamGoalComparison({
+    required this.homeLabel,
+    required this.awayLabel,
+    required this.homeGoals,
+    required this.awayGoals,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _FormationInlineSection(
+      title: 'Takim gol ortalamasi',
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: context.colors.surfaceContainerHighest),
+            bottom: BorderSide(color: context.colors.surfaceContainerHighest),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 5,
+              child: _TeamGoalSide(
+                label: homeLabel,
+                value: homeGoals.toStringAsFixed(2),
+                alignEnd: false,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 3,
+              child: _TeamGoalBalanceBar(
+                homeGoals: homeGoals,
+                awayGoals: awayGoals,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 5,
+              child: _TeamGoalSide(
+                label: awayLabel,
+                value: awayGoals.toStringAsFixed(2),
+                alignEnd: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamGoalSide extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool alignEnd;
+
+  const _TeamGoalSide({
+    required this.label,
+    required this.value,
+    required this.alignEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          style: TextStyle(
+            fontSize: 9,
+            height: 1.1,
+            fontWeight: FontWeight.w800,
+            color: context.colors.textMedium,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 15,
+            height: 1.05,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TeamGoalBalanceBar extends StatelessWidget {
+  final double homeGoals;
+  final double awayGoals;
+
+  const _TeamGoalBalanceBar({
+    required this.homeGoals,
+    required this.awayGoals,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final total = max(0.01, homeGoals + awayGoals);
+    final homeFlex = max(1, ((homeGoals / total) * 1000).round());
+    final awayFlex = max(1, ((awayGoals / total) * 1000).round());
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'gol ort.',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 8,
+            height: 1,
+            fontWeight: FontWeight.w800,
+            color: context.colors.textMedium,
+          ),
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: SizedBox(
+            height: 4,
+            child: Row(
+              children: [
+                Expanded(
+                  flex: homeFlex,
+                  child: Container(color: context.colors.primary),
+                ),
+                Expanded(
+                  flex: awayFlex,
+                  child: Container(color: context.colors.success),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FormationHalfDetails extends StatelessWidget {
+  final FormationPairStatistics stats;
+
+  const _FormationHalfDetails({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final firstHalf = stats.firstHalf;
+    final secondHalf = stats.secondHalf;
+    final hasHalfData = firstHalf != null || secondHalf != null;
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 2, bottom: 2),
+        initiallyExpanded: false,
+        title: Text(
+          'Yari detaylari',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
+          ),
+        ),
+        subtitle: Text(
+          hasHalfData ? _halfSummary(firstHalf, secondHalf) : 'Yari verisi yok',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 9,
+            height: 1.1,
+            fontWeight: FontWeight.w700,
+            color: context.colors.textMedium,
+          ),
+        ),
+        iconColor: context.colors.textHigh,
+        collapsedIconColor: context.colors.textMedium,
+        children: [
+          if (hasHalfData)
+            _FormationMetricBand(
+              compact: true,
+              items: [
+                _FormationStatItem(
+                  '1Y 0.5 ust',
+                  firstHalf == null ? '-' : _percent(firstHalf.over05Rate),
+                ),
+                _FormationStatItem(
+                  '1Y 1.5 ust',
+                  firstHalf == null ? '-' : _percent(firstHalf.over15Rate),
+                ),
+                _FormationStatItem(
+                  '2Y 0.5 ust',
+                  secondHalf == null ? '-' : _percent(secondHalf.over05Rate),
+                ),
+                _FormationStatItem(
+                  '2Y 1.5 ust',
+                  secondHalf == null ? '-' : _percent(secondHalf.over15Rate),
+                ),
+              ],
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Bu formasyon eslesmesi icin yari bazli veri bulunamadi.',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: context.colors.textMedium,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -2241,27 +2744,65 @@ class _FormationStatsEmpty extends StatelessWidget {
   }
 }
 
-class _FormationStatsGrid extends StatelessWidget {
+class _FormationMetricBand extends StatelessWidget {
   final List<_FormationStatItem> items;
+  final bool compact;
 
-  const _FormationStatsGrid({required this.items});
+  const _FormationMetricBand({
+    required this.items,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 6) / 2;
-        return Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: items
-              .map(
-                (item) => SizedBox(
-                  width: itemWidth,
-                  child: _FormationStatTile(item: item),
-                ),
+        final isNarrow = constraints.maxWidth < 300;
+        final content = isNarrow
+            ? Wrap(
+                spacing: 12,
+                runSpacing: 7,
+                children: items
+                    .map(
+                      (item) => SizedBox(
+                        width: (constraints.maxWidth - 12) / 2,
+                        child: _FormationInlineMetric(
+                          item: item,
+                          compact: compact,
+                        ),
+                      ),
+                    )
+                    .toList(),
               )
-              .toList(),
+            : Row(
+                children: [
+                  for (var index = 0; index < items.length; index++) ...[
+                    Expanded(
+                      child: _FormationInlineMetric(
+                        item: items[index],
+                        compact: compact,
+                      ),
+                    ),
+                    if (index < items.length - 1)
+                      Container(
+                        width: 1,
+                        height: compact ? 24 : 30,
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        color: context.colors.surfaceContainerHighest,
+                      ),
+                  ],
+                ],
+              );
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: compact ? 6 : 7),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: context.colors.surfaceContainerHighest),
+              bottom: BorderSide(color: context.colors.surfaceContainerHighest),
+            ),
+          ),
+          child: content,
         );
       },
     );
@@ -2275,48 +2816,46 @@ class _FormationStatItem {
   const _FormationStatItem(this.label, this.value);
 }
 
-class _FormationStatTile extends StatelessWidget {
+class _FormationInlineMetric extends StatelessWidget {
   final _FormationStatItem item;
+  final bool compact;
 
-  const _FormationStatTile({required this.item});
+  const _FormationInlineMetric({
+    required this.item,
+    required this.compact,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.colors.surfaceContainerHighest),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            item.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              color: context.colors.textMedium,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          item.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: compact ? 8.5 : 9,
+            height: 1.08,
+            fontWeight: FontWeight.w800,
+            color: context.colors.textMedium,
           ),
-          const SizedBox(height: 2),
-          Text(
-            item.value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              color: context.colors.textHigh,
-            ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          item.value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: compact ? 13 : 15,
+            height: 1.02,
+            fontWeight: FontWeight.w900,
+            color: context.colors.textHigh,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -2345,7 +2884,7 @@ class _DualLineupPitchCard extends StatelessWidget {
     final homeRows = _buildPitchRows(report.home, isHome: true);
     final awayRows = _buildPitchRows(report.away, isHome: false);
     const markerWidth = 58.0;
-    const markerHeight = 40.0;
+    const markerHeight = 46.0;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -2563,6 +3102,7 @@ class _PitchPlayerMarker extends StatelessWidget {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
@@ -2582,6 +3122,7 @@ class _PitchPlayerMarker extends StatelessWidget {
                   player.shirtNumber ?? '-',
                   style: TextStyle(
                     fontSize: 9,
+                    height: 1,
                     fontWeight: FontWeight.w900,
                     color: hasChange ? context.colors.error : accent,
                   ),
@@ -2593,6 +3134,7 @@ class _PitchPlayerMarker extends StatelessWidget {
                   'C',
                   style: TextStyle(
                     fontSize: 9,
+                    height: 1,
                     fontWeight: FontWeight.w900,
                     color: context.colors.primary,
                   ),
@@ -2618,6 +3160,7 @@ class _PitchPlayerMarker extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 9,
+              height: 1,
               fontWeight: FontWeight.w900,
               color: context.colors.textHigh,
             ),
@@ -3027,6 +3570,38 @@ String _inferShapeLabel(List<LineupPlayer> starters) {
 
 String _percent(double value) {
   return '%${(value * 100).round()}';
+}
+
+String _halfSummary(
+  FormationPeriodStatistics? firstHalf,
+  FormationPeriodStatistics? secondHalf,
+) {
+  final parts = <String>[
+    if (firstHalf != null) '1Y 0.5 ${_percent(firstHalf.over05Rate)}',
+    if (secondHalf != null) '2Y 0.5 ${_percent(secondHalf.over05Rate)}',
+  ];
+  return parts.join(' · ');
+}
+
+String _formationSampleLabel(FormationPairStatistics stats) {
+  if (!stats.hasReliableSample) return 'Dusuk veri';
+  if (stats.sampleSize >= stats.minReliableSampleSize * 3) {
+    return 'Yuksek guven';
+  }
+  return 'Orta guven';
+}
+
+String _resultTrendText(FormationPairStatistics stats) {
+  final homeRate = stats.result.homeWinRate;
+  final drawRate = stats.result.drawRate;
+  final awayRate = stats.result.awayWinRate;
+  if (drawRate >= homeRate && drawRate >= awayRate) {
+    return 'Gecmis eslesmelerde beraberlik egilimi one cikiyor.';
+  }
+  if (homeRate >= awayRate) {
+    return 'Gecmis eslesmelerde ev sahibi sonucu one cikiyor.';
+  }
+  return 'Gecmis eslesmelerde deplasman sonucu one cikiyor.';
 }
 
 // ignore: unused_element
