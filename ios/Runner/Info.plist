@@ -74,6 +74,8 @@
 	<string>Profil fotoğrafınızı seçebilmek veya güncelleyebilmek için galerinize erişim gerekiyor.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Profil fotoğrafı çekebilmeniz için kameranıza erişim gerekiyor.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sesli odalarda konuşabilmeniz için mikrofonunuza erişim gerekiyor.</string>
 
 	<!-- Google Mobile Ads App ID -->
 	<key>GADApplicationIdentifier</key>

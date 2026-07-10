@@ -40,6 +40,34 @@ Match createTestMatch({
   );
 }
 
+/// Dashboard providers only surface matches whose start time falls on the
+/// selected calendar day, so tests deriving times from `DateTime.now()` break
+/// when an offset crosses midnight. These helpers keep derived times inside
+/// `now`'s day while preserving the intent of the offset.
+
+/// A start time [fromNow] ahead of [now], pulled back to the last moment of
+/// [now]'s day when the offset would land on the next day.
+DateTime upcomingStartToday(DateTime now, Duration fromNow) {
+  final endOfDay = DateTime(now.year, now.month, now.day)
+      .add(const Duration(days: 1))
+      .subtract(const Duration(milliseconds: 1));
+  final candidate = now.add(fromNow);
+  return candidate.isAfter(endOfDay) ? endOfDay : candidate;
+}
+
+/// A reference instant inside [now]'s day, at least [margin] away from both
+/// midnights. Build past/finished match times against this anchor so they
+/// stay on today's date even when the suite runs just after midnight.
+DateTime todayAnchor(DateTime now,
+    {Duration margin = const Duration(hours: 4)}) {
+  final startOfDay = DateTime(now.year, now.month, now.day);
+  final earliest = startOfDay.add(margin);
+  final latest = startOfDay.add(const Duration(hours: 24) - margin);
+  if (now.isBefore(earliest)) return earliest;
+  if (now.isAfter(latest)) return latest;
+  return now;
+}
+
 /// Factory to create test League objects with sensible defaults.
 League createTestLeague({
   String id = 'premier_league',

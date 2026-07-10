@@ -143,7 +143,7 @@ void main() {
             leagueId: 'league-soon',
             leagueName: 'League Soon',
             status: model.MatchStatus.upcoming,
-            startTime: today.add(const Duration(minutes: 40)),
+            startTime: upcomingStartToday(today, const Duration(minutes: 40)),
           ),
           createTestMatch(
             id: '5',
@@ -152,7 +152,7 @@ void main() {
             leagueId: 'league-later',
             leagueName: 'League Later',
             status: model.MatchStatus.upcoming,
-            startTime: today.add(const Duration(hours: 5)),
+            startTime: upcomingStartToday(today, const Duration(hours: 5)),
           ),
           createTestMatch(
             id: '6',
@@ -161,7 +161,7 @@ void main() {
             leagueId: 'league-later',
             leagueName: 'League Later',
             status: model.MatchStatus.finished,
-            startTime: today.subtract(const Duration(hours: 3)),
+            startTime: todayAnchor(today).subtract(const Duration(hours: 3)),
           ),
         ]);
 

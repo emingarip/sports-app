@@ -213,21 +213,21 @@ void main() {
           leagueId: 'league-soon',
           leagueName: 'League Soon',
           status: MatchStatus.upcoming,
-          startTime: now.add(const Duration(minutes: 45)),
+          startTime: upcomingStartToday(now, const Duration(minutes: 45)),
         ),
         createTestMatch(
           id: 'later',
           leagueId: 'league-later',
           leagueName: 'League Later',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(minutes: 10)),
+          startTime: todayAnchor(now).subtract(const Duration(minutes: 10)),
         ),
         createTestMatch(
           id: 'finished',
           leagueId: 'league-later',
           leagueName: 'League Later',
           status: MatchStatus.finished,
-          startTime: now.subtract(const Duration(minutes: 20)),
+          startTime: todayAnchor(now).subtract(const Duration(minutes: 20)),
         ),
       ]);
 
