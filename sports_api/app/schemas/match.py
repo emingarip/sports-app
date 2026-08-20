@@ -43,3 +43,6 @@ class MatchSummary(BaseModel):
     season: SeasonBrief | None = None
     score_home: int | None = None
     score_away: int | None = None
+    # resolve-coupons voids every half-time market when these are absent.
+    score_home_ht: int | None = None
+    score_away_ht: int | None = None

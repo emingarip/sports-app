@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  App Group: the home widget and the Live Activity read the shared
+	  UserDefaults suite that lib/services/widget_service.dart writes to
+	  (group.com.boskale.sportsapp). No .entitlements file existed at all, so
+	  the group was never actually granted and the widget could not see any
+	  data. Must also be enabled for the App ID in the Apple Developer portal.
+	-->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.boskale.sportsapp</string>
+	</array>
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

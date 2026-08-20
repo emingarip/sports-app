@@ -62,3 +62,6 @@ class PredictionRunResponse(BaseModel):
     predicted: int
     skipped_no_model: int
     value_picks: int
+    # Predictions where the model had never seen one of the teams and
+    # fell back to league-average ratings.
+    low_confidence: int = 0

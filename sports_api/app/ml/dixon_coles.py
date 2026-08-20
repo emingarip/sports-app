@@ -18,9 +18,12 @@ Implementation notes:
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass, field
 from datetime import date, datetime
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -43,6 +46,9 @@ class DixonColesParams:
     defense: dict[str, float] = field(default_factory=dict)
     trained_matches: int = 0
     trained_at: str | None = None
+    converged: bool = False
+    iterations_run: int = 0
+    final_gradient_norm: float = math.inf
 
     def rates(self, home_team: str, away_team: str) -> tuple[float, float]:
         """Expected goals (lambda_home, lambda_away); unseen teams get league average."""
@@ -66,6 +72,8 @@ class DixonColesParams:
             "defense": dict(self.defense),
             "trained_matches": self.trained_matches,
             "trained_at": self.trained_at,
+            "converged": self.converged,
+            "iterations_run": self.iterations_run,
         }
 
     @classmethod
@@ -78,6 +86,8 @@ class DixonColesParams:
             defense={str(k): float(v) for k, v in payload.get("defense", {}).items()},
             trained_matches=int(payload.get("trained_matches", 0)),
             trained_at=payload.get("trained_at"),
+            converged=bool(payload.get("converged", False)),
+            iterations_run=int(payload.get("iterations_run", 0)),
         )
 
 
@@ -115,6 +125,7 @@ def fit_dixon_coles(
     learning_rate: float = 0.02,
     l2: float = 0.001,
     min_matches: int = 30,
+    gradient_tolerance: float = 1e-6,
 ) -> DixonColesParams:
     """Fit the model on historical results.
 
@@ -147,7 +158,11 @@ def fit_dixon_coles(
     mu = math.log(max(0.25, weighted_goals / (2.0 * total_weight)))
     home_advantage = 0.25
 
+    completed_iterations = 0
+    converged = False
+    gradient_norm = math.inf
     for _ in range(iterations):
+        completed_iterations += 1
         grad_attack = {team: 0.0 for team in teams}
         grad_defense = {team: 0.0 for team in teams}
         grad_mu = 0.0
@@ -184,6 +199,31 @@ def fit_dixon_coles(
             defense[team] -= defense_mean
         mu += attack_mean - defense_mean
 
+        # Convergence check. Previously the loop always ran the full
+        # ``iterations`` and the caller had no way to know whether the fit had
+        # settled or simply run out of budget - a badly conditioned league
+        # would publish ratings from a half-finished optimisation.
+        gradient_norm = math.sqrt(
+            grad_mu**2
+            + grad_ha**2
+            + sum(value**2 for value in grad_attack.values())
+            + sum(value**2 for value in grad_defense.values())
+        ) / total_weight
+        if gradient_norm < gradient_tolerance:
+            converged = True
+            break
+
+    if not converged:
+        logger.warning(
+            "Dixon-Coles did not converge in %s iterations "
+            "(gradient norm %.3e > tolerance %.1e, %s matches, %s teams)",
+            completed_iterations,
+            gradient_norm,
+            gradient_tolerance,
+            len(matches),
+            len(teams),
+        )
+
     params = DixonColesParams(
         mu=mu,
         home_advantage=home_advantage,
@@ -192,6 +232,9 @@ def fit_dixon_coles(
         defense=defense,
         trained_matches=len(matches),
         trained_at=datetime.now().isoformat(timespec="seconds"),
+        converged=converged,
+        iterations_run=completed_iterations,
+        final_gradient_norm=gradient_norm,
     )
     params.rho = _profile_rho(matches, weights, params)
     return params

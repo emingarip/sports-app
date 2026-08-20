@@ -107,6 +107,8 @@ class ProviderMatchSeed:
     venue_name: str | None = None
     score_home: int | None = None
     score_away: int | None = None
+    score_home_ht: int | None = None
+    score_away_ht: int | None = None
     raw: dict = field(default_factory=dict)
 
 
@@ -183,6 +185,8 @@ class ProviderMatchIncidentSeed:
     related_player_name: str | None = None
     score_home: int | None = None
     score_away: int | None = None
+    score_home_ht: int | None = None
+    score_away_ht: int | None = None
     occurred_at: datetime | None = None
     raw: dict = field(default_factory=dict)
 

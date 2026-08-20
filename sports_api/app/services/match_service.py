@@ -52,4 +52,6 @@ def serialize_match(match: Match, *, timezone_name: str | None = None) -> MatchS
         season=SeasonBrief.model_validate(match.season) if match.season is not None else None,
         score_home=match.score_home,
         score_away=match.score_away,
+        score_home_ht=match.score_home_ht,
+        score_away_ht=match.score_away_ht,
     )

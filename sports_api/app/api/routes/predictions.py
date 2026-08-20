@@ -141,6 +141,32 @@ async def get_model_calibration(
     return await service.calibration_report(days=days)
 
 
+@router.get("/model/backtest")
+async def get_model_backtest(
+    days: int = Query(default=120, ge=7, le=730),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Bankroll simulation over settled value picks.
+
+    "Calibrated" and "profitable" are different claims (roadmap 2.5). The
+    backtest core existed in `app/ml/backtest.py` but nothing called it, so the
+    second claim was never measured. The client keeps a beta label on every
+    verdict until this reports a meaningful sample.
+    """
+    service = PredictionService(session)
+    return await service.backtest_report(days=days)
+
+
+@router.get("/model/clv")
+async def get_model_clv(
+    days: int = Query(default=120, ge=7, le=730),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Closing line value of the model's own picks (principle 0.1.4)."""
+    service = PredictionService(session)
+    return await service.clv_report(days=days)
+
+
 @router.post("/internal/predictions/run", response_model=PredictionRunResponse)
 async def run_predictions(
     target_date: date | None = Query(default=None),

@@ -9,6 +9,7 @@ produces the calibration report that backs the public transparency endpoint.
 from __future__ import annotations
 
 import logging
+import math
 import uuid
 from datetime import UTC, date, datetime, timedelta
 
@@ -23,6 +24,7 @@ from app.db.models.domain import (
     MatchStatus,
     SnapshotPhase,
 )
+from app.ml.backtest import SettledBet, compare_stakings
 from app.ml.calibration import (
     expected_calibration_error,
     log_loss,
@@ -79,6 +81,7 @@ class PredictionService:
             "predicted": 0,
             "skipped_no_model": 0,
             "value_picks": 0,
+            "low_confidence": 0,
         }
 
         for match in matches:
@@ -95,9 +98,20 @@ class PredictionService:
                 stats["skipped_no_model"] += 1
                 continue
 
-            lambda_home, lambda_away = params.rates(
-                str(match.home_team_id), str(match.away_team_id)
+            home_key = str(match.home_team_id)
+            away_key = str(match.away_team_id)
+            # DixonColesParams.rates() falls back to league-average ratings for
+            # a team it has never seen, which silently published a prediction
+            # that looked as trustworthy as any other. Promoted sides, cup
+            # fixtures and lower divisions hit this constantly, so the flag is
+            # recorded and surfaced instead of being swallowed.
+            low_confidence = not (
+                params.knows_team(home_key) and params.knows_team(away_key)
             )
+            if low_confidence:
+                stats["low_confidence"] += 1
+
+            lambda_home, lambda_away = params.rates(home_key, away_key)
             market_probs = derive_iddaa_markets(lambda_home, lambda_away, params.rho)
 
             offered = _offered_odds_from_ticks(ticks_by_match.get(match.id, []))
@@ -115,6 +129,8 @@ class PredictionService:
                 lambda_away=lambda_away,
                 rho=params.rho,
                 market_probs=market_probs,
+                blended_probs=blend.probs,
+                low_confidence=low_confidence,
                 value_picks=[
                     {
                         "market_code": pick.market_code,
@@ -131,6 +147,12 @@ class PredictionService:
                             else None
                         ),
                         "odds_decimal": pick.odds_decimal,
+                        # The price the pick was flagged at. Closing line value
+                        # is measured against this later
+                        # (`clv_report`), so it has to be recorded now -
+                        # the tick history alone cannot say which price the
+                        # model actually acted on.
+                        "taken_odds": pick.odds_decimal,
                         "implied_probability": round(pick.implied_probability, 6),
                         "expected_value": round(pick.expected_value, 6),
                         "kelly_stake": round(pick.kelly_stake, 6),
@@ -198,6 +220,8 @@ class PredictionService:
         lambda_away: float,
         rho: float,
         market_probs: dict,
+        blended_probs: dict,
+        low_confidence: bool,
         value_picks: list,
         trained_matches: int,
         blend_model_weight: float,
@@ -233,6 +257,18 @@ class PredictionService:
             "trained_matches": trained_matches,
             "blend_model_weight": blend_model_weight,
             "blended_markets": blended_markets,
+            # Stored market_probs stay pure Dixon-Coles so the calibration
+            # history remains comparable, but the value picks a user sees come
+            # from the blend. Keeping both lets calibration_report() measure the
+            # probability that was actually shown (roadmap 2.5 / ADR 10).
+            "blended_probs": {
+                market: {
+                    selection: round(prob, 6)
+                    for selection, prob in selections.items()
+                }
+                for market, selections in blended_probs.items()
+            },
+            "low_confidence": low_confidence,
         }
 
     # ------------------------------------------------------------------
@@ -308,6 +344,127 @@ class PredictionService:
             for prediction, match in result.unique().all()
         ]
 
+    async def _settled_value_picks(self, *, days: int) -> list[dict]:
+        """Value picks on finished matches, paired with their closing price.
+
+        The closing price is the latest pre-match tick for that selection: the
+        bulletin sync writes one row per hour, so the last one before kickoff
+        is the closing line.
+        """
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+        result = await self.session.execute(
+            select(MatchPrediction, Match)
+            .join(Match, Match.id == MatchPrediction.match_id)
+            .where(
+                Match.status == MatchStatus.finished,
+                Match.score_home.is_not(None),
+                Match.score_away.is_not(None),
+                MatchPrediction.generated_at >= cutoff,
+            )
+            .order_by(Match.kickoff_at.asc())
+        )
+        rows = list(result.unique().all())
+        if not rows:
+            return []
+
+        bulletin_service = BulletinService(self.session)
+        ticks_by_match = await bulletin_service._load_ticks(
+            [match.id for _, match in rows], phase=SnapshotPhase.pre
+        )
+
+        settled: list[dict] = []
+        for prediction, match in rows:
+            closing = _closing_odds_from_ticks(ticks_by_match.get(match.id, []))
+            for pick in prediction.value_picks or []:
+                market_code = pick.get("market_code")
+                selection_key = pick.get("selection_key")
+                if not market_code or not selection_key:
+                    continue
+                won = _outcome_for_selection(
+                    market_code, selection_key, match.score_home, match.score_away
+                )
+                if won is None:
+                    continue
+                taken = pick.get("taken_odds") or pick.get("odds_decimal")
+                if not taken or taken <= 1.0:
+                    continue
+                settled.append(
+                    {
+                        "match_id": str(match.id),
+                        "kickoff_at": match.kickoff_at,
+                        "market_code": market_code,
+                        "selection_key": selection_key,
+                        "probability": float(pick.get("model_probability", 0.0)),
+                        "taken_odds": float(taken),
+                        "closing_odds": closing.get(market_code, {}).get(selection_key),
+                        "won": won,
+                    }
+                )
+        return settled
+
+    async def backtest_report(
+        self,
+        *,
+        days: int = 120,
+        starting_bankroll: float = 100.0,
+        flat_stake: float = 1.0,
+    ) -> dict:
+        """Replay settled value picks as a bankroll simulation.
+
+        Answers the second question of roadmap 2.5 - "does the model make
+        money" - which calibration metrics cannot. Until this reports a
+        meaningful sample the client keeps its beta label on every verdict.
+        """
+        settled = await self._settled_value_picks(days=days)
+        report: dict = {
+            "model_version": MODEL_VERSION,
+            "window_days": days,
+            "sample_size": len(settled),
+        }
+        if not settled:
+            report["note"] = (
+                "No settled value picks in the window yet; the model has not "
+                "produced a measurable track record."
+            )
+            return report
+
+        bets = [
+            SettledBet(
+                probability=item["probability"],
+                odds_decimal=item["taken_odds"],
+                won=item["won"],
+            )
+            for item in settled
+        ]
+        staking = compare_stakings(
+            bets, starting_bankroll=starting_bankroll, flat_stake=flat_stake
+        )
+        report["staking"] = {
+            name: {
+                "n_bets": result.n_bets,
+                "n_skipped": result.n_skipped,
+                "total_staked": result.total_staked,
+                "profit": result.profit,
+                "roi": result.roi,
+                "hit_rate": result.hit_rate,
+                "max_drawdown": result.max_drawdown,
+                "final_bankroll": result.final_bankroll,
+            }
+            for name, result in staking.items()
+        }
+        report["clv"] = _clv_summary(settled)
+        return report
+
+    async def clv_report(self, *, days: int = 120) -> dict:
+        """Closing line value only, without the bankroll simulation."""
+        settled = await self._settled_value_picks(days=days)
+        return {
+            "model_version": MODEL_VERSION,
+            "window_days": days,
+            "sample_size": len(settled),
+            **_clv_summary(settled),
+        }
+
     async def calibration_report(self, *, days: int = 120) -> dict:
         cutoff = datetime.now(UTC) - timedelta(days=days)
         result = await self.session.execute(
@@ -320,62 +477,51 @@ class PredictionService:
                 MatchPrediction.generated_at >= cutoff,
             )
         )
-        ms_rows: list[dict[str, float]] = []
-        ms_outcomes: list[str] = []
-        home_probs: list[float] = []
-        home_outcomes: list[int] = []
-        over25_probs: list[float] = []
-        over25_outcomes: list[int] = []
+        # Two variants on purpose. ``market_probs`` holds the pure Dixon-Coles
+        # output, which keeps the calibration history comparable across model
+        # versions - but the value picks a user actually sees come from the
+        # market blend. Measuring only the former means the number shown to
+        # users is never checked (roadmap 2.5 / ADR 10).
+        variants: dict[str, _CalibrationAccumulator] = {
+            "dc": _CalibrationAccumulator(),
+            "blended": _CalibrationAccumulator(),
+        }
 
         for prediction, match in result.unique().all():
-            probs = prediction.market_probs or {}
-            ms = probs.get("MS")
-            if ms and all(key in ms for key in ("home", "draw", "away")):
-                if match.score_home > match.score_away:
-                    outcome = "home"
-                elif match.score_home < match.score_away:
-                    outcome = "away"
-                else:
-                    outcome = "draw"
-                ms_rows.append({key: float(ms[key]) for key in ("home", "draw", "away")})
-                ms_outcomes.append(outcome)
-                home_probs.append(float(ms["home"]))
-                home_outcomes.append(1 if outcome == "home" else 0)
-            au = probs.get("AU_2_5")
-            if au and "over" in au:
-                over25_probs.append(float(au["over"]))
-                over25_outcomes.append(
-                    1 if (match.score_home + match.score_away) > 2.5 else 0
-                )
+            outcome = (
+                "home"
+                if match.score_home > match.score_away
+                else "away"
+                if match.score_home < match.score_away
+                else "draw"
+            )
+            over25 = 1 if (match.score_home + match.score_away) > 2.5 else 0
+            metadata = prediction.metadata_json or {}
+            sources = {
+                "dc": prediction.market_probs or {},
+                # Older rows predate blended_probs; they simply do not
+                # contribute to the blended variant rather than silently
+                # falling back to the DC numbers and inflating the sample.
+                "blended": metadata.get("blended_probs") or {},
+            }
+            for name, probs in sources.items():
+                variants[name].add(probs, outcome=outcome, over25=over25)
 
         report: dict = {
             "model_version": MODEL_VERSION,
             "window_days": days,
-            "sample_size_1x2": len(ms_rows),
-            "sample_size_over25": len(over25_probs),
+            "sample_size_1x2": variants["dc"].sample_1x2,
+            "sample_size_over25": variants["dc"].sample_over25,
         }
-        if ms_rows:
-            report["brier_1x2"] = round(multiclass_brier(ms_rows, ms_outcomes), 6)
-            report["log_loss_home"] = round(log_loss(home_probs, home_outcomes), 6)
-            report["ece_home"] = round(
-                expected_calibration_error(home_probs, home_outcomes), 6
-            )
-            report["reliability_home"] = [
-                {
-                    "lower": bin_.lower,
-                    "upper": bin_.upper,
-                    "count": bin_.count,
-                    "mean_predicted": round(bin_.mean_predicted, 4),
-                    "observed_rate": round(bin_.observed_rate, 4),
-                }
-                for bin_ in reliability_bins(home_probs, home_outcomes)
-                if bin_.count > 0
-            ]
-        if over25_probs:
-            report["log_loss_over25"] = round(log_loss(over25_probs, over25_outcomes), 6)
-            report["ece_over25"] = round(
-                expected_calibration_error(over25_probs, over25_outcomes), 6
-            )
+        report.update(variants["dc"].summarize())
+        report["variants"] = {
+            name: {
+                "sample_size_1x2": accumulator.sample_1x2,
+                "sample_size_over25": accumulator.sample_over25,
+                **accumulator.summarize(),
+            }
+            for name, accumulator in variants.items()
+        }
         return report
 
 
@@ -392,3 +538,171 @@ def _offered_odds_from_ticks(ticks: list) -> dict[str, dict[str, float]]:
             if not selection.suspended
         }
     return offered
+
+
+# ----------------------------------------------------------------------
+# Closing line value and bankroll backtest
+# ----------------------------------------------------------------------
+#
+# Roadmap principle 0.1.4 makes CLV the platform's measure of skill and 2.5
+# says "calibrated" and "profitable" are separate claims. Both were unmet:
+# CLV existed only on the tipster side and `app/ml/backtest.py` was imported
+# by nothing but its own tests. These helpers close that loop by replaying
+# settled value picks against the closing price.
+
+
+def _outcome_for_selection(
+    market_code: str,
+    selection_key: str,
+    score_home: int,
+    score_away: int,
+) -> bool | None:
+    """Did this selection win? ``None`` when the market cannot be settled.
+
+    Deliberately covers only the full-time markets that a final score can
+    settle. Half-time markets need a half-time score the canonical schema does
+    not carry yet, and guessing would poison the very numbers this module
+    exists to measure.
+    """
+    total = score_home + score_away
+
+    if market_code == "MS":
+        if score_home > score_away:
+            return selection_key == "home"
+        if score_home < score_away:
+            return selection_key == "away"
+        return selection_key == "draw"
+
+    if market_code == "CS":
+        return {
+            "home_draw": score_home >= score_away,
+            "home_away": score_home != score_away,
+            "draw_away": score_home <= score_away,
+        }.get(selection_key)
+
+    if market_code in {"AU_1_5", "AU_2_5", "AU_3_5"}:
+        line = {"AU_1_5": 1.5, "AU_2_5": 2.5, "AU_3_5": 3.5}[market_code]
+        over = total > line
+        return over if selection_key == "over" else (not over if selection_key == "under" else None)
+
+    if market_code == "KG":
+        both = score_home >= 1 and score_away >= 1
+        return both if selection_key == "yes" else (not both if selection_key == "no" else None)
+
+    if market_code == "TG":
+        bucket = (
+            "0_1" if total <= 1 else "2_3" if total <= 3 else "4_5" if total <= 5 else "6_plus"
+        )
+        return selection_key == bucket
+
+    if market_code in {"H_MS_1", "H_MS_MINUS_1"}:
+        line = 1.0 if market_code == "H_MS_1" else -1.0
+        adjusted = score_home + line - score_away
+        if adjusted > 1e-9:
+            return selection_key == "home"
+        if adjusted < -1e-9:
+            return selection_key == "away"
+        return selection_key == "draw"
+
+    return None
+
+
+def _closing_odds_from_ticks(ticks: list) -> dict[str, dict[str, float]]:
+    """Latest pre-match odds per market/selection, i.e. the closing line."""
+    from app.services.bulletin_service import TickRow
+
+    rows = [tick if isinstance(tick, TickRow) else TickRow.from_model(tick) for tick in ticks]
+    closing: dict[str, dict[str, float]] = {}
+    for view in build_market_views(rows):
+        closing[view.market_code] = {
+            selection.selection_key: selection.odds for selection in view.selections
+        }
+    return closing
+
+
+def _clv_summary(settled: list[dict]) -> dict:
+    """Closing line value across settled picks.
+
+    CLV is expressed as the log ratio of the taken price to the closing price:
+    positive means the model bet before the market moved its way. Averaging log
+    ratios rather than percentages keeps a 2.00 -> 1.80 move symmetric with
+    1.80 -> 2.00, which a plain percentage does not.
+    """
+    ratios = [
+        math.log(item["taken_odds"] / item["closing_odds"])
+        for item in settled
+        if item.get("closing_odds") and item["closing_odds"] > 1.0
+    ]
+    if not ratios:
+        return {"clv_sample": 0, "mean_clv": None, "clv_positive_rate": None}
+    return {
+        "clv_sample": len(ratios),
+        "mean_clv": round(sum(ratios) / len(ratios), 6),
+        "clv_positive_rate": round(
+            sum(1 for value in ratios if value > 0) / len(ratios), 6
+        ),
+    }
+
+
+class _CalibrationAccumulator:
+    """Collects the rows one calibration variant needs, then scores them."""
+
+    def __init__(self) -> None:
+        self.ms_rows: list[dict[str, float]] = []
+        self.ms_outcomes: list[str] = []
+        self.home_probs: list[float] = []
+        self.home_outcomes: list[int] = []
+        self.over25_probs: list[float] = []
+        self.over25_outcomes: list[int] = []
+
+    @property
+    def sample_1x2(self) -> int:
+        return len(self.ms_rows)
+
+    @property
+    def sample_over25(self) -> int:
+        return len(self.over25_probs)
+
+    def add(self, probs: dict, *, outcome: str, over25: int) -> None:
+        ms = probs.get("MS")
+        if ms and all(key in ms for key in ("home", "draw", "away")):
+            self.ms_rows.append({key: float(ms[key]) for key in ("home", "draw", "away")})
+            self.ms_outcomes.append(outcome)
+            self.home_probs.append(float(ms["home"]))
+            self.home_outcomes.append(1 if outcome == "home" else 0)
+        au = probs.get("AU_2_5")
+        if au and "over" in au:
+            self.over25_probs.append(float(au["over"]))
+            self.over25_outcomes.append(over25)
+
+    def summarize(self) -> dict:
+        summary: dict = {}
+        if self.ms_rows:
+            summary["brier_1x2"] = round(
+                multiclass_brier(self.ms_rows, self.ms_outcomes), 6
+            )
+            summary["log_loss_home"] = round(
+                log_loss(self.home_probs, self.home_outcomes), 6
+            )
+            summary["ece_home"] = round(
+                expected_calibration_error(self.home_probs, self.home_outcomes), 6
+            )
+            summary["reliability_home"] = [
+                {
+                    "lower": bin_.lower,
+                    "upper": bin_.upper,
+                    "count": bin_.count,
+                    "mean_predicted": round(bin_.mean_predicted, 4),
+                    "observed_rate": round(bin_.observed_rate, 4),
+                }
+                for bin_ in reliability_bins(self.home_probs, self.home_outcomes)
+                if bin_.count > 0
+            ]
+        if self.over25_probs:
+            summary["log_loss_over25"] = round(
+                log_loss(self.over25_probs, self.over25_outcomes), 6
+            )
+            summary["ece_over25"] = round(
+                expected_calibration_error(self.over25_probs, self.over25_outcomes), 6
+            )
+        return summary

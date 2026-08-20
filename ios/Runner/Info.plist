@@ -11,7 +11,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Sports App</string>
+	<string>Boskale</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -80,5 +80,21 @@
 	<!-- Google Mobile Ads App ID -->
 	<key>GADApplicationIdentifier</key>
 	<string>$(ADMOB_APPLICATION_ID)</string>
+
+	<!-- App Tracking Transparency. AdMob ile birlikte zorunlu: bu anahtar
+	     olmadan izin dialogu hic acilmaz ve gonderim reddedilir. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Sana daha alakalı reklamlar gösterebilmemiz için izin istiyoruz. Reddetsen de uygulamanın tüm özellikleri açık kalır.</string>
+
+	<!-- SKAdNetwork: reklam ağlarının kurulum atıfını ATT izni olmadan
+	     ölçebilmesi için Apple'ın istediği liste. Google'ın kendi kimliği
+	     asgari gereksinimdir. -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -1,0 +1,1 @@
+-- Placeholder: bu surum canli (remote) migration gecmisinde kayitli; yerel dosyalar sonradan yeniden adlandirildigi icin icerik burada degil. CLI gecmis kontrolu icin tutuluyor (2026-07-11).

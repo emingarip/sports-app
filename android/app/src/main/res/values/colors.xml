@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launch-screen colours. The template shipped a plain white splash, so a dark
+  themed app flashed white for a moment on every cold start. Tokens come from
+  design_system.md ("Ice & Iron" surface, "Digital Gold" energy tokens).
+-->
+<resources>
+    <color name="launch_background">#F3F7FB</color>
+    <color name="brand_primary">#6C5A00</color>
+    <color name="brand_primary_fixed">#FFD709</color>
+</resources>

@@ -57,7 +57,30 @@ dev_dependencies:
   network_image_mock: ^2.1.1
 
   riverpod_generator: ^4.0.3
+  flutter_launcher_icons: ^0.14.4
 flutter:
   uses-material-design: true
   assets:
     - shorebird.yaml
+    - assets/brand/
+
+# Uygulama ikonlari. Android ve iOS ikonlari Flutter sablonuyla byte-birebir
+# ayniydi (md5 eslesti): uygulama varsayilan Flutter logosuyla yayina
+# cikacakti. assets/brand/ altindaki PNG'ler marka paletinden (design_system.md
+# primary #6c5a00 / primary_fixed #ffd709) uretilmis YER TUTUCU'dur. Gercek
+# logo geldiginde ayni uc dosyayi degistirip su komutu calistirmak yeterli:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/brand/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  # Adaptive icon Android 8+ icin beklenir; onceden hic tanimli degildi
+  # (mipmap-anydpi-v26 klasoru yoktu).
+  adaptive_icon_background: "assets/brand/app_icon_background.png"
+  adaptive_icon_foreground: "assets/brand/app_icon_foreground.png"
+  web:
+    generate: true
+    image_path: "assets/brand/app_icon.png"
+    background_color: "#6c5a00"
+    theme_color: "#ffd709"

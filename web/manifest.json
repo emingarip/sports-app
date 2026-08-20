@@ -1,11 +1,11 @@
 {
-    "name": "sports_app",
-    "short_name": "sports_app",
+    "name": "Boskale",
+    "short_name": "Boskale",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#6c5a00",
+    "theme_color": "#ffd709",
+    "description": "Boskale - iddaa analiz ve canli skor platformu.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

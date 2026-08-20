@@ -345,6 +345,8 @@ class MatchPersistenceService:
                 venue_name=seed.venue_name,
                 score_home=seed.score_home,
                 score_away=seed.score_away,
+                score_home_ht=seed.score_home_ht,
+                score_away_ht=seed.score_away_ht,
                 provider_last_synced_at=datetime.now(UTC),
                 metadata_json={},
             )
@@ -367,6 +369,10 @@ class MatchPersistenceService:
             match.venue_name = seed.venue_name
             match.score_home = seed.score_home
             match.score_away = seed.score_away
+            if seed.score_home_ht is not None:
+                match.score_home_ht = seed.score_home_ht
+            if seed.score_away_ht is not None:
+                match.score_away_ht = seed.score_away_ht
             match.provider_last_synced_at = datetime.now(UTC)
 
         match.metadata_json = {

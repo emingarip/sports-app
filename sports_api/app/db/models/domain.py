@@ -294,6 +294,11 @@ class Match(UUIDPrimaryKeyMixin, TimestampMixin, MetadataMixin, Base):
     venue_name: Mapped[str | None] = mapped_column(String(180))
     score_home: Mapped[int | None] = mapped_column(Integer)
     score_away: Mapped[int | None] = mapped_column(Integer)
+    # Half-time score. Without it every IY / IY_AU / IY_MS coupon selection is
+    # voided on settlement (see supabase/functions/resolve-coupons), so those
+    # markets never build a track record at all.
+    score_home_ht: Mapped[int | None] = mapped_column(Integer)
+    score_away_ht: Mapped[int | None] = mapped_column(Integer)
     provider_last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     competition: Mapped["Competition | None"] = relationship(back_populates="matches")

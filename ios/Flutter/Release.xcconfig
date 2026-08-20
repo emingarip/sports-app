@@ -1,2 +1,6 @@
 #include "Generated.xcconfig"
-ADMOB_APPLICATION_ID=
+// Bos birakilirsa Info.plist icindeki GADApplicationIdentifier bos
+// string olur ve Google Mobile Ads SDK acilista cakar. Gercek app id
+// gelene kadar Google'in resmi iOS test kimligi kullaniliyor; reklam
+// birimleri zaten bos oldugu icin hicbir reklam yuklenmez.
+ADMOB_APPLICATION_ID=ca-app-pub-3940256099942544~1458002511

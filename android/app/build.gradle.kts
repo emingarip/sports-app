@@ -25,9 +25,18 @@ val releaseStoreFile = resolveKeystoreValue("storeFile", "ANDROID_KEYSTORE_PATH"
 val releaseStorePassword = resolveKeystoreValue("storePassword", "ANDROID_KEYSTORE_PASSWORD")
 val releaseKeyAlias = resolveKeystoreValue("keyAlias", "ANDROID_KEY_ALIAS")
 val releaseKeyPassword = resolveKeystoreValue("keyPassword", "ANDROID_KEY_PASSWORD")
-val releaseAdMobAppId = (providers.gradleProperty("ADMOB_ANDROID_APP_ID").orNull
+// Google Mobile Ads'in MobileAdsInitProvider'i uygulama acilirken
+// meta-data'yi okur ve deger bos/gecersizse IllegalStateException atar - yani
+// anahtarsiz bir release derlemesi ACILISTA cokerdi. Anahtar yoksa Google'in
+// resmi test app id'sini yaziyoruz; reklam birimleri zaten bos oldugu icin
+// (AdMobService.rewardedAdUnitId) hicbir reklam yuklenmez.
+val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
+
+val configuredAdMobAppId = (providers.gradleProperty("ADMOB_ANDROID_APP_ID").orNull
     ?: System.getenv("ADMOB_ANDROID_APP_ID")
     ?: "").trim()
+val releaseAdMobAppId =
+    if (configuredAdMobAppId.isNotEmpty()) configuredAdMobAppId else admobTestAppId
 
 android {
     namespace = "com.boskale.sportsapp"
@@ -73,6 +82,16 @@ android {
         }
         release {
             manifestPlaceholders["admobApplicationId"] = releaseAdMobAppId
+
+            // R8 daha once hic acilmamisti: release APK butun kodu ve
+            // kaynaklari tasiyordu. Kurallar proguard-rules.pro icinde;
+            // reflection/JNI kullanan paketler orada keep ediliyor.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
 
             if (releaseStoreFile.isNotEmpty() &&
                 releaseStorePassword.isNotEmpty() &&

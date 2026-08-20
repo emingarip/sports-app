@@ -14,6 +14,7 @@ DROP POLICY IF EXISTS "Public Update" ON storage.objects;
 DROP POLICY IF EXISTS "Public Delete" ON storage.objects;
 
 -- Authenticated users can upload to their own folder only
+DROP POLICY IF EXISTS "Authenticated users can upload their own avatars" ON storage.objects;
 CREATE POLICY "Authenticated users can upload their own avatars"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (
@@ -22,6 +23,7 @@ WITH CHECK (
 );
 
 -- Authenticated users can update their own avatars only
+DROP POLICY IF EXISTS "Users can update their own avatars" ON storage.objects;
 CREATE POLICY "Users can update their own avatars"
 ON storage.objects FOR UPDATE TO authenticated
 USING (
@@ -30,6 +32,7 @@ USING (
 );
 
 -- Authenticated users can delete their own avatars only
+DROP POLICY IF EXISTS "Users can delete their own avatars" ON storage.objects;
 CREATE POLICY "Users can delete their own avatars"
 ON storage.objects FOR DELETE TO authenticated
 USING (
@@ -42,6 +45,7 @@ USING (
 -- FIX 2: audio_rooms DELETE policy — Hosts can delete their rooms
 -- ============================================================
 
+DROP POLICY IF EXISTS "Hosts can delete their rooms" ON public.audio_rooms;
 CREATE POLICY "Hosts can delete their rooms"
 ON public.audio_rooms FOR DELETE
 USING (auth.uid() = host_id);
@@ -56,6 +60,7 @@ USING (auth.uid() = host_id);
 DROP POLICY IF EXISTS "Anyone can view active rooms" ON public.audio_rooms;
 
 -- Public rooms: visible to everyone when active
+DROP POLICY IF EXISTS "Anyone can view active public rooms" ON public.audio_rooms;
 CREATE POLICY "Anyone can view active public rooms"
 ON public.audio_rooms FOR SELECT
 USING (
@@ -64,6 +69,7 @@ USING (
 );
 
 -- Private rooms: visible only to host
+DROP POLICY IF EXISTS "Hosts can view their own private rooms" ON public.audio_rooms;
 CREATE POLICY "Hosts can view their own private rooms"
 ON public.audio_rooms FOR SELECT
 USING (
@@ -73,6 +79,7 @@ USING (
 );
 
 -- Allow admin to see all rooms
+DROP POLICY IF EXISTS "Admins can view all rooms" ON public.audio_rooms;
 CREATE POLICY "Admins can view all rooms"
 ON public.audio_rooms FOR SELECT TO authenticated
 USING (
@@ -96,11 +103,13 @@ DROP POLICY IF EXISTS "Users can upload their own screenshots" ON storage.object
 DROP POLICY IF EXISTS "Anyone can view screenshots" ON storage.objects;
 
 -- Anyone can upload feedback screenshots (supports pre-login bug reports)
+DROP POLICY IF EXISTS "Anyone can upload feedback screenshots" ON storage.objects;
 CREATE POLICY "Anyone can upload feedback screenshots"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'feedback-screenshots');
 
 -- Only admins can view feedback screenshots (via signed URL)
+DROP POLICY IF EXISTS "Admins can view feedback screenshots" ON storage.objects;
 CREATE POLICY "Admins can view feedback screenshots"
 ON storage.objects FOR SELECT TO authenticated
 USING (
