@@ -90,7 +90,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
               ),
             ),
             
-            // Bottom "VELOCITY" Wordmark
+            // Bottom "BOSKALE" Wordmark
             Positioned(
               bottom: 120,
               left: 0,
@@ -98,7 +98,7 @@ class _VerificationSuccessScreenState extends State<VerificationSuccessScreen> w
               child: Align(
                 alignment: Alignment.center,
                 child: Text(
-                  "VELOCITY",
+                  "BOSKALE",
                   style: TextStyle(
                     fontFamily: 'Lexend',
                     fontSize: 64,

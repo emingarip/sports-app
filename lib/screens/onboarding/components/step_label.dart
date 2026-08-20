@@ -5,7 +5,9 @@ class StepLabel extends StatelessWidget {
   final int step;
   final int totalSteps;
 
-  const StepLabel({super.key, required this.step, this.totalSteps = 5});
+  // Six steps since the model explainer joined the flow: without it a new
+  // user reached a screen full of odds with no idea what the marks meant.
+  const StepLabel({super.key, required this.step, this.totalSteps = 6});
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Bottom-navigation slots, named so cross-tab jumps do not hard-code
+/// integers that silently break when the order changes.
+const int matchesTabIndex = 0;
+const int couponTabIndex = 1;
+const int bulletinTabIndex = 2;
+const int leaderboardTabIndex = 3;
+const int profileTabIndex = 4;
+
 class NavigationNotifier extends Notifier<int> {
   @override
   int build() => 0;

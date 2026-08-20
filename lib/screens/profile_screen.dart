@@ -6,6 +6,9 @@ import '../models/app_theme_definition.dart';
 import '../models/user_profile.dart';
 import '../services/supabase_service.dart';
 import '../providers/app_theme_provider.dart';
+import 'bankroll_screen.dart';
+import 'model_explainer_screen.dart';
+import 'responsible_play_screen.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'notification_preferences_screen.dart';
@@ -394,6 +397,52 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           child: Column(
             children: [
+              // The bankroll assistant and the responsible-play page had no
+              // labelled entry point anywhere: bankroll lived behind an
+              // icon-only button in the bulletin app bar, responsible play
+              // behind a single line of grey footer text.
+              _buildSettingsTile(
+                icon: Icons.account_balance_wallet_outlined,
+                iconColor: Colors.tealAccent,
+                title: 'Bankroll asistanı',
+                subtitle: 'Kasa disiplini, risk önerisi ve kupon sicilin',
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const BankrollScreen())),
+              ),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
+              _buildSettingsTile(
+                icon: Icons.health_and_safety_outlined,
+                iconColor: Colors.amberAccent,
+                title: 'Sorumlu oyun',
+                subtitle: 'Sınır koy, soğuma modu ve destek hatları',
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const ResponsiblePlayScreen())),
+              ),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
+              _buildSettingsTile(
+                icon: Icons.psychology_outlined,
+                iconColor: Colors.purpleAccent,
+                title: 'Model nasıl çalışır?',
+                subtitle: 'Değerli oran ne demek, model neye bakar',
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const ModelExplainerScreen())),
+              ),
+              Divider(
+                  height: 1,
+                  indent: 64,
+                  color: context.colors.outline.withValues(alpha: 0.1)),
               _buildSettingsTile(
                 icon: Icons.edit,
                 iconColor: Colors.blueAccent,

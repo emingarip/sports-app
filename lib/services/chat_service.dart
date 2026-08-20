@@ -4,37 +4,60 @@ import '../screens/match_detail_screen.dart' show ChatMessage, MessageType;
 class ChatService {
   final SupabaseClient _client = Supabase.instance.client;
 
+  /// How many recent messages a room keeps in memory.
+  ///
+  /// The stream previously had no limit: every new message re-emitted the whole
+  /// history and re-parsed it. A busy room (bots included) grows without bound,
+  /// so scroll performance degrades the longer a match runs.
+  static const int messageWindow = 80;
+
+  /// Cache of user rows keyed by id, shared across stream emissions.
+  ///
+  /// Previously every emission issued a full `users` IN-query for all authors in
+  /// the room — so message rate translated directly into query volume. Authors
+  /// rarely change mid-match, so only unseen ids need fetching.
+  final Map<String, Map<String, dynamic>> _userCache = {};
+
+  /// Drop cached author rows (e.g. when leaving a room or on sign-out).
+  void clearUserCache() => _userCache.clear();
+
   // Stream messages for a specific match
   Stream<List<ChatMessage>> streamMatchMessages(String matchId) {
     return _client
         .from('chat_messages')
         .stream(primaryKey: ['id'])
         .eq('match_id', matchId)
-        .order('created_at', ascending: true)
+        .order('created_at', ascending: false)
+        .limit(messageWindow)
         .asyncMap((data) async {
           // Because stream() doesn't support joins natively in Supabase flutter,
-          // we should ideally fetch users here or just use a view.
-          // For simplicity, let's fetch the relevant user details for the new messages.
-          if (data.isEmpty) return [];
+          // we fetch the author rows separately — but only the ones we have not
+          // seen yet.
+          if (data.isEmpty) return <ChatMessage>[];
 
-          final userIds = data
+          // `.limit()` requires descending order to keep the NEWEST messages;
+          // the UI wants oldest-first, so flip it back here.
+          final rows = data.reversed.toList();
+
+          final missingIds = rows
               .map((d) => d['user_id'])
-              .where((id) => id != null)
+              .where((id) => id != null && !_userCache.containsKey(id))
               .toSet()
               .toList();
-          Map<String, dynamic> userMap = {};
 
-          if (userIds.isNotEmpty) {
+          if (missingIds.isNotEmpty) {
             final usersRes = await _client
                 .from('users')
                 .select('id, username, avatar_url, is_bot, active_frame')
-                .inFilter('id', userIds);
+                .inFilter('id', missingIds);
             for (var u in usersRes) {
-              userMap[u['id']] = u;
+              _userCache[u['id'] as String] = Map<String, dynamic>.from(u);
             }
           }
 
-          return data.map((json) {
+          final userMap = _userCache;
+
+          return rows.map((json) {
             final isMe = json['user_id'] == _client.auth.currentUser?.id;
 
             // Format time from timestamp

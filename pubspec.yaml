@@ -5,7 +5,9 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  # dart:js_interop'un extension type API'si (JSAny.isA) 3.4'te geldi;
+  # web_bridge_web.dart onu kullaniyor.
+  sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
   app_links: ^7.0.0
@@ -40,6 +42,8 @@ dependencies:
   supabase_flutter: ^2.12.0
   url_launcher: ^6.3.2
   uuid: ^4.5.3
+  # dart:html'in yerine: deprecated degil ve Wasm derlemesinde calisir.
+  web: ^1.1.0
   web_socket_channel: ^3.0.3
   webview_flutter: ^4.13.1
   webview_flutter_web: ^0.2.3+4

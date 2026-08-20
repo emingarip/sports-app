@@ -3,7 +3,7 @@ import '../../theme/app_theme.dart';
 import 'components/progress_top_line.dart';
 import 'components/step_label.dart';
 import 'components/onboarding_header.dart';
-import 'onboarding_ready_screen.dart';
+import 'how_model_works_screen.dart';
 
 class NotificationPrefsScreen extends StatefulWidget {
   const NotificationPrefsScreen({super.key});
@@ -130,7 +130,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const ProgressTopLine(progress: 0.8),
+            const ProgressTopLine(progress: 0.66),
             
             Expanded(
               child: SingleChildScrollView(
@@ -257,7 +257,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                   GestureDetector(
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const OnboardingReadyScreen()),
+                        MaterialPageRoute(builder: (_) => const HowModelWorksScreen()),
                       );
                     },
                     child: Container(
@@ -285,7 +285,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const OnboardingReadyScreen()),
+                        MaterialPageRoute(builder: (_) => const HowModelWorksScreen()),
                       );
                     },
                     style: ElevatedButton.styleFrom(

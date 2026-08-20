@@ -7,8 +7,8 @@ import '../services/push_notification_service.dart';
 import '../widgets/floating_audio_room.dart';
 
 import 'home_dashboard.dart';
-import 'ai_match_insights_screen.dart';
-import 'prediction_market_screen.dart';
+import 'coupon_hub_screen.dart';
+import 'bulletin_screen.dart';
 import 'leaderboard_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/username_setup_dialog.dart';
@@ -65,8 +65,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             index: currentIndex,
             children: const [
               HomeDashboard(),
-              AiMatchInsightsScreen(),
-              PredictionMarketScreen(),
+              // Bu yuva daha once AiMatchInsightsScreen'i tasiyordu. Analiz
+              // kuponu yalnizca secim yapilinca beliren cubuktan, topluluk
+              // akisi ise bulten AppBar'indaki bir ikondan aciliyordu; urunun
+              // iki ana vaadi de birinci sinif giris noktasi olmadan
+              // kaliyordu. AI analiz ekrani mac detayindan erisilebilir.
+              CouponHubScreen(),
+              // K-Coin sanal marketin (PredictionMarketScreen) yerini bülten/
+              // kupon aracı aldı: sanal market verisi üretimde boş ve kupon
+              // akışı bahisçinin ana aracı (Faz 4.2'de K-Coin ile birleşecek).
+              BulletinScreen(),
               LeaderboardScreen(),
               ProfileScreen(),
             ],

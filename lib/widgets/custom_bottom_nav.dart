@@ -148,14 +148,17 @@ class _CustomBottomNavState extends ConsumerState<CustomBottomNav>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
+                        // Etiketler yuvalarin gercek icerigiyle hizali:
+                        // 1 artik kupon merkezi, 2 ise bultenin kendisi
+                        // (eskiden "Kupon" yaziyordu ama bulteni aciyordu).
                         _buildNavItem(
-                            currentIndex, 0, "Matches", Icons.sports_soccer),
+                            currentIndex, 0, "Maçlar", Icons.sports_soccer),
                         _buildNavItem(
-                            currentIndex, 1, "Insights", Icons.query_stats),
+                            currentIndex, 1, "Kupon", Icons.receipt_long),
                         _buildNavItem(
-                            currentIndex, 2, "Market", Icons.analytics),
+                            currentIndex, 2, "Bülten", Icons.list_alt),
                         _buildNavItem(
-                            currentIndex, 3, "Ranking", Icons.emoji_events),
+                            currentIndex, 3, "Sıralama", Icons.emoji_events),
                         _buildDateItem(
                           selectedDate,
                           showCalendarOverlay: showCalendarOverlay,

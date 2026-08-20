@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../providers/leaderboard_provider.dart';
 import '../widgets/frame_avatar.dart';
 import '../widgets/shimmer_loading.dart';
+import '../widgets/tipster/tipster_leaderboard_tab.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -13,10 +14,10 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 }
 
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
+  bool _showTipsters = false;
+
   @override
   Widget build(BuildContext context) {
-    final leaderboardState = ref.watch(leaderboardProvider);
-
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
@@ -35,15 +36,61 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: context.colors.textMedium),
-            onPressed: () {
-              ref.read(leaderboardProvider.notifier).refresh();
-            },
-          )
+          if (!_showTipsters)
+            IconButton(
+              icon: Icon(Icons.refresh, color: context.colors.textMedium),
+              onPressed: () {
+                ref.read(leaderboardProvider.notifier).refresh();
+              },
+            )
         ],
       ),
-      body: leaderboardState.when(
+      body: Column(
+        children: [
+          _buildSegmentControl(context),
+          Expanded(
+            child: _showTipsters
+                ? const TipsterLeaderboardTab()
+                : _buildGeneralRanking(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSegmentControl(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: colors.outline.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            _SegmentButton(
+              label: 'Genel',
+              isSelected: !_showTipsters,
+              onTap: () => setState(() => _showTipsters = false),
+            ),
+            _SegmentButton(
+              label: 'Tipster',
+              isSelected: _showTipsters,
+              onTap: () => setState(() => _showTipsters = true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGeneralRanking(BuildContext context) {
+    final leaderboardState = ref.watch(leaderboardProvider);
+
+    return leaderboardState.when(
         data: (users) {
           if (users.isEmpty) {
             return Center(
@@ -90,9 +137,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             style: TextStyle(color: context.colors.error),
             textAlign: TextAlign.center,
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   Widget _buildPodium(BuildContext context, List<LeaderboardUser> users) {
@@ -260,6 +305,48 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ),
           )
         ],
+      ),
+    );
+  }
+}
+
+class _SegmentButton extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SegmentButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colors.chipSelectedBackground
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: isSelected
+                  ? colors.chipSelectedForeground
+                  : colors.textMedium,
+            ),
+          ),
+        ),
       ),
     );
   }

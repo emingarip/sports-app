@@ -76,7 +76,7 @@ class _OnboardingReadyScreenState extends ConsumerState<OnboardingReadyScreen> w
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const StepLabel(step: 5),
+                          const StepLabel(step: 6),
                           const SizedBox(height: 40),
                           SizedBox(
                             width: 160,

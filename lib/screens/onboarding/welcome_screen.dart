@@ -47,7 +47,7 @@ class WelcomeScreen extends StatelessWidget {
                         const StepLabel(step: 1),
                         const SizedBox(height: 16),
                         const OnboardingHeader(
-                          title: "Welcome to KINETIC",
+                          title: "Welcome to BOSKALE",
                           subtitle: "The next-generation sports media platform built for fans who want pure performance and zero clutter.",
                         ),
                         const Spacer(),
@@ -56,7 +56,7 @@ class WelcomeScreen extends StatelessWidget {
                           opacity: 0.05,
                           child: Center(
                             child: Text(
-                              "KINETIC",
+                              "BOSKALE",
                               style: TextStyle(
                                 fontFamily: 'Lexend',
                                 fontSize: 80,

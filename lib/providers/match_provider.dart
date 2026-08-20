@@ -13,6 +13,11 @@ import 'favorites_provider.dart';
 
 final matchRepositoryProvider = Provider<MatchRepository>(
   (ref) {
+    // Ana ekranin mac kaynagi AI Sport Agent
+    // (AI_SPORT_AGENT_BASE_URL -> sports-agent.boskale.com, /mobile/matches/*).
+    // Kadro, istatistik, mac akisi ve analiz sihirbazi da ayni servisten geldigi
+    // icin mac listesini de burada tutmak tutarliligi koruyor: tum ekranlar ayni
+    // mac kimliklerini paylasir.
     return AiSportAgentMatchProvider();
   },
   name: 'matchRepositoryProvider',

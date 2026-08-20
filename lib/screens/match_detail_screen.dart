@@ -7,6 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../data/providers/ai_sport_agent_lineup_provider.dart';
 import '../data/providers/ai_sport_agent_timeline_provider.dart';
 import '../theme/app_theme.dart';
+import 'ai_match_insights_screen.dart';
 import '../models/match.dart' as model;
 import '../models/match_lineup.dart';
 import '../models/match_timeline.dart';
@@ -5081,10 +5082,20 @@ class MatchDetailHeaderDelegate extends SliverPersistentHeaderDelegate {
                         ],
                       ),
                     ),
+                    // Was a dead more_vert button with an empty onPressed.
+                    // The AI analysis screen lost its bottom-nav slot to the
+                    // coupon hub, so it lives here now - next to the match it
+                    // actually analyses, which is where it belonged anyway.
                     IconButton(
-                        icon: const Icon(Icons.more_vert),
+                        icon: const Icon(Icons.auto_awesome),
+                        tooltip: 'AI analiz',
                         color: context.colors.textMedium,
-                        onPressed: () {},
+                        onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AiMatchInsightsScreen(),
+                              ),
+                            ),
                         splashRadius: 24),
                   ],
                 ),

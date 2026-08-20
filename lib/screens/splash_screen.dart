@@ -69,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             SizedBox(height: 24),
             Text(
-              'KINETIC SCORES',
+              'BOSKALE',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 24,

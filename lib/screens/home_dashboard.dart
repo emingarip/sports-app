@@ -651,7 +651,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'KINETIC SCORES',
+              'BOSKALE',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
@@ -670,7 +670,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             final userId = Supabase.instance.client.auth.currentUser?.id;
             if (userId != null) {
               Share.share(
-                "Velocity Score'a katil ve aninda K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId",
+                "Boskale'a katil ve aninda K-Coin kazan! Davet linkim: sportsapp://invite?ref=$userId",
               );
               ref.read(badgeProvider.notifier).triggerEvent('invite_friend');
             }

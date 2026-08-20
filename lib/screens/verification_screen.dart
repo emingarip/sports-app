@@ -144,7 +144,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "KINETIC",
+                    "BOSKALE",
                     style: TextStyle(
                       fontFamily: 'Lexend',
                       fontSize: 24,
@@ -341,7 +341,7 @@ class _VerificationScreenState extends State<VerificationScreen> with WidgetsBin
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Text(
-                "POWERED BY KINETIC DATA ENGINE V1.0.2",
+                "POWERED BY BOSKALE DATA ENGINE V1.0.2",
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 10,

@@ -112,7 +112,7 @@ class MyApp extends ConsumerWidget {
     final darkTheme = ref.watch(resolvedDarkThemeProvider);
 
     return MaterialApp(
-      title: 'Sports App',
+      title: 'Boskale',
       debugShowCheckedModeBanner: false,
       navigatorKey: NavigationService.navigatorKey,
       navigatorObservers: [

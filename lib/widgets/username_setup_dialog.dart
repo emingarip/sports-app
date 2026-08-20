@@ -100,8 +100,10 @@ class _UsernameSetupDialogState extends State<UsernameSetupDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Prevent dismissing by back button
+    return PopScope(
+      // Prevent dismissing by back button. WillPopScope is deprecated and
+      // breaks Android predictive back.
+      canPop: false,
       child: Center(
         child: Material(
           color: Colors.transparent,

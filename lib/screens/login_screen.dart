@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Icon(Icons.verified_user, color: context.colors.primaryContainer, size: 24),
                       const SizedBox(width: 8),
                       Text(
-                        "VELOCITY SCORE",
+                        "BOSKALE",
                         style: TextStyle(
                           fontFamily: 'Lexend',
                           fontSize: 24,
@@ -156,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   keyboardType: TextInputType.emailAddress,
                                   style: TextStyle(fontFamily: 'Lexend', fontSize: 20, fontWeight: FontWeight.w500, color: context.colors.textHigh),
                                   decoration: InputDecoration(
-                                    hintText: "hello@velocityscore.com",
+                                    hintText: "hello@boskale.com",
                                     hintStyle: TextStyle(color: context.colors.surfaceContainerHigh),
                                     border: InputBorder.none,
                                     counterText: "",
@@ -272,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                      text: TextSpan(
                        style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: context.colors.textLow, height: 1.5),
                        children: const [
-                         TextSpan(text: "By continuing, you agree to the Velocity Score\n"),
+                         TextSpan(text: "By continuing, you agree to the Boskale\n"),
                          TextSpan(text: "Terms of Service", style: TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                          TextSpan(text: " and "),
                          TextSpan(text: "Privacy Policy", style: TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),

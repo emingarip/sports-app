@@ -4,8 +4,11 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/bulletin.dart';
 import '../models/match.dart' as model;
+import '../providers/bulletin_provider.dart';
 import '../providers/favorites_provider.dart';
+import '../screens/bulletin_match_analysis_screen.dart';
 import '../screens/match_detail_screen.dart';
 import '../services/push_notification_service.dart';
 import '../theme/app_theme.dart';
@@ -375,6 +378,7 @@ class MatchCard extends ConsumerWidget {
                 ],
               ),
             ],
+            _BulletinOddsStrip(match: match),
           ],
         ),
       ),
@@ -604,6 +608,106 @@ class _PulsingLiveTextState extends State<PulsingLiveText>
     return FadeTransition(
       opacity: Tween(begin: 0.3, end: 1.0).animate(_controller),
       child: widget.child,
+    );
+  }
+}
+
+/// Kartın altında günün iddaa bülteninden MS (1X2) oranlarını gösterir.
+/// Bülten kaydı `agent_match_id` köprüsüyle bulunur; eşleşme yoksa hiçbir şey
+/// çizilmez. Dokununca maçın analiz ekranı açılır.
+class _BulletinOddsStrip extends ConsumerWidget {
+  final model.Match match;
+
+  const _BulletinOddsStrip({required this.match});
+
+  static const _selectionLabels = {'home': '1', 'draw': 'X', 'away': '2'};
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bulletinAsync = ref.watch(
+      bulletinByAgentMatchIdProvider(bulletinDateKey(match.startTime)),
+    );
+    final bulletinMatch = bulletinAsync.value?[match.id];
+    final msMarket = bulletinMatch?.marketByCode('MS');
+    if (bulletinMatch == null || msMarket == null) {
+      return const SizedBox.shrink();
+    }
+
+    final selections = <BulletinSelection>[
+      for (final key in _selectionLabels.keys)
+        ...msMarket.selections.where(
+          (selection) => selection.selectionKey == key && !selection.suspended,
+        ),
+    ];
+    if (selections.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BulletinMatchAnalysisScreen(match: bulletinMatch),
+            ),
+          );
+        },
+        child: Row(
+          children: [
+            for (final selection in selections) ...[
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: BoxDecoration(
+                    color: context.colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                    border: selection.isDropping
+                        ? Border.all(
+                            color: context.colors.error.withValues(alpha: 0.5),
+                          )
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _selectionLabels[selection.selectionKey] ??
+                            selection.labelTr,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: context.colors.textLow,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        selection.odds.toStringAsFixed(2),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: selection.isDropping
+                              ? context.colors.error
+                              : context.colors.textHigh,
+                        ),
+                      ),
+                      if (selection.isDropping) ...[
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.trending_down_rounded,
+                          size: 12,
+                          color: context.colors.error,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              if (selection != selections.last) const SizedBox(width: 6),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
