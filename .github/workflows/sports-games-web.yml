@@ -1,18 +1,12 @@
+# DEVRE DISI. Bu is akisi secrets.VPS_HOST uzerinden ARTIK VAR OLMAYAN bir
+# VPS'e nginx + certbot ile deploy ediyordu. Barindirma 2026'da kullanicinin
+# kendi makinesine (Cloudflare Tunnel + Caddy) tasindi; yayin artik
+# deploy/publish.ps1 ile yapiliyor. Her push'ta bosuna calisip hata vermesin
+# diye tetikleyici yalnizca elle calistirmaya indirildi. Referans olarak
+# duruyor; VPS'e donulmeyecekse silinebilir.
 name: Sports Games Web CI
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - 'feature/**'
-      - 'bugfix/**'
-      - 'fix/**'
-    paths:
-      - 'sports_games_web/**'
-  pull_request:
-    paths:
-      - 'sports_games_web/**'
   workflow_dispatch:
 
 jobs:

@@ -59,10 +59,39 @@ supabase/.temp/
 _tmp_ws_doc.html
 ai_workforce.db
 nul
-sports_api/
+# sports_api: kodun kendisi izlenir, yalnizca sirlar ve calisma
+# ciktilari haric tutulur. Onceden butun dizin ignore'luydu; bahis analiz
+# motorunun tamami surum kontrolu disinda kaliyordu.
+sports_api/.env
+sports_api/logs/
+sports_api/runtime/
+sports_api/**/.runtime/
+sports_api/*.log
+sports_api/.venv/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .venv/
 venv/
+
+# Caddy yayin klasoru (publish.ps1 dolduruyor)
+deploy/www/
+.env.bak
+
+# Arac ciktisi dokuntuleri (analyze/lint/tsc loglari, gecici dumplar)
+analysis_output.txt
+analyze*.txt
+analyze_log.tmp
+test_home_dashboard.log
+**/ts_err*.txt
+**/lint*.txt
+**/lint_errors.txt
+**/eslint_report.json
+**/tsc_errors.txt
+**/build_output.txt
+**/out.txt
+
+# Kosucu ciktilari ve durum dosyalari (scripts/)
+scripts/logs/
+scripts/.goal_notifier_state.json

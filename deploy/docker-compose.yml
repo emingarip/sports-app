@@ -1,0 +1,191 @@
+# Boskale — tek yigin.
+#
+# Projenin ihtiyac duydugu TUM container'lar tek compose projesi altinda
+# ("boskale") toplanir; Docker Desktop'ta tek baslik altinda gorunurler.
+#
+#   docker compose -f deploy/docker-compose.yml up -d
+#   (ya da: powershell -File deploy\publish.ps1)
+#
+# NEDEN TEK DOSYA
+# ---------------
+# Onceden uc ayri proje vardi: `boskale` (Caddy), `sports_api`, `aisportagent`.
+# Ayni proje adiyla birden fazla compose dosyasi calistirmak GUVENLI DEGIL:
+# compose digerinin container'larini "orphan" sayip kaldirabilir. Tek dosya
+# bunu ortadan kaldirir.
+#
+# VOLUME'LER EXTERNAL
+# -------------------
+# Proje adi degisince compose volume adlarini da degistirir; yeni adla BOS bir
+# volume olusur ve mevcut veri geride kalir. Bu yuzden veri tasiyan dort volume
+# ASIL ADLARIYLA external olarak baglanir - tek bayt veri tasinmaz.
+#
+# AI Sport Agent AYRI BIR DEPODUR (D:\Projects\AI Sport Agent). Uygulamanin mac
+# kaynagi oldugu icin buraya dahil edildi; o depodaki compose dosyalari yedek
+# olarak duruyor ama gunluk kullanimda BU dosya gecerlidir.
+
+name: boskale
+
+services:
+  # --- Statik siteler (Flutter web, oyunlar, admin paneli) -------------------
+  web:
+    image: caddy:2-alpine
+    container_name: boskale-web
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080" # boskale.com      -> Flutter web
+      - "127.0.0.1:8081:8081" # games.boskale.com
+      - "127.0.0.1:8082:8082" # admin.boskale.com
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Build ciktilarini DOGRUDAN baglamiyoruz. "flutter build web" ciktiyi
+      # dakikalar boyunca yerinde yazdigi icin bagli klasor canliya yarim site
+      # servis ediyordu. publish.ps1 once derler, sonra buraya kopyalar.
+      - ./www/app:/srv/app:ro
+      - ./www/games:/srv/games:ro
+      - ./www/admin:/srv/admin:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # --- sports_api: kanonik spor verisi + tahmin motoru -----------------------
+  sports-api-db:
+    image: postgres:17
+    container_name: sports-api-db
+    restart: always
+    environment:
+      POSTGRES_DB: sports_api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sports_api"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - sports_api_postgres_data:/var/lib/postgresql/data
+
+  sports-api:
+    build:
+      context: ../sports_api
+    image: boskale-sports-api:latest
+    container_name: sports-api-app
+    restart: always
+    env_file:
+      - ../sports_api/.env
+    environment:
+      # Servis adi degisti (db -> sports-api-db); baglanti dizesi de degismeli.
+      SPORTS_API_DATABASE_URL: postgresql+asyncpg://postgres:postgres@sports-api-db:5432/sports_api
+    depends_on:
+      sports-api-db:
+        condition: service_healthy
+    ports:
+      # Host 8010 -> container 8000. Host'ta 8000 DigginAlpha backend'inde.
+      - "127.0.0.1:8010:8000"
+
+  # --- AI Sport Agent: uygulamanin mac/kadro/istatistik kaynagi --------------
+  agent-db:
+    image: postgres:17
+    container_name: boskale-agent-db
+    restart: unless-stopped
+    shm_size: 1gb
+    command:
+      - postgres
+      - -c
+      - max_parallel_workers_per_gather=0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_sport_agent
+    volumes:
+      - ai_sport_agent_postgres_data:/var/lib/postgresql/data
+      - "../../AI Sport Agent/docker/postgres/init:/docker-entrypoint-initdb.d:ro"
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_sport_agent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  agent-api:
+    build:
+      context: "../../AI Sport Agent"
+      dockerfile: Dockerfile
+    image: ai-sport-agent:latest
+    container_name: boskale-agent-api
+    restart: unless-stopped
+    env_file:
+      - "../../AI Sport Agent/.env"
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DATABASE_URL: postgresql+asyncpg://ai_sport_agent_app:ai_sport_agent_app@agent-db:5432/ai_sport_agent
+      ADMIN_DATABASE_URL: postgresql+asyncpg://postgres:postgres@agent-db:5432/ai_sport_agent
+      MOBILE_LOGO_CACHE_DIR: /var/lib/ai-sport-agent/mobile-logo-cache
+
+      # Playwright basli Chromium'u bu sanal ekranda acar (asagidaki command).
+      DISPLAY: ":99"
+
+      # Kazima BU makinede islensin: amac Sofascore'u kendi IP'mizden cekmek.
+      BACKGROUND_JOBS_ENABLED: "true"
+
+      # Bulten = ana ekran. Sofascore durumu gecikmis maclar GIZLENMESIN;
+      # bultende olan mac uygulamada da olmali (skorsuz olsa bile).
+      MOBILE_HIDE_STALE_SCHEDULED_AFTER_MINUTES: "0"
+
+      # BASLI mod. .env icinde PLAYWRIGHT_HEADLESS IKI KEZ tanimli (satir 20
+      # "true", satir 46 "false"); python-dotenv ILK degeri tuttugu icin
+      # dosyadaki "false" tercihi sessizce yok sayiliyor. Acikca veriyoruz.
+      PLAYWRIGHT_HEADLESS: "false"
+
+      # Sofascore gunun programini tek endpoint'ten vermiyor: once turnuva
+      # listesi, sonra turnuva basina ayri cagri - bir gun icin ~700 istek.
+      # .env varsayilani 12 eszamanlilik; o hizda IP 403'e dusuyor
+      # (2026-08-17'de yasandi, ~2 gun surdu). Dusuk tutuyoruz.
+      SOFASCORE_SCHEDULE_FETCH_CONCURRENCY: "3"
+
+      # .env'deki deger bir WINDOWS yolu; container icinde yok. Kalici profil
+      # olmadan her calistirmada sifir cerezle cikilir.
+      WHOSCORED_USER_DATA_DIR: /var/lib/ai-sport-agent/browser-profile
+
+    # Xvfb'yi DOGRUDAN baslatip DISPLAY veriyoruz.
+    # Kazima BASLI Chromium aciyor: host'ta calisirken kullanicinin masaustunde
+    # surekli pencere aciliyordu, container'da ise X server olmadigi icin
+    # "Missing X server or $DISPLAY" ile aninda oluyordu. Xvfb ikisini de cozer.
+    # "xvfb-run" KULLANILMADI: PID 1 olarak calistiginda Xvfb'yi aciyor ama
+    # komutu hic exec etmiyor (surec listesinde uvicorn yok, log bos kalir).
+    command:
+      - sh
+      - -c
+      - >-
+        Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+        --proxy-headers --forwarded-allow-ips '*'
+    depends_on:
+      agent-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - ai_sport_agent_browser_profile:/var/lib/ai-sport-agent/browser-profile
+      - ai_sport_agent_mobile_logo_cache:/var/lib/ai-sport-agent/mobile-logo-cache
+
+# Dordu de EXTERNAL: mevcut veriyi tasimadan yerinde kullaniyoruz.
+# Adlari eski proje adlarindan geliyor; degistirmek bos volume olusturur.
+volumes:
+  sports_api_postgres_data:
+    external: true
+    name: sports_api_sports_api_postgres_data
+  ai_sport_agent_postgres_data:
+    external: true
+    name: ai_sport_agent_postgres_data_runtime
+  ai_sport_agent_browser_profile:
+    external: true
+    name: aisportagent_ai_sport_agent_browser_profile
+  ai_sport_agent_mobile_logo_cache:
+    external: true
+    name: aisportagent_ai_sport_agent_mobile_logo_cache

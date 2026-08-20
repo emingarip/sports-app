@@ -1,0 +1,72 @@
+# Depo genelinde dogrulama. Eski VPS deploy is akislarinin yerini alir:
+# onlar var olmayan bir sunucuya deploy etmeye calisip her push'ta hata
+# veriyordu ve "derleme gecti mi" sorusunu bulanik birakiyordu.
+name: Verify
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Flutter (analyze + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # Yapilandirma dart-define ile geliyor; CI'da gercek sirlar yok.
+      # analyze ve test bunlara ihtiyac duymaz, derleme duyar - o yuzden
+      # burada derleme yok.
+      - run: flutter analyze
+      - run: flutter test
+
+  sports_api:
+    name: sports_api (pytest + ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sports_api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -q
+
+  web_frontends:
+    name: ${{ matrix.project }} (build + lint)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [admin_dashboard, sports_games_web]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      # Vite sirlari derleme aninda gomer; CI'da yer tutucu yeterli, amac
+      # TypeScript + bundle'in gecmesini dogrulamak.
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder

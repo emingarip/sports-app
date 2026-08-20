@@ -1,0 +1,57 @@
+{
+	admin off
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+# Tum sitelerde ortak: sikistirma, SPA fallback, guvenlik basliklari ve
+# "HTML'i asla cache'leme" kurali. index.html bayat kalirsa kullanici eski
+# build'e kilitlenir, o yuzden / ve /index.html birlikte eslesiyor.
+(base) {
+	encode zstd gzip
+	try_files {path} /index.html
+	file_server
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	@html path / /index.html
+	header @html Cache-Control "no-store, must-revalidate"
+}
+
+# Sadece icerigi degisince adi da degisen dosyalar uzun sureli cache'lenebilir.
+(immutable_media) {
+	@media path *.png *.jpg *.jpeg *.gif *.ico *.svg *.webp *.ttf *.otf *.woff *.woff2
+	header @media Cache-Control "public, max-age=31536000, immutable"
+}
+
+# boskale.com -> Flutter web
+:8080 {
+	root * /srv/app
+	import base
+	import immutable_media
+
+	# Flutter ciktisi hash'li isim KULLANMIYOR (main.dart.js, main.dart.wasm,
+	# AssetManifest.bin, ...). Bunlar her build'de degistigi icin cache'lenirse
+	# eski surum servis edilir. VPS nginx yapilandirmasi da ayni sekilde
+	# js/mjs/wasm/json'u no-cache tutuyordu.
+	@volatile path *.js *.mjs *.wasm *.json *.bin
+	header @volatile Cache-Control "no-cache, must-revalidate"
+}
+
+# games.boskale.com -> sports_games_web (Vite: /assets/* icerik-hash'li)
+:8081 {
+	root * /srv/games
+	import base
+	header /assets/* Cache-Control "public, max-age=31536000, immutable"
+}
+
+# admin.boskale.com -> admin_dashboard (Vite: /assets/* icerik-hash'li)
+:8082 {
+	root * /srv/admin
+	import base
+	header /assets/* Cache-Control "public, max-age=31536000, immutable"
+}
