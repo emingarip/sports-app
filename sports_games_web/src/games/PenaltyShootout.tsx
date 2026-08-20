@@ -97,7 +97,7 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
       if (data) {
         // Resolve bot usernames for 'Anonim' entries
         const anonIds = data.filter((d: any) => !d.users?.username).map((d: any) => d.user_id);
-        let botLogos: Record<string, string> = {};
+        const botLogos: Record<string, string> = {};
         if (anonIds.length > 0) {
             const { data: bots } = await supabase.from('bot_personas').select('user_id, team').in('user_id', anonIds);
             if (bots) {
@@ -476,7 +476,7 @@ export default function PenaltyShootout({ roomId, gameId }: PenaltyShootoutProps
     try {
       const payload = JSON.stringify({ type: 'GAME_OVER', score: Math.max(score, myHighScore), roomId: roomId, gameId: gameId });
       postMessageToHost(payload);
-    } catch (err) {}
+    } catch { /* yok sayiliyor */ }
   };
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {

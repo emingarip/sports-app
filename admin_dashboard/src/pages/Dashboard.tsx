@@ -29,7 +29,10 @@ interface BetData {
   matches: { home_team: { name: string }; away_team: { name: string } };
 }
 
+// Session is threaded in by App.tsx but the dashboard reads everything it
+// needs through the Supabase client, so the prop is intentionally unused.
 export default function Dashboard(_props: { _session?: Session | null }) {
+  void _props;
   const [stats, setStats] = useState<DashboardStats>({ totalUsers: 0, totalKCoins: 0, totalBets: 0 });
   const [recentBets, setRecentBets] = useState<BetData[]>([]);
   const [loading, setLoading] = useState(true);

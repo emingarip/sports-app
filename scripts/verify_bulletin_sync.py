@@ -46,9 +46,32 @@ def norm(value: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text)
 
 
+def name_tokens(value: str) -> set[str]:
+    """Anlamsiz ekleri atarak kelime kumesi cikarir.
+
+    Kaynaklar ayni takimi farkli yazar: "Marathon" / "CD Marathon",
+    "Alianza" / "Alianza FC". Sabit uzunlukta prefix almak bunlari AYRI
+    sayiyordu (ilk surumde 5 sahte "fazla" uretti). Kelime kumesi kesisimi
+    daha saglam.
+    """
+    stop = {"fc", "cd", "sc", "cf", "ac", "sk", "fk", "afc", "cs", "club", "csd",
+            "sv", "if", "bk", "us", "as", "ss", "ssc", "the", "united", "utd"}
+    words = {w for w in re.split(r"[^a-z0-9]+", (value or "").lower().translate(_TR)) if w}
+    core = {w for w in words if w not in stop and len(w) > 2}
+    return core or words
+
+
+def match_key(home: str, away: str) -> tuple[frozenset[str], frozenset[str]]:
+    return frozenset(name_tokens(home)), frozenset(name_tokens(away))
+
+
+def similar(a: tuple, b: tuple) -> bool:
+    """Iki tarafta da en az bir ortak anlamli kelime varsa ayni mac say."""
+    return bool(a[0] & b[0]) and bool(a[1] & b[1])
+
+
 def pair_key(home: str, away: str) -> str:
-    """Ilk 6 karakter: kisaltmalari ("Atl Mineiro") tam adla eslestirmek icin."""
-    return f"{norm(home)[:6]}|{norm(away)[:6]}"
+    return f"{norm(home)}|{norm(away)}"
 
 
 def supabase_bulletin(day: str) -> dict[str, dict]:
@@ -104,8 +127,24 @@ def agent_mobile(day: str) -> dict[str, dict]:
 
 
 def compare(label_a: str, a: dict, label_b: str, b: dict, *, sample: int = 5) -> int:
-    only_a = [k for k in a if k not in b]
-    only_b = [k for k in b if k not in a]
+    # Once birebir ad eslesmesi, kalanlar icin kelime kumesi kesisimi.
+    keys_b = dict(b)
+    only_a = []
+    for key, row in a.items():
+        if key in keys_b:
+            keys_b.pop(key)
+            continue
+        target = match_key(row.get("home_team", ""), row.get("away_team", ""))
+        hit = None
+        for other_key, other in keys_b.items():
+            if similar(target, match_key(other.get("home_team", ""), other.get("away_team", ""))):
+                hit = other_key
+                break
+        if hit is not None:
+            keys_b.pop(hit)
+        else:
+            only_a.append(key)
+    only_b = list(keys_b)
     print(f"\n{label_a} ({len(a)})  vs  {label_b} ({len(b)})")
     print(f"  {label_b} tarafinda EKSIK : {len(only_a)}")
     for k in only_a[:sample]:

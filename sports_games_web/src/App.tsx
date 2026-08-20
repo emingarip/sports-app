@@ -56,7 +56,7 @@ function App() {
       if (typeof data === 'string') {
         try {
           data = JSON.parse(data);
-        } catch (_) {}
+        } catch { /* yok sayiliyor */ }
       }
 
       if (data && data.type === 'INIT_AUTH' && data.accessToken && data.refreshToken) {

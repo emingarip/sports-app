@@ -379,7 +379,7 @@ export default function HeaderHero({ roomId, gameId }: HeaderHeroProps) {
   const autoSaveScore = async (finalScore: number) => {
     if (finalScore > myHighScore || myHighScore === 0) {
        if (finalScore > myHighScore) setMyHighScore(finalScore);
-       try { await supabase.functions.invoke('process-mini-game', { body: { gameId, roomId, score: finalScore } }); } catch (err) {}
+       try { await supabase.functions.invoke('process-mini-game', { body: { gameId, roomId, score: finalScore } }); } catch { /* yok sayiliyor */ }
     }
   };
 

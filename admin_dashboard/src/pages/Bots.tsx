@@ -226,7 +226,7 @@ LÜTFEN BANA SADECE GEÇERLİ BİR JSON ARRAY DÖN. Hiçbir açıklama metni vey
         let generatedBots = [];
         try {
            generatedBots = JSON.parse(text);
-        } catch(err) {
+        } catch {
            throw new Error(`Ollama geçersiz bir JSON döndürdü. Lütfen tekrar deneyin. Gelen yanıt: ${text.substring(0,50)}...`);
         }
 

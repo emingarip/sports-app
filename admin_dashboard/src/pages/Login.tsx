@@ -2,23 +2,21 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Trophy } from 'lucide-react';
 
-export default function Login() {
+export default function Login({ accessError = '' }: { accessError?: string }) {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Surfaced by App.tsx when a valid Supabase session belongs to a user
+  // whose users.is_admin is false; the session is signed out immediately.
+  const shownError = error || accessError;
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    if (!email.toLowerCase().includes('emin')) {
-        setError('Erişim reddedildi: Bu e-posta adresinin yetkisi yok.');
-        setLoading(false);
-        return;
-    }
 
     if (step === 'email') {
       const { error } = await supabase.auth.signInWithOtp({
@@ -55,13 +53,13 @@ export default function Login() {
           <p className="text-sm text-muted-foreground mt-2">Giriş yapmak için bilgilerinizi girin</p>
         </div>
 
-        {error && (
+        {shownError && (
           <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md mb-4 border border-destructive/20">
-            {error}
+            {shownError}
           </div>
         )}
 
-        {step === 'otp' && !error && (
+        {step === 'otp' && !shownError && (
           <div className="bg-emerald-500/10 text-emerald-500 text-sm p-4 rounded-md mb-6 border border-emerald-500/20">
             <strong>Doğrulama Kodu Gönderildi!</strong> Lütfen e-posta kutunuzu kontrol edin.
           </div>

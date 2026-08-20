@@ -21,7 +21,7 @@ void main() {
           ),
         );
 
-        expect(find.text('KINETIC SCORES'), findsOneWidget);
+        expect(find.text('BOSKALE'), findsOneWidget);
         expect(find.text('login-screen'), findsNothing);
         expect(tester.takeException(), isNull);
 
@@ -50,7 +50,7 @@ void main() {
           ),
         );
 
-        expect(find.text('KINETIC SCORES'), findsOneWidget);
+        expect(find.text('BOSKALE'), findsOneWidget);
         expect(tester.takeException(), isNull);
 
         await tester.pump();

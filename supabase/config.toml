@@ -46,3 +46,62 @@ entrypoint = "./functions/claim-kcoin-reward/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/gamification-api-bridge/index.ts"
+
+# ---------------------------------------------------------------------------
+# Asagidaki dokuz fonksiyon config.toml'de hic tanimli degildi, yani CLI
+# varsayilaniyla deploy oluyorlardi ve "bu uc JWT istiyor mu" sorusunun
+# cevabi kodun disinda hicbir yerde yaziliydi. Her biri icin deger bilincle
+# secildi.
+# ---------------------------------------------------------------------------
+
+# RevenueCat sunucularindan cagriliyor; kullanici JWT'si yok. Fonksiyon kendi
+# paylasilan sirriyla (REVENUECAT_WEBHOOK_SECRET) fail-closed koruyor.
+[functions.revenuecat_webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/revenuecat_webhook/index.ts"
+
+# Ikisi de Authorization basligindaki JWT'yi kendi icinde auth.getUser() ile
+# dogruluyor; kapida ikinci kez dogrulamak akisi bozar.
+[functions.process-mini-game]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/process-mini-game/index.ts"
+
+[functions.finalize-mini-game]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/finalize-mini-game/index.ts"
+
+# Oturum acmis kullanici cagiriyor.
+[functions.livekit-token]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/livekit-token/index.ts"
+
+[functions.generate-insights]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/generate-insights/index.ts"
+
+# Senkron zinciri: yerel kosucu (scripts/bulletin_sync_runner.ps1) ve
+# zamanlanmis gorevler servis anahtariyla cagiriyor.
+[functions.sync-bulletin]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sync-bulletin/index.ts"
+
+[functions.sync-predictions]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sync-predictions/index.ts"
+
+[functions.sync-live-matches]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sync-live-matches/index.ts"
+
+[functions.resolve-coupons]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/resolve-coupons/index.ts"

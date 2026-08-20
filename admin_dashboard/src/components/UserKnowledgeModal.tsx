@@ -160,8 +160,8 @@ export default function UserKnowledgeModal({ userId, username, onClose }: Knowle
   };
 
   const buildGraph = (interests: UserInterest[], events: UserEvent[], relations: EntityRelation[], nodeLimit: number) => {
-    let initialNodes: Node[] = [];
-    let initialEdges: Edge[] = [];
+    const initialNodes: Node[] = [];
+    const initialEdges: Edge[] = [];
 
     initialNodes.push({
       id: 'center_user',

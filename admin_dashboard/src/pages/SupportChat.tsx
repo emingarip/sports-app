@@ -181,7 +181,7 @@ export default function SupportChat() {
     e?.preventDefault();
     if (!newMessage.trim()) return;
 
-    let roomId = selectedRoom;
+    const roomId = selectedRoom;
     const content = newMessage.trim();
     setNewMessage('');
 

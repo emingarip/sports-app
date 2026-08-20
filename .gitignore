@@ -58,6 +58,8 @@ supabase/.temp/
 .codex-runtime/
 _tmp_ws_doc.html
 ai_workforce.db
+# Baska bir projeye ait, buraya yanlislikla dusmus veri dosyasi.
+digginalpha_strategy_1_weight_events.csv
 nul
 # sports_api: kodun kendisi izlenir, yalnizca sirlar ve calisma
 # ciktilari haric tutulur. Onceden butun dizin ignore'luydu; bahis analiz

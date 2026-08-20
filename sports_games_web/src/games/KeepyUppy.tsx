@@ -70,7 +70,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
       if (data) {
         // Resolve bot usernames for 'Anonim' entries
         const anonIds = data.filter((d: any) => !d.users?.username).map((d: any) => d.user_id);
-        let botLogos: Record<string, string> = {};
+        const botLogos: Record<string, string> = {};
         if (anonIds.length > 0) {
             const { data: bots } = await supabase.from('bot_personas').select('user_id, team').in('user_id', anonIds);
             if (bots) {
@@ -198,7 +198,7 @@ export default function KeepyUppy({ roomId, gameId }: KeepyUppyProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let frames = 0;
+    const frames = 0;
     const render = () => {
       // Clear canvas
       ctx.clearRect(0, 0, screenWidth, screenHeight);
